@@ -2,39 +2,39 @@
 
 Updated: 2026-10-21.
 
-- Version 0.3.0 implements eight read-only MCP tools: existing server/domain/web-log
-  reads plus subdomain and WordPress installation inventory and WordPress debug logs.
-- WordPress logs are disabled without private `wordpressLogRoots`; optional per-site
-  `wordpressLogPaths` supports custom layouts. No debug enablement or caller paths.
-- Local `npm run check` passes: types, 29/29 tests and build. New APIs are verified
-  against provider-schema fixtures, not live Login Key calls.
-- Live authenticated MCP preflight still reports version 0.1.0 and no configured
-  hosting credentials across its two accounts. No live hosting reads are verified.
-- GitHub `production` has six deployment variables and the SSH secret. The owner
-  had stored the private key as a variable; it was migrated directly to Secrets and
-  the plaintext variable deleted, without printing or storing its value locally.
-  Assess/rotate that shared host key because variables are not secret storage.
-- Deployment run `39667602508` passed checks/build but stopped before code transfer:
-  the supplied key could not be parsed (`error in libcrypto`). The workflow now
-  normalizes CRLF/escaped newlines and JSON-quoted key text and validates parsing
-  before SSH. Ephemeral key fixtures verified all four input forms and mode 600.
-- Existing local SSH access to the hosting account works. The app dependency graph
-  matches the locked runtime packages; the private scripts directory is prepared.
-  A deployment using this trusted connection can proceed without uploading a key.
-- Next: retry the corrected workflow, deploy and check HTTPS/MCP; configure per-account
-  Login Keys privately and verify inventory, filemanager permissions and Range
-  behavior before enabling narrow WordPress log roots. OAuth full owner login remains
-  a separate client check. Private env/config/OAuth state must survive deployment.
+- Version 0.3.0 is deployed on production from code commit `d4358b6` through GitHub
+  Actions run `39668025800`. Check and Deploy MCP both passed.
+- Eight read-only MCP tools: server/account discovery, domains, subdomains,
+  WordPress installations, web logs and explicitly enabled WordPress debug logs.
+- Local and CI `npm run check`: types, 29/29 tests and build. Security/SDK fixtures
+  cover isolation, path bounds, metadata, ranges and plain/JSON/PHP redaction.
+- Independent live verification: HTTPS health returns 0.3.0, unauthenticated MCP
+  returns 401, authenticated SDK discovers eight tools and confirms writes disabled.
+  No production hosting reads were performed.
+- The two configured production accounts have no hosting Login Keys yet. Domain,
+  subdomain and WordPress inventory/log reads need private per-account credentials
+  with verified read permissions. Do not claim successful live provider reads.
+- WordPress logs remain disabled without private `wordpressLogRoots`. Optional
+  `wordpressLogPaths` supports custom layouts. Verify live provider detection,
+  filemanager permissions and Range behavior before enabling narrow roots.
+- GitHub `production` has one SSH secret and six non-secret variables. The workflow
+  normalizes multiline/CRLF/escaped/JSON-quoted key inputs and validates parsing
+  before SSH. Ephemeral fixtures checked all four forms and mode 600.
+- Deployment preserved private env/config, OAuth state and the CloudLinux dependency
+  symlink. No new runtime dependencies or hosting mutations were introduced.
+- Next: privately configure Login Keys, confirm account-specific read permissions
+  and inventory, then opt in to narrowly scoped log reads. Full owner OAuth login
+  remains a separate client verification; Bearer MCP was verified in production.
 
 ## Recent changes
 
-2026-10-21 — added provider subdomain and WordPress reads (D09/D10), shared bounded
-HTTP transport, private log path policy, SDK/security tests and operator documentation.
-A follow-up hardens JSON/PHP/WordPress credential redaction and key input parsing.
-Code map and capability catalog updated together. No new runtime dependencies.
+2026-10-21 — shipped domain/subdomain and WordPress reads (D09/D10), shared bounded
+HTTP transport, private log policy, tests and English operator documentation.
+Map, capabilities and decisions updated together. First workflow deployment verified.
 Metadata/download checks are not atomic isolation against concurrent path swaps;
-trusted account-owned sites are required. Inventory covers provider-known installs.
+use trusted account-owned sites. Inventory covers provider-known installations.
 
-2026-10-21 — shared English agent memory established (D07) and deployment configured
-with one owner-supplied SSH secret and six variables (D08). Initial code published
-on `origin/main`; the initial 16-test suite and GitHub Check runs passed.
+2026-10-21 — shared English agent memory (D07) and manual deployment configuration
+(D08). Fixed secret placement and private-key text formatting before the successful
+deployment. Assess rotation of the shared host key if it was stored outside Secrets;
+key values must never enter project memory or logs.

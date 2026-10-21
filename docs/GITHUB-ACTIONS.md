@@ -89,7 +89,10 @@ Release archives, restart results and the code backup remain private under
 `~/.seohost-mcp-deploy/<run-id>-<attempt>/`. Retain the backup needed for recovery;
 remove older transfer directories periodically to avoid exhausting disk space.
 
-The workflow is ready for configuration; a successful production SSH deployment
-must be verified after the secrets and variables have been supplied.
+The first production workflow deployment of 0.3.0 was verified on 2026-10-21:
+locked dependency check, code backup/restart, HTTPS health, unauthenticated rejection
+and authenticated MCP SDK smoke passed. See [project status](../.agents/STATUS.md)
+for outstanding per-account provider credentials and read verification. Each new
+installation still needs its own configuration and complete client checks.
 
 CloudLinux CLI reference: https://docs.cloudlinux.com/cloudlinuxos/command-line_tools/#node-js-selector
