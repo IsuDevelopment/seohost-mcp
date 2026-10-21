@@ -50,6 +50,9 @@ tokens never gain write access after an upgrade. Writes and change previews requ
 These are account fields alongside `baseUrl` and credential environment names;
 they are not a separate config file. Defaults are empty/disabled. Obtain trusted
 nameservers from operator/provider account settings, not arbitrary zone records.
+For a manual rollback to code older than 0.6.0, restore the compatible private
+configuration backup or remove these new account fields first; older strict schemas
+reject them. Preserve change receipts/locks even when rolling back application code.
 Restart after configuration changes. DNS add/edit/delete require a fresh public NS
 answer matching this exact configured set at both preview and apply. Unknown,
 failed or externally hosted DNS is blocked. Subdomain/domain hosting creation can
