@@ -21,6 +21,7 @@ not require another server implementation.
 
 ```json
 {"name":"list_domains","arguments":{"serverId":"primary"}}
+{"name":"list_subdomains","arguments":{"serverId":"primary","domain":"example.com"}}
 {"name":"read_web_log","arguments":{"serverId":"primary","domain":"example.com","logType":"access","lines":100}}
 {"name":"read_web_log","arguments":{"serverId":"primary","domain":"example.com","logType":"error","lines":200,"contains":"fatal"}}
 ```
@@ -44,7 +45,8 @@ and outcome, not credentials or log contents.
 ## Hosting credentials
 
 Use a separate existing DirectAdmin Login Key for each account. Allow only the
-commands needed here: `CMD_API_SHOW_DOMAINS` and `CMD_SHOW_LOG`. Confirm those names
+commands needed here: `CMD_API_SHOW_DOMAINS`, `CMD_API_SUBDOMAINS` (subdomain lists)
+and `CMD_SHOW_LOG` (access/error reads). Confirm those names
 in the hosting panel's command list. Do not enable browser login, unrestricted
 commands or administrative permissions solely for these tools.
 
@@ -63,6 +65,27 @@ Deploy the private config/environment separately from public source and restart.
 Missing keys cause `CREDENTIALS_MISSING`; rejected keys/permissions cause
 `ACCESS_DENIED`; a domain on another account causes `DOMAIN_NOT_ON_SERVER`.
 No fallback to session cookies, account passwords or another server occurs.
+
+## Verify live hosting reads
+
+The regular `npm run smoke` does not contact DirectAdmin. To verify domain lists,
+subdomains and both web-log types through the running MCP application, explicitly
+select an account and one of its domains:
+
+```sh
+node --env-file=.env.production scripts/smoke-hosting.mjs --server primary --domain example.com
+# With local .env configuration:
+npm run smoke:hosting -- --server primary --domain example.com
+```
+
+This requires `MCP_PUBLIC_URL` and `MCP_AUTH_TOKEN` for the target MCP application;
+DirectAdmin credentials remain on that application host. It reads at most five
+requested lines from each log, prints only counts/status/truncation and never prints
+domain names, log records, tokens or provider error text. Any denied or failed read
+causes a nonzero exit code. A successful empty log is reported as `empty: true`;
+it does not prove logging is disabled or that another domain/stream is empty.
+The check does not test WordPress or modify hosting configuration. It runs only
+when explicitly invoked, not automatically during deployment.
 
 ## Scope of the logs
 

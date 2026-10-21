@@ -47,6 +47,10 @@ See [logs, aliases and key setup](docs/LOGS.md),
 [WordPress inventory and logs](docs/WORDPRESS.md) and
 [configuration and deployment](docs/DEPLOYMENT.md). MIT license.
 
+To verify live domain/subdomain lists and access/error log reads for one explicit
+account/domain, use `npm run smoke:hosting -- --server primary --domain example.com`.
+It reports counts/status without printing logs; see [hosting verification](docs/LOGS.md#verify-live-hosting-reads).
+
 [Diagnostics](docs/DIAGNOSTICS.md) distinguish loaded configuration readiness from
 unverified provider permissions and inspect WordPress details/log metadata safely.
 

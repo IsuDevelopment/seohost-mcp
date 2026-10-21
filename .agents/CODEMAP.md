@@ -19,6 +19,7 @@ module responsibilities or important flows change; keep this map short.
 | `config/servers.example.json`, `.env.example` | Public templates without real accounts or secrets. |
 | `scripts/setup-{local,oauth,hosting}.mjs` | Local setup of private environment files and credentials. |
 | `scripts/smoke.mjs`, `scripts/smoke-oauth.mjs` | Real MCP client / OAuth probes against the configured environment. |
+| `scripts/smoke-hosting.mjs` | Explicit account/domain live verification of domain/subdomain lists and five-line access/error reads; prints counts/status only. |
 | `.github/workflows/check.yml` | Push/PR: locked installation, type checks, tests and build. |
 | `.github/workflows/deploy.yml` | Manual deployment from `main`, production environment, SSH with a trusted host key. |
 | `deploy/package.sh` | Runtime archive from an explicit allowlist, excluding private configuration. |
@@ -31,6 +32,7 @@ module responsibilities or important flows change; keep this map short.
 | `test/diagnostics.test.ts` | Configuration-only readiness, catalog/registration agreement, safe detail projection, ID encoding, account isolation and metadata inspection without downloads. |
 | `test/oauth.test.ts` | Consent, CSRF, PKCE, single-use codes, shared SQLite, MCP and revocation. |
 | `test/deploy.test.ts` | Dependency graph, archive contents, release/rollback and private file preservation. |
+| `test/smoke-hosting.test.ts` | Real HTTP SDK/subprocess smoke: explicit selection, bounded log requests, payload-free output and nonzero failure status. |
 | `docs/`, `SECURITY.md` | Operator contracts, setup and security limitations. |
 | `AGENTS.md`, `CLAUDE.md`, `.agents/` | Codex/Claude entry points and shared memory; `CAPABILITIES.md` catalogs AI operations, optional `tasks/` holds temporary handoffs. |
 

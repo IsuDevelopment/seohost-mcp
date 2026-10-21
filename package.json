@@ -18,6 +18,7 @@
     "check": "npm run typecheck && npm test && npm run build",
     "setup:local": "node scripts/setup-local.mjs",
     "smoke": "node --env-file-if-exists=.env scripts/smoke.mjs",
+    "smoke:hosting": "node --env-file-if-exists=.env scripts/smoke-hosting.mjs",
     "setup:oauth": "node scripts/setup-oauth.mjs",
     "setup:hosting": "node scripts/setup-hosting.mjs"
   },

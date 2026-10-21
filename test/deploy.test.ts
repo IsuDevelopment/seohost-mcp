@@ -31,7 +31,7 @@ test('dependency guard accepts code-only updates and rejects changed or missing 
 test('release archive includes runtime allowlist and excludes private state and configuration', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'mcp-package-'))
   try {
-    const files = ['dist/src/http.js', 'package.json', 'package-lock.json', 'deploy/start.cjs', 'deploy/verify.mjs', 'scripts/smoke.mjs', 'scripts/smoke-oauth.mjs', 'scripts/setup-hosting.mjs', 'scripts/setup-oauth.mjs', 'scripts/check-runtime-dependencies.mjs', '.env', 'config/servers.json', 'data/oauth.sqlite', 'dist/test/example.js']
+    const files = ['dist/src/http.js', 'package.json', 'package-lock.json', 'deploy/start.cjs', 'deploy/verify.mjs', 'scripts/smoke.mjs', 'scripts/smoke-hosting.mjs', 'scripts/smoke-oauth.mjs', 'scripts/setup-hosting.mjs', 'scripts/setup-oauth.mjs', 'scripts/check-runtime-dependencies.mjs', '.env', 'config/servers.json', 'data/oauth.sqlite', 'dist/test/example.js']
     for (const path of files) {
       await mkdir(join(dir, path, '..'), { recursive: true })
       await writeFile(join(dir, path), 'fixture')
@@ -41,6 +41,7 @@ test('release archive includes runtime allowlist and excludes private state and 
     assert.equal(result.status, 0, result.stderr)
     const contents = spawnSync('tar', ['-tzf', join(dir, 'release.tar.gz')], { encoding: 'utf8' }).stdout
     assert.match(contents, /dist\/src\/http.js/)
+    assert.match(contents, /scripts\/smoke-hosting.mjs/)
     assert.doesNotMatch(contents, /\.env|config\/|data\/|dist\/test|node_modules/)
   } finally { await rm(dir, { recursive: true, force: true }) }
 })

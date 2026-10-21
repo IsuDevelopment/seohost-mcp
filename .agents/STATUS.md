@@ -6,7 +6,7 @@ Updated: 2026-10-22.
   `39686166152`; Check run `39686143680` and deployment both passed.
 - Eleven read-only MCP tools, including new `get_server_capabilities`,
   `get_wordpress_info` and `get_wordpress_log_info` diagnostics.
-- Local `npm run check` passes: types, 38/38 tests and build. Automated provider
+- Local `npm run check` passes: types, 39/39 tests and build. Automated provider
   tests use schema fixtures and the real MCP SDK; live verification is listed below.
 - Configuration readiness uses loaded settings and never probes provider access.
   WordPress details revalidate installation ownership and return safe fields only.
@@ -22,17 +22,29 @@ Updated: 2026-10-22.
   `wordpress=OFF`; the session's general WordPress feature flag alone is insufficient.
   WordPress Manager needs provider/account-level enablement before inventory can
   be verified. H93 setup is deferred by the owner; it was not retried. No log contents
-  were downloaded, and subdomain/log permissions are not yet verified.
+  were downloaded during that authentication diagnostic.
+- Subsequent owner-authorized H57 checks through the production MCP SDK verified
+  subdomain lists and both access/error log reads on representative owned domains.
+  Active streams returned records; other streams were empty. Only counts/status
+  were printed; no raw log content was published. This does not verify every
+  account/domain, rotated archives or machine-wide logs.
 - WordPress log access requires narrow private `wordpressLogRoots`, optional per-site
   `wordpressLogPaths`, provider filemanager access and separate live verification.
   Metadata is not an atomic lock against concurrent filesystem swaps; use trusted
   account-owned installations. No tool enables logging or accepts caller paths.
-- Next: request H57 WordPress Manager enablement, then verify
-  account-specific subdomain/log permissions, WordPress inventory, log metadata
-  and Range behavior. H93 credentials are deferred. Full owner OAuth login remains
-  a separate client check.
+- Next: request H57 WordPress Manager enablement, then verify WordPress inventory,
+  log metadata and Range behavior. H93 credentials are deferred. Full owner OAuth
+  login remains a separate client check.
 
 ## Recent changes
+
+2026-10-22 — verified existing domain/subdomain and access/error MCP tools on H57.
+Added explicit `smoke:hosting` for repeatable live read verification without log
+payload output, plus HTTP/subprocess coverage and operator instructions. Runtime
+tool contracts remain at 0.4.0; this change does not redeploy the application or
+enable WordPress Manager. The new helper is included in future deployment archives.
+Verification: `npm run check` passes (39 tests); the new helper also passes against
+production H57 with nonempty access/error streams. No runtime dependency changes.
 
 2026-10-22 — clarified standard shared-hosting scope (D12) in README, package and
 local ignored plugin descriptions, deployment documentation and agent context.

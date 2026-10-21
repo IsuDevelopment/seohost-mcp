@@ -70,6 +70,7 @@ agent's actual environment access and the authorized task.
 | Prepare local env | `npm run setup:local` | Creates a private env with a random token; preserves an existing file. |
 | Configure OAuth / hosting | `npm run setup:oauth -- <env-file>` / `npm run setup:hosting -- <env-file>` | Interactive private configuration; hosting setup also needs a build. Never request credentials in chat. |
 | Probe MCP | `npm run smoke` | Running target and Bearer token; discovers tools and calls server info, without testing hosting reads. |
+| Verify hosting reads | `npm run smoke:hosting -- --server <id> --domain <owned-domain>` | Explicit live opt-in; MCP URL/Bearer from env. Verifies domains, subdomains and five-line access/error reads on that account; prints counts/status only and exits nonzero on failure. No WordPress calls or automatic deployment invocation. |
 | Probe OAuth | `node --env-file=<env-file> scripts/smoke-oauth.mjs` | Running target and allowed callback; creates a test client and denies consent; no access token issued. Not a full successful login test. |
 | Deploy existing app | GitHub Actions → Deploy MCP | Authorized deployment, `main`, production environment with one owner-supplied SSH secret and six variables, existing CloudLinux app; restart and rollback can modify app code. |
 
