@@ -18,13 +18,16 @@ Provider filemanager checks are not an atomic defense against concurrent filesys
 changes; retain this limitation explicitly in permanent documentation.
 
 Implemented: 0.3.0 subdomain inventory, WordPress installations and opt-in log
-reads, custom private log mappings, shared HTTP bounds, 28 passing tests and English
+reads, custom private log mappings, shared HTTP bounds, 29 passing tests and English
 operator/agent documentation. Runtime dependency graph is unchanged.
 
 Live preflight: production is still 0.1.0; neither configured account has hosting
 credentials. A local trusted SSH deployment is an alternative to the missing
 GitHub secret; preserve private configuration and OAuth state.
 
-Next: commit/push, check CI, deploy with the trusted local connection if GitHub
-secret remains unavailable, then update permanent STATUS and remove this task note.
+Next: push the redaction/key-format fix and retry Actions. The key was migrated from
+an incorrectly used GitHub variable into Secrets; the previous retry failed parsing
+before any code transfer. Four key formatting fixtures pass locally. If the supplied
+key remains unusable, the authorized trusted local SSH connection is available.
+After successful deployment, update STATUS and remove this temporary note.
 Live hosting reads still require privately supplied Login Keys and permission checks.

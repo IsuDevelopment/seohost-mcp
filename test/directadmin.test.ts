@@ -92,6 +92,14 @@ test('common credentials and all query values are redacted, including referrers'
   assert(output.includes('[REDACTED]'))
 })
 
+test('structured WordPress logs redact JSON, PHP arrays and WordPress credential constants', () => {
+  const raw = `{"password":"json-private","dbPass":"database-private","client_secret":"client-private"}\n[password] => multi word private value\nDB_PASSWORD='env-private'\n'AUTH_KEY' => 'auth-private'\n"SECURE_AUTH_SALT": "salt-private"\n{"token":"escaped\\\"private"}`
+  const output = redactLog(raw)
+  for (const secret of ['json-private', 'database-private', 'client-private', 'multi word private value', 'env-private', 'auth-private', 'salt-private', 'escaped', 'private'])
+    assert(!output.includes(secret), secret)
+  assert.equal(redactLog('Fatal undefined variable in application.php on line 42'), 'Fatal undefined variable in application.php on line 42')
+})
+
 test('real MCP client discovers and calls read tools; concurrent server choices remain isolated', async () => {
   const settings = await fixture()
   const server = createMcpServer(settings, async input => {

@@ -25,7 +25,7 @@ module responsibilities or important flows change; keep this map short.
 | `deploy/remote.sh` | Code backup, copy, single-app restart, verification and rollback. |
 | `deploy/start.cjs`, `deploy/verify.mjs` | CloudLinux bootstrap with env / HTTPS health and unauthenticated rejection probes. |
 | `test/server.test.ts` | HTTP auth, Host/Origin, method/body limits, real HTTP SDK and stdio. |
-| `test/directadmin.test.ts` | Account isolation, aliases, domain validation, provider failures, limits, redaction and SDK. |
+| `test/directadmin.test.ts` | Account isolation, aliases, domain validation, provider failures, limits, plain/JSON/PHP WordPress credential redaction and SDK. |
 | `test/wordpress.test.ts` | Subdomain ownership, installation projection/paging, cross-account IDs, root boundaries, file metadata, suffix ranges, output caps and custom log paths. |
 | `test/oauth.test.ts` | Consent, CSRF, PKCE, single-use codes, shared SQLite, MCP and revocation. |
 | `test/deploy.test.ts` | Dependency graph, archive contents, release/rollback and private file preservation. |

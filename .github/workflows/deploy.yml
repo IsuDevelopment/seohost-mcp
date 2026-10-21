@@ -50,7 +50,24 @@ jobs:
           umask 077
           ssh_dir=$(mktemp -d "$RUNNER_TEMP/seohost-ssh.XXXXXX")
           trap 'rm -rf -- "$ssh_dir"' EXIT
-          printf '%s\n' "$SSH_PRIVATE_KEY" > "$ssh_dir/key"
+          node --input-type=module - "$ssh_dir/key" <<'NODE'
+          import { writeFileSync } from 'node:fs'
+          let key = process.env.SSH_PRIVATE_KEY.trim()
+          if (key.startsWith('"') && key.endsWith('"')) {
+            try { key = JSON.parse(key) } catch { throw new Error('SSH key has invalid JSON string formatting') }
+          }
+          if (typeof key !== 'string') throw new Error('Expected SSH private key text')
+          key = key.replace(/\\r\\n/g, '\n').replace(/\\n/g, '\n').replace(/\r/g, '')
+            .split('\n').map(line => line.trim()).join('\n').trim() + '\n'
+          if (!/^-----BEGIN (?:OPENSSH |RSA |EC )?PRIVATE KEY-----\n/.test(key)) {
+            throw new Error('Expected a complete SSH private key block')
+          }
+          writeFileSync(process.argv[2], key, { mode: 0o600 })
+          NODE
+          if ! ssh-keygen -y -P '' -f "$ssh_dir/key" > "$ssh_dir/public"; then
+            echo '::error::SSH key is invalid or encrypted. Supply the complete existing private key without a passphrase; do not paste a public key.'
+            exit 1
+          fi
           printf '%s\n' "$SSH_KNOWN_HOSTS" > "$ssh_dir/known_hosts"
           opts=(-i "$ssh_dir/key" -o "UserKnownHostsFile=$ssh_dir/known_hosts" -o StrictHostKeyChecking=yes -o BatchMode=yes -o IdentitiesOnly=yes -o ConnectTimeout=20)
           target="$SSH_USER@$SSH_HOST"

@@ -26,6 +26,13 @@ this hosting server; agents must not upload your local private key to GitHub:
 | --- | --- |
 | `SEOHOST_SSH_PRIVATE_KEY` | Private key whose public key is already authorized on the hosting account |
 
+Paste the complete private key block, including BEGIN/END lines. The workflow has
+no passphrase input: encrypted keys cannot be used as supplied. It normalizes CRLF
+and literal escaped newlines, then validates key parsing before contacting SSH.
+Key contents and the derived public key are never printed. GitHub variables do not
+protect secrets: if a private key was stored there, move it to Secrets, delete the
+variable and rotate the key according to the shared host-access policy.
+
 Verify the SSH host key fingerprint through the hosting provider or an existing
 trusted connection. The workflow requires strict host key verification; it does
 not trust a key collected automatically during deployment.

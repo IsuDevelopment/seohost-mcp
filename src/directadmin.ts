@@ -21,7 +21,9 @@ export function redactLog(text: string): string {
     .replace(/(https?:\/\/)[^\s/@]+:[^\s/@]+@/gi, '$1[REDACTED]@')
     .replace(/\b(Bearer|Basic)\s+[^\s"'<>]+/gi, '$1 [REDACTED]')
     .replace(/\b((?:set-cookie|cookie|authorization)\s*:\s*).*$/gim, '$1[REDACTED]')
-    .replace(/\b((?:password|passwd|secret|token|api[_-]?key|access[_-]?token|refresh[_-]?token)\s*[=:]\s*)(?:"[^"]*"|'[^']*'|[^\s,;]+)/gi, '$1[REDACTED]')
+    // PHP print_r, JSON and common WordPress/environment credential names.
+    .replace(/^(\s*\[(?:password|passwd|secret|token|api[_-]?key|access[_-]?token|refresh[_-]?token|client[_-]?secret|db[_-]?(?:password|pass)|(?:secure[_-]auth|logged[_-]in|auth|nonce)[_-](?:key|salt))\]\s*=>\s*).*$/gim, '$1[REDACTED]')
+    .replace(/\b((?:password|passwd|secret|token|api[_-]?key|access[_-]?token|refresh[_-]?token|client[_-]?secret|db[_-]?(?:password|pass)|(?:secure[_-]auth|logged[_-]in|auth|nonce)[_-](?:key|salt))\b["']?\]?\s*(?:=>|[=:])\s*)(?:"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|[^\s,;]+)/gi, '$1[REDACTED]')
     .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, '')
 }
 
