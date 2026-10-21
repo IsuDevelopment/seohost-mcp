@@ -4,6 +4,10 @@ This describes implemented behavior, not permission to operate on an arbitrary
 account. Tool registrations and schemas in `src/server.ts` are authoritative.
 All eleven MCP tools are available over HTTP and stdio.
 
+Platform scope: standard SeoHost shared hosting accounts via DirectAdmin. VPS
+compatibility is untested; panel presence does not establish endpoint/permission
+equivalence. No root, VM lifecycle or operating-system administration is provided.
+
 ## MCP tools
 
 | Tool | Purpose and result | Inputs | Prerequisites / limitations |

@@ -2,6 +2,11 @@
 
 ## Model
 
+Target standard SeoHost shared hosting accounts through DirectAdmin user-level APIs.
+VPS is outside the verified scope; a VPS may have DirectAdmin, but actual endpoint
+availability and permissions need separate validation. The deployment adapter assumes
+an existing CloudLinux Node.js app and never provisions machines or uses root access.
+
 Small modular server without a DI container or extra DDD layers. Domain concepts:
 configured account (`serverId`), alias, account-owned domain and a bounded web-log
 tail. WordPress adds provider-known installation IDs and explicit log root/path policy.

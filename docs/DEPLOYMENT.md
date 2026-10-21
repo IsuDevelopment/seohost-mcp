@@ -1,5 +1,13 @@
 # Deployment
 
+## Supported scope
+
+The intended target is standard SeoHost shared hosting accounts using DirectAdmin.
+VPS compatibility is untested; endpoint availability, panel configuration and Login
+Key permissions must be verified independently. The bundled SSH deployment assumes
+an existing CloudLinux Node.js application on shared hosting, not VPS provisioning
+or root/system administration. See [hosting scope](../README.md#hosting-scope).
+
 ## Runtime
 
 Node.js 22.23.2 or newer. No external database or OpenAI API key is required.

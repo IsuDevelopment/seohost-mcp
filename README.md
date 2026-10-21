@@ -1,8 +1,25 @@
 # SeoHost MCP
 
+Read-only MCP integration for **standard SeoHost shared hosting** accounts using
+DirectAdmin.
+
 Version 0.4.0: a standalone TypeScript/Node.js server with HTTP and stdio transports,
 Bearer and built-in OAuth authentication, domain/subdomain and WordPress inventory,
 and bounded reads of web-server and existing WordPress debug logs.
+
+## Hosting scope
+
+This project targets account-level features of standard SeoHost shared hosting.
+It does not provide VPS provisioning, root access or operating-system administration.
+**VPS compatibility has not been tested.** DirectAdmin can also be available on a
+VPS, but equivalent endpoint availability and permissions must be verified for that
+installation; having a VPS alone does not establish compatibility.
+See [SeoHost's explanation of hosting panels](https://seohost.pl/pomoc/panel-klienta-directadmin).
+
+The bundled deployment workflow targets an existing CloudLinux Node.js application
+on shared hosting. It does not provision a server or constitute a generic VPS
+deployment procedure. Individual hosting reads still require configured Login Keys
+and separately verified permissions.
 
 ## Working with Codex and Claude
 
