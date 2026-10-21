@@ -12,16 +12,19 @@ with a production HTTPS `MCP_PUBLIC_URL` and the existing account/OAuth configur
 The hosting user must have SSH access and permission to restart this application
 using `cloudlinux-selector`. No root privileges are used.
 
+Before the first workflow update, the app root must contain real (non-symlink)
+`dist`, `scripts` and `deploy` directories, `deploy/start.cjs`, `package.json`
+and `package-lock.json`. An older installation without helper scripts may create
+an empty private `scripts` directory before deployment so code backup can include
+it. Never replace the hosting-managed `node_modules` symlink.
+
 Create the GitHub environment `production` in repository Settings → Environments.
-Add these environment secrets:
+Add this environment secret yourself. Use the existing SSH key authorized for
+this hosting server; agents must not upload your local private key to GitHub:
 
 | Secret | Value |
 | --- | --- |
-| `SEOHOST_SSH_HOST` | SSH hostname, without protocol or port |
-| `SEOHOST_SSH_PORT` | SSH port |
-| `SEOHOST_SSH_USER` | Hosting SSH username |
-| `SEOHOST_SSH_PRIVATE_KEY` | Dedicated deployment private key; authorize its public key on the hosting account |
-| `SEOHOST_SSH_KNOWN_HOSTS` | Trusted OpenSSH known_hosts entry for that hostname and port |
+| `SEOHOST_SSH_PRIVATE_KEY` | Private key whose public key is already authorized on the hosting account |
 
 Verify the SSH host key fingerprint through the hosting provider or an existing
 trusted connection. The workflow requires strict host key verification; it does
@@ -31,11 +34,20 @@ Add these environment variables:
 
 | Variable | Example |
 | --- | --- |
+| `SEOHOST_SSH_HOST` | SSH hostname, without protocol or port |
+| `SEOHOST_SSH_PORT` | SSH port |
+| `SEOHOST_SSH_USER` | Hosting SSH username |
+| `SEOHOST_SSH_KNOWN_HOSTS` | Trusted OpenSSH known_hosts entry for that hostname and port |
 | `SEOHOST_APP_ROOT` | `node-apps/seohost-mcp` (relative to hosting HOME) |
 | `SEOHOST_NODE_BIN` | `/home/your-user/nodevenv/node-apps/seohost-mcp/22/bin/node` (existing executable) |
 
-Use a dedicated deployment key. OAuth credentials and DirectAdmin Login Keys stay
-on the server; GitHub needs only the SSH connection credentials above.
+These variables contain no private key or application credentials, but they are
+security-sensitive configuration: only trusted repository maintainers should edit
+them, especially the trusted host keys and deployment paths.
+
+OAuth credentials and DirectAdmin Login Keys stay on the server; GitHub needs only
+the SSH private key above. Follow the existing one-key-per-host operational policy;
+do not generate or install another authentication key merely to configure this repository.
 
 ## What a deployment does
 

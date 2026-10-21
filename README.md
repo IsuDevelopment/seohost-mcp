@@ -1,14 +1,17 @@
 # SeoHost MCP
 
-## Praca z Codex i Claude
+Version 0.2.0: a standalone TypeScript/Node.js server with HTTP and stdio transports,
+Bearer and built-in OAuth authentication, and read-only hosting tools.
 
-Zacznij od [AGENTS.md](AGENTS.md) i [kontekstu w `.agents/`](.agents/README.md).
-Mapa kodu, decyzje, granice architektury i stan projektu są wspólne dla obu agentów.
-Każda zmiana wymaga przeglądu i aktualizacji tej dokumentacji w tym samym commicie.
+## Working with Codex and Claude
 
-Wersja 0.2.0: samodzielny serwer TypeScript/Node.js, transport HTTP i stdio, Bearer i własny OAuth oraz pierwsze narzędzia hostingu tylko do odczytu.
+Start with [AGENTS.md](AGENTS.md) and the [agent context](.agents/README.md).
+Both agents share the code map, architecture, decisions and project status.
+Review this context for every change; update affected documents in the same commit.
+Write project documentation and agent instructions in English.
+See the [AI capability catalog](.agents/CAPABILITIES.md) for tools and development operations.
 
-## Uruchomienie
+## Getting started
 
 ```sh
 nvm use
@@ -18,12 +21,21 @@ npm run check
 npm start
 ```
 
-Test działającego HTTP: `npm run smoke`. Dostępne narzędzia: `get_server_info`, `list_servers`, `resolve_server`, `list_domains` i `read_web_log`. [Logi, aliasy i konfiguracja kluczy](docs/LOGS.md). [Konfiguracja i wdrożenie](docs/DEPLOYMENT.md). Licencja MIT.
+Test the running HTTP server with `npm run smoke`. Available tools:
+`get_server_info`, `list_servers`, `resolve_server`, `list_domains` and `read_web_log`.
+See [logs, aliases and key setup](docs/LOGS.md) and
+[configuration and deployment](docs/DEPLOYMENT.md). MIT license.
 
-## Wdrożenie
+## Deployment
 
-Każda instalacja wymaga własnej konfiguracji i autoryzacji. Narzędzia hostingu wymagają osobnych Login Keys wybranych kont. Konfiguracja kont, sekrety i stan OAuth pozostają prywatne.
+Each installation needs its own configuration and authentication. Hosting tools
+require separate Login Keys for the selected accounts. Account configuration,
+secrets and OAuth state remain private.
 
-[GitHub Actions: testy i deploy przez SSH](docs/GITHUB-ACTIONS.md). Deploy uruchamia się ręcznie dla gałęzi `main`; zawiera kopię poprzedniego kodu, restart jednej aplikacji i test HTTPS.
+[GitHub Actions: checks and SSH deployment](docs/GITHUB-ACTIONS.md).
+Deployment is started manually from `main`; it backs up the previous code,
+restarts one application and checks HTTPS.
 
-Własne logowanie OAuth bez zewnętrznego dostawcy: [konfiguracja i ograniczenia](docs/OAUTH.md). Konfigurator: `npm run setup:oauth -- .env.production`.
+For built-in OAuth without an external identity provider, see
+[setup and limitations](docs/OAUTH.md).
+Setup command: `npm run setup:oauth -- .env.production`.

@@ -1,5 +1,5 @@
-# Instrukcje dla Claude
+# Claude instructions
 
-Przeczytaj [AGENTS.md](AGENTS.md), następnie [.agents/README.md](.agents/README.md).
-Stosuj wspólny workflow i aktualizuj dokumentację przy każdej zmianie.
-Instrukcje projektu utrzymuj w `.agents/`, bez osobnej kopii reguł dla Claude.
+Read [AGENTS.md](AGENTS.md), then [.agents/README.md](.agents/README.md).
+Follow the shared workflow and documentation review rules for every change.
+Keep project instructions in `.agents/` without a separate copy of Claude rules.

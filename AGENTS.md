@@ -1,6 +1,6 @@
-# Instrukcje dla agentów
+# Agent instructions
 
-Przed pracą przeczytaj [.agents/README.md](.agents/README.md) i wskazane tam pliki.
-To wspólny kontrakt pracy Codex i Claude; szczegółowe instrukcje utrzymuj wyłącznie
-w `.agents/`. Zmiana nie jest ukończona bez aktualizacji dokumentacji agentów
-zgodnie z [.agents/WORKFLOW.md](.agents/WORKFLOW.md).
+Read [.agents/README.md](.agents/README.md) and its required context before working.
+Codex and Claude share this contract; keep detailed project instructions in
+`.agents/`. Follow [.agents/WORKFLOW.md](.agents/WORKFLOW.md): review project memory
+for every change and update affected documents in the same commit.

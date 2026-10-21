@@ -27,11 +27,11 @@ jobs:
       - name: Deploy through SSH and verify HTTPS
         shell: bash
         env:
-          SSH_HOST: ${{ secrets.SEOHOST_SSH_HOST }}
-          SSH_PORT: ${{ secrets.SEOHOST_SSH_PORT }}
-          SSH_USER: ${{ secrets.SEOHOST_SSH_USER }}
+          SSH_HOST: ${{ vars.SEOHOST_SSH_HOST }}
+          SSH_PORT: ${{ vars.SEOHOST_SSH_PORT }}
+          SSH_USER: ${{ vars.SEOHOST_SSH_USER }}
           SSH_PRIVATE_KEY: ${{ secrets.SEOHOST_SSH_PRIVATE_KEY }}
-          SSH_KNOWN_HOSTS: ${{ secrets.SEOHOST_SSH_KNOWN_HOSTS }}
+          SSH_KNOWN_HOSTS: ${{ vars.SEOHOST_SSH_KNOWN_HOSTS }}
           APP_ROOT: ${{ vars.SEOHOST_APP_ROOT }}
           NODE_BIN: ${{ vars.SEOHOST_NODE_BIN }}
           RELEASE_ID: ${{ github.run_id }}-${{ github.run_attempt }}

@@ -1,48 +1,71 @@
-# Workflow Codex i Claude
+# Codex and Claude workflow
 
-## Przed zmianą
+## Before a change
 
-- Przeczytaj kontekst z README agentów. Sprawdź `git status --short --branch`
-  i istniejące zmiany; zachowuj pracę użytkownika i innych agentów.
-- Określ problem, oczekiwane zachowanie, dotknięte moduły i zagrożenia.
-  Kwestionuj rozwiązania osłabiające bezpieczeństwo lub utrudniające rozszerzanie.
-- Czytaj tylko potrzebne pliki. Prywatnych konfiguracji, stanu OAuth i logów
-  nie kopiuj do czatu, dokumentacji ani commitów.
+- Read the context linked from the agent README. Check `git status --short --branch`
+  and existing changes; preserve work by the user and other agents.
+- Identify the problem, expected behavior, affected modules and security risks.
+  Challenge approaches that weaken security or make extension harder.
+- Read only relevant files. Never copy private configuration, OAuth state or logs
+  into chat, documentation or commits.
 
-## Implementacja
+## Implementation
 
-- Wprowadzaj najmniejszą spójną zmianę. Oddziel transport MCP, reguły wyboru konta,
-  adapter DirectAdmin i autoryzację; unikaj frameworków bez konkretnej potrzeby.
-- Nowe narzędzie: schemat wejścia i rejestracja w `src/server.ts`, reguły konta
-  w `src/config.ts`, wywołanie dostawcy w `src/directadmin.ts`. Dodaj testy granic
-  bezpieczeństwa i zachowania, zamiast testów kopiujących implementację.
-- Nowy zapis hostingu lub wielu użytkowników wymaga najpierw decyzji o zakresach
-  operacji i uprawnieniach per konto. Adnotacje MCP nie egzekwują uprawnień.
+- Make the smallest coherent change. Keep MCP transport, account selection,
+  the DirectAdmin adapter and authentication separate. Add abstractions only
+  when a concrete requirement justifies them.
+- New tool: input schema and registration in `src/server.ts`, account rules in
+  `src/config.ts`, provider I/O in `src/directadmin.ts`. Test behavior and
+  security boundaries rather than mirroring the implementation.
+- Hosting writes or multiple users require a decision about operation scopes
+  and account permissions first. MCP annotations do not enforce authorization.
 
-## Dokumentacja przy KAŻDEJ zmianie
+## Review project memory for every change
 
-Feature, poprawka, refaktor, zależności, konfiguracja, CI i dokumentacja podlegają
-tej samej regule; aktualizację zapisuj w tym samym commicie co zmianę.
+Features, fixes, refactors, dependencies, configuration, CI and documentation all
+require a context review. Update affected documents in the same commit as the
+change. Do not edit every file mechanically or record a no-op review for a typo.
 
-- `CODEMAP.md`: aktualizuj odpowiedzialności, punkty wejścia, przepływy i testy.
-  Jeśli struktura się nie zmienia, odnotuj krótko wynik przeglądu mapy w STATUS.
-- `DECISIONS.md`: dodaj lub zastąp decyzję, gdy zmienia się kontrakt, architektura,
-  bezpieczeństwo albo sposób wdrażania. Przy braku nowej decyzji zapisz w STATUS
-  „decyzje bez zmian” z krótkim powodem; nie twórz ADR dla literówki.
-- `STATUS.md`: uzupełnij bieżący stan i krótki wpis: co, po co, sprawdzenie,
-  ograniczenia/dalszy krok, wynik przeglądu mapy i decyzji. Zostawiaj tylko
-  kilka ostatnich wpisów; pełna historia jest w Git.
-- Aktualizuj odpowiednie `docs/`, README i przykłady przy zmianie zachowania.
-  Nie oznaczaj produkcji jako wdrożonej na podstawie buildu lub pushu.
+- `CODEMAP.md`: update when responsibilities, entry points, important tests or
+  flows change. Keep it at module level; use code search for functions and classes.
+- `ARCHITECTURE.md`: update when boundaries, invariants or extension rules change.
+- `DECISIONS.md`: add or supersede a decision when contracts, architecture,
+  security or deployment policy change. Record context, choice, rationale and
+  consequences. A wording fix does not need an architectural decision.
+- `STATUS.md`: update when capabilities, verification, blockers or next steps
+  change. Keep current state and a few useful handoff entries, not a work diary.
+  Distinguish historical test results from checks for the current change.
+- `CAPABILITIES.md`: update when tools, parameters, prerequisites, permissions,
+  limitations or development operations change. Check against registrations and scripts.
+- Update relevant `docs/`, README and examples when behavior or setup changes.
+  Write documentation and agent instructions in English.
+- Do not infer production deployment from a passing build, CI run or push.
 
-## Weryfikacja i przekazanie
+## Work spanning sessions
 
-1. Przy zmianie kodu, zależności lub deployu uruchom `npm run check` (typy, testy,
-   build). Dla samych dokumentów sprawdź linki i zgodność z kodem.
-2. Sprawdź `git diff --check` oraz diff, także `git diff --cached` przed commitem.
-   Stage'uj jawne ścieżki; nigdy `git add -f` dla plików ignorowanych.
-3. Potwierdź wykluczenia `.env*` poza `.env.example`, `config/servers.json`,
-   `data/`, prywatnych notatek, `docs/api/`, `plugins/` i artefaktów.
-4. Commit opisuje rezultat i powód. Push nie oznacza deployu; ręczny workflow
-   produkcyjny uruchamiaj tylko w zakresie zleconego wdrożenia.
-5. W przekazaniu podaj zmianę, wyniki sprawdzeń, commit/push i pozostałe ograniczenia.
+When a task needs a durable handoff, create `.agents/tasks/<task-name>.md` with:
+objective, short plan, completed work, verification, open questions and next step.
+Keep it concise, use repository-relative paths and exclude private information.
+Keep lasting decisions and architecture in their dedicated documents; link them
+instead of copying them into the task. On completion, move useful context to
+permanent documents and remove the temporary task file.
+Do not create task notes for small changes completed in one session.
+
+## Verification and handoff
+
+For SeoHost operations, use the existing per-host SSH key and strict host-key
+verification. Reuse an SSH connection for batches rather than opening one per file;
+avoid bursts of HTTP probes. Never read or print the production `.env`, replace the
+hosting-managed dependency symlink, or restart another application. Keep backups
+private and outside the web root. Follow the project-specific manual deployment
+contract in `docs/GITHUB-ACTIONS.md`; WordPress deploy triggers do not apply here.
+
+1. For code, dependency or deployment changes, run `npm run check` (types, tests,
+   build). For documentation-only changes, check links and consistency with code.
+2. Review `git diff --check` and the diff, including `git diff --cached` before
+   committing. Stage explicit paths; never force-add ignored files.
+3. Confirm exclusions for `.env*` except `.env.example`, `config/servers.json`,
+   `data/`, private notes, `docs/api/`, `plugins/` and generated artifacts.
+4. Describe the result and reason in the commit. A push is separate from deployment;
+   run the production workflow only within an authorized deployment task.
+5. Report the change, verification, commit/push status and remaining limitations.

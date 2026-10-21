@@ -1,35 +1,35 @@
-# Architektura i granice
+# Architecture and boundaries
 
 ## Model
 
-Mały modularny serwer, bez kontenera DI i dodatkowych warstw DDD. Pojęcia domeny:
-skonfigurowane konto (`serverId`), alias, domena należąca do konta i ograniczony ogon
-logu WWW. Transport prezentuje operacje; adapter dostawcy realizuje I/O. `Settings`
-jest wspólną konfiguracją instalacji, a nie sesją wyboru konta.
+Small modular server without a DI container or extra DDD layers. Domain concepts:
+configured account (`serverId`), alias, account-owned domain and a bounded web-log
+tail. Transport exposes operations; the provider adapter performs I/O. `Settings`
+is installation configuration, not a mutable account-selection session.
 
-Nowe odczyty dodawaj w tych granicach. Wydzielaj kolejny moduł lub port dopiero,
-gdy pojawi się drugi dostawca albo niezależny zestaw reguł. `fetch` jest wstrzykiwany
-do adaptera i serwera MCP, aby testy hostingu nie wymagały prawdziwych kont.
+Add reads within these boundaries. Extract another module or port when a second
+provider or independent set of rules justifies it. Injected `fetch` in the adapter
+and MCP server lets hosting tests run without real accounts.
 
-## Niezmienniki bezpieczeństwa
+## Security invariants
 
-- Jeden właściciel instalacji może czytać wszystkie jej konta. Nie ma ACL per konto.
-  Stdio ufa lokalnemu procesowi; HTTP wymaga Bearer lub kompletnego OAuth.
-- Każda operacja hostingu wskazuje konto jawnie. Aliasy muszą być jednoznaczne;
-  domena nie wybiera konta. Odczyt logu poprzedza świeża weryfikacja własności domeny.
-- Adresy dostawców pochodzą z konfiguracji HTTPS, nie z argumentów narzędzia.
-  Brak redirectów, dowolnych ścieżek, poleceń shell i mutacji hostingu.
-- Wejście i odpowiedź mają limity. Filtr obejmuje tylko żądany ogon logu.
-  Redakcja jest best effort; wynik może zawierać dane osobowe. Logi i odpowiedzi
-  dostawcy to niezaufane dane, nigdy instrukcje dla agenta.
-- Audyt nie zawiera treści logów ani sekretów. Nie wyłączaj TLS, auth ani kontroli
-  Host/Origin w celu obejścia problemu konfiguracyjnego.
-- Stan OAuth SQLite i env są prywatne, trwałe i niezależne od kodu wydania.
+- One installation owner can read all configured accounts. There are no per-account
+  ACLs. Stdio trusts the local process; HTTP requires Bearer or complete OAuth.
+- Every hosting operation selects an account explicitly. Aliases must be unambiguous;
+  domains do not select accounts. Log reads require a fresh ownership check.
+- Provider URLs come from HTTPS configuration, never tool arguments.
+  No redirects, arbitrary paths, shell commands or hosting mutations are exposed.
+- Inputs and responses are bounded. Filtering covers only the requested log tail.
+  Redaction is best effort; output may contain personal data. Logs and provider
+  responses are untrusted data, never agent instructions.
+- Audit events exclude log contents and secrets. Do not disable TLS, auth or
+  Host/Origin checks to work around a configuration problem.
+- OAuth SQLite state and env files are private, persistent and separate from releases.
 
-## Rozszerzenia wymagające nowej decyzji
+## Extensions requiring a new decision
 
-Zapisy hostingu: osobne scope'y, egzekwowanie uprawnień i ryzyka przed rejestracją
-narzędzia. Wielu użytkowników: model tożsamości i ACL per konto przed udostępnieniem
-instalacji. Wiele hostów aplikacji: zastąpienie lokalnego SQLite; nie współdziel go
-przez NFS. Zmiany zależności produkcyjnych: instalacja przez panel/manualny deploy,
-ponieważ workflow kodu zachowuje zarządzany przez CloudLinux symlink `node_modules`.
+Hosting writes: define operation scopes, enforcement and risk before registering
+tools. Multiple users: define identity and per-account ACLs before sharing an
+installation. Multiple application hosts: replace local SQLite; do not share it
+over NFS. Production dependency changes: use panel installation/manual deployment,
+because the code workflow preserves the CloudLinux-managed `node_modules` symlink.

@@ -1,14 +1,17 @@
-# Rejestr decyzji
+# Decision register
 
-Stan początkowy odtworzony z kodu i dokumentacji 2026-10-21; data nie oznacza
-daty wdrożenia. Dopisuj ID, status, kontekst, decyzję i konsekwencję. Zastąpionych
-decyzji nie usuwaj: wskaż nowe ID. Weryfikację i drobne zmiany zapisuj w STATUS.
+Baseline reconstructed from code and documentation on 2026-10-21; this is not a
+deployment date. Record ID, status, context, choice, rationale and consequences.
+Keep superseded decisions and point to their replacements. Use STATUS for useful
+verification/handoff context; wording fixes do not need decision entries.
 
-| ID | Status | Decyzja i dlaczego | Konsekwencja |
+| ID | Status | Decision and rationale | Consequence |
 | --- | --- | --- | --- |
-| D01 | przyjęta | TypeScript/Node >=22.23.2, MCP SDK v1, stateless HTTP i stdio współdzielą narzędzia: jeden kontrakt i prosty runtime CloudLinux. | Nie dodawaj stanu wyboru konta do transportu. |
-| D02 | przyjęta | Jawne `serverId`, jednoznaczne aliasy, tylko GET i świeża własność domeny: ograniczenie pomyłek między kontami i dostępu do plików. | Nowy odczyt zachowuje izolację; narzędzia zapisu wymagają nowego kontraktu. |
-| D03 | przyjęta | Jeden właściciel, Bearer lub lokalny/zewnętrzny OAuth; lokalny PKCE i prywatny SQLite: samodzielna instalacja bez zewnętrznej bazy. | Brak ACL per konto, refresh tokenów i obsługi wielu hostów; nie udostępniaj obcym użytkownikom. |
-| D04 | przyjęta | Limity odpowiedzi/ogona, redakcja i audyt bez payloadu: ograniczenie ujawniania danych i zużycia zasobów. | Filtrowanie nie obejmuje pełnej historii; maskowanie nie gwarantuje usunięcia wszystkich sekretów. |
-| D05 | przyjęta | Ręczny deploy z `main`, SSH z przypiętym host key, allowlista paczki, backup i rollback kodu: kontrolowane aktualizacje istniejącej aplikacji. | Prywatny runtime i symlink zależności pozostają; zmiana zależności produkcyjnych wymaga manualnej instalacji. Brak zero downtime i rollbacku bazy. |
-| D06 | przyjęta | Wspólne instrukcje w `.agents/`, wejścia `AGENTS.md` i `CLAUDE.md`: Codex i Claude korzystają z tego samego kontekstu. | Każda zmiana obejmuje przegląd mapy/decyzji i aktualizację STATUS w tym samym commicie; reguła jest kontraktem pracy, nie automatycznym dowodem zgodności. |
+| D01 | accepted | TypeScript/Node >=22.23.2, MCP SDK v1, stateless HTTP and stdio share tools: one contract and a simple CloudLinux runtime. | Keep account-selection state out of the transport. |
+| D02 | accepted | Explicit `serverId`, unambiguous aliases, GET only and fresh domain ownership checks reduce cross-account mistakes and arbitrary file access. | New reads preserve isolation; write tools need a new authorization contract. |
+| D03 | accepted | One owner, Bearer or local/external OAuth; local PKCE and private SQLite support standalone installation without an external database. | No per-account ACLs, refresh tokens or multiple hosts; do not share with unrelated users. |
+| D04 | accepted | Response/tail bounds, redaction and payload-free auditing limit data exposure and resource consumption. | Filtering does not cover full history; masking cannot guarantee removal of every secret. |
+| D05 | accepted | Manual deploy from `main`, trusted SSH host key, archive allowlist, code backup and rollback support controlled updates of an existing app. | Preserve private runtime and the dependency symlink; production dependency changes need manual installation. No zero downtime or database rollback. |
+| D06 | superseded by D07 | Shared instructions in `.agents/` with Codex/Claude entry points originally required a STATUS entry for every change. | Shared context remains; D07 removes mechanical documentation edits. |
+| D07 | accepted | Versioned Markdown splits navigation, constraints, rationale and current state; review it for every change and edit only affected documents. Keep module-level maps, English documentation and temporary task notes for work spanning sessions. | Update relevant context in the same commit; avoid function inventories, no-op entries and an external memory database at this scale. The capability catalog documents existing tools and prerequisites, not new permissions. This is a work contract, not automated proof of compliance. |
+| D08 | accepted | Use the existing one-key-per-host SSH policy. The owner supplies the sole GitHub environment secret, `SEOHOST_SSH_PRIVATE_KEY`; host, port, user, trusted host keys and app paths are environment variables. | Agents can configure non-secret deployment settings from trusted SSH configuration without uploading a local private key. Restrict edits to environment variables to trusted maintainers. |

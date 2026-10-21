@@ -1,39 +1,42 @@
-# Mapa kodu
+# Code map
 
-| Plik / katalog | Odpowiedzialność i powód istnienia |
+Navigation by responsibility, not a function or class inventory. Update when
+module responsibilities or important flows change; keep this map short.
+
+| File / directory | Responsibility and purpose |
 | --- | --- |
-| `src/http.ts` | Wejście HTTP, Host/Origin, health/discovery, autoryzacja, transport MCP na żądanie i zamykanie. |
-| `src/stdio.ts` | Wejście dla lokalnego procesu; stdout tylko dla MCP, zaufanie właścicielowi procesu. |
-| `src/server.ts` | Wersja, rejestracja pięciu narzędzi, schematy, wynik/błąd MCP i bezpieczny audyt. |
-| `src/config.ts` | Walidacja env/JSON, adresów i aliasów; rozwiązywanie jawnego konta, bez konta domyślnego. |
-| `src/directadmin.ts` | Adapter GET DirectAdmin: lista domen, sprawdzenie własności, logi, limity i redakcja. |
-| `src/auth.ts` | Bearer ze stałoczasowym porównaniem hashy; zewnętrzny JWT RS256/JWKS, subject i `mcp:read`. |
-| `src/local-oauth.ts` | OAuth właściciela: rejestracja, zgoda, PKCE, tokeny i odwołanie; prywatny stan SQLite. |
-| `config/servers.example.json`, `.env.example` | Publiczne szablony bez rzeczywistych kont i sekretów. |
-| `scripts/setup-{local,oauth,hosting}.mjs` | Lokalne przygotowanie prywatnego env i poświadczeń. |
-| `scripts/smoke.mjs`, `scripts/smoke-oauth.mjs` | Rzeczywisty klient MCP / sondy OAuth; wymagają wskazanego środowiska. |
-| `.github/workflows/check.yml` | Push/PR: instalacja lockfile, typy, testy i build. |
-| `.github/workflows/deploy.yml` | Ręczny deploy tylko z `main`, środowisko production, SSH ze znanym kluczem hosta. |
-| `deploy/package.sh` | Paczka runtime z listy dozwolonych plików, bez prywatnej konfiguracji. |
-| `scripts/check-runtime-dependencies.mjs` | Porównanie produkcyjnych grafów lockfile i zainstalowanych wersji przed kopiowaniem. |
-| `deploy/remote.sh` | Backup kodu, kopiowanie, restart jednej aplikacji, weryfikacja i rollback. |
-| `deploy/start.cjs`, `deploy/verify.mjs` | Bootstrap CloudLinux z env / HTTPS health i odmowa bez poświadczeń. |
-| `test/server.test.ts` | HTTP auth, Host/Origin, metody/rozmiar body, prawdziwy SDK HTTP i stdio. |
-| `test/directadmin.test.ts` | Izolacja kont, aliasy, walidacja domen, błędy dostawcy, limity, redakcja i SDK. |
-| `test/oauth.test.ts` | Zgoda, CSRF, PKCE, jednorazowe kody, współdzielony SQLite, MCP i odwołanie. |
-| `test/deploy.test.ts` | Graf zależności, zawartość paczki, podmiana/rollback i zachowanie prywatnych plików. |
-| `docs/`, `SECURITY.md` | Kontrakty operatora, konfiguracja i ograniczenia bezpieczeństwa. |
-| `AGENTS.md`, `CLAUDE.md`, `.agents/` | Wejścia Codex/Claude i wspólny kontekst pracy. |
+| `src/http.ts` | HTTP entry point, Host/Origin checks, health/discovery, authentication, per-request MCP transport and cleanup. |
+| `src/stdio.ts` | Local process entry point; stdout reserved for MCP, trusts the process owner. |
+| `src/server.ts` | Version, five tool registrations, input schemas, MCP results/errors and safe auditing. |
+| `src/config.ts` | Validates env/JSON, origins and aliases; resolves explicit accounts without a default account. |
+| `src/directadmin.ts` | DirectAdmin GET adapter: domains, ownership checks, logs, bounds and redaction. |
+| `src/auth.ts` | Bearer with constant-time hash comparison; external RS256/JWKS JWT, subject and `mcp:read` checks. |
+| `src/local-oauth.ts` | Owner OAuth: registration, consent, PKCE, tokens and revocation; private SQLite state. |
+| `config/servers.example.json`, `.env.example` | Public templates without real accounts or secrets. |
+| `scripts/setup-{local,oauth,hosting}.mjs` | Local setup of private environment files and credentials. |
+| `scripts/smoke.mjs`, `scripts/smoke-oauth.mjs` | Real MCP client / OAuth probes against the configured environment. |
+| `.github/workflows/check.yml` | Push/PR: locked installation, type checks, tests and build. |
+| `.github/workflows/deploy.yml` | Manual deployment from `main`, production environment, SSH with a trusted host key. |
+| `deploy/package.sh` | Runtime archive from an explicit allowlist, excluding private configuration. |
+| `scripts/check-runtime-dependencies.mjs` | Checks production lockfile graphs and installed versions before copying. |
+| `deploy/remote.sh` | Code backup, copy, single-app restart, verification and rollback. |
+| `deploy/start.cjs`, `deploy/verify.mjs` | CloudLinux bootstrap with env / HTTPS health and unauthenticated rejection probes. |
+| `test/server.test.ts` | HTTP auth, Host/Origin, method/body limits, real HTTP SDK and stdio. |
+| `test/directadmin.test.ts` | Account isolation, aliases, domain validation, provider failures, limits, redaction and SDK. |
+| `test/oauth.test.ts` | Consent, CSRF, PKCE, single-use codes, shared SQLite, MCP and revocation. |
+| `test/deploy.test.ts` | Dependency graph, archive contents, release/rollback and private file preservation. |
+| `docs/`, `SECURITY.md` | Operator contracts, setup and security limitations. |
+| `AGENTS.md`, `CLAUDE.md`, `.agents/` | Codex/Claude entry points and shared memory; `CAPABILITIES.md` catalogs AI operations, optional `tasks/` holds temporary handoffs. |
 
-## Przepływy
+## Flows
 
-- HTTP → `loadSettings` → Host/Origin → OAuth/discovery/health lub auth MCP →
-  nowy `createMcpServer` + stateless transport → narzędzie → adapter DirectAdmin.
-- Stdio → `loadSettings(..., false)` → ten sam serwer narzędzi → ten sam adapter.
-- Log → jawne konto → świeża lista jego domen → GET `CMD_SHOW_LOG` → limit
-  odpowiedzi → ogon/filtrowanie/redakcja → ograniczony wynik. Brak fallbacku konta.
-- Deploy → check → allowlista paczki → SSH → zgodność zależności → backup kodu →
-  restart → HTTPS + opcjonalny Bearer smoke; błąd po rozpoczęciu kopiowania → rollback.
+- HTTP → `loadSettings` → Host/Origin → OAuth/discovery/health or MCP auth →
+  new `createMcpServer` + stateless transport → tool → DirectAdmin adapter.
+- Stdio → `loadSettings(..., false)` → the same tool server → the same adapter.
+- Log → explicit account → fresh domain list for that account → GET `CMD_SHOW_LOG` →
+  response bound → tail/filter/redaction → bounded output. No account fallback.
+- Deploy → check → allowlisted archive → SSH → dependency compatibility → code
+  backup → restart → HTTPS + optional Bearer smoke; failure after copying begins → rollback.
 
-`dist/` jest generowany z TypeScript, nie edytuj ręcznie. `node_modules/` i `data/`
-oraz rzeczywista konfiguracja są prywatnym runtime, nie źródłem prawdy o projekcie.
+`dist/` is generated from TypeScript; do not edit it manually. `node_modules/`,
+`data/` and real configuration are installation runtime, not versioned project memory.
