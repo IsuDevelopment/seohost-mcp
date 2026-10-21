@@ -18,8 +18,12 @@ Updated: 2026-10-22.
 - After the owner supplied Login Keys, only the MCP application was restarted.
   Loaded settings now report credentials for both accounts, but live domain and
   WordPress inventory requests return HTTP 401 / UNAUTHORIZED. Provider read access
-  is not established. The owner is checking account usernames versus key IDs,
-  key values, validity and source-IP restrictions. No log contents were downloaded.
+  is not established. The owner confirmed that usernames are DirectAdmin account
+  logins, not key IDs. A safe loaded-settings check found no surrounding whitespace,
+  quote/escaped-newline artifacts or URL-shaped key values on either account; this
+  does not verify the secrets themselves. Pending: key-value confirmation, expiry,
+  remaining uses and source-IP restrictions. Avoid repeated failing probes or
+  broadening permissions before resolving authentication. No log contents were downloaded.
 - WordPress log access requires narrow private `wordpressLogRoots`, optional per-site
   `wordpressLogPaths`, provider filemanager access and separate live verification.
   Metadata is not an atomic lock against concurrent filesystem swaps; use trusted
