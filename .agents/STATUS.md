@@ -17,18 +17,20 @@ Updated: 2026-10-22.
   diagnostics succeed for both accounts without DirectAdmin API calls.
 - After the owner corrected H57 credentials, only the MCP application was restarted.
   Live `list_domains` through the production MCP SDK succeeds for H57. WordPress
-  inventory remains denied: a targeted provider check confirms HTTP 403, replacing
-  the previous 401 authentication failure. Verify the key's effective WordPress
-  permissions and account feature availability without granting unrestricted access.
-  H93 was not retried; its last observed result remains HTTP 401. No log contents
+  inventory remains denied with HTTP 403. Targeted diagnostics confirm the key's
+  effective commands include `wordpress`, but account configuration reports
+  `wordpress=OFF`; the session's general WordPress feature flag alone is insufficient.
+  WordPress Manager needs provider/account-level enablement before inventory can
+  be verified. H93 setup is deferred by the owner; it was not retried. No log contents
   were downloaded, and subdomain/log permissions are not yet verified.
 - WordPress log access requires narrow private `wordpressLogRoots`, optional per-site
   `wordpressLogPaths`, provider filemanager access and separate live verification.
   Metadata is not an atomic lock against concurrent filesystem swaps; use trusted
   account-owned installations. No tool enables logging or accepts caller paths.
-- Next: resolve H57 WordPress authorization and H93 credentials, then verify
+- Next: request H57 WordPress Manager enablement, then verify
   account-specific subdomain/log permissions, WordPress inventory, log metadata
-  and Range behavior. Full owner OAuth login remains a separate client check.
+  and Range behavior. H93 credentials are deferred. Full owner OAuth login remains
+  a separate client check.
 
 ## Recent changes
 

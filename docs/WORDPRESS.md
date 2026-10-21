@@ -82,6 +82,13 @@ names on the provider; legacy command names do not establish modern API access.
 Filemanager credentials may have broader account access than these MCP tools expose.
 Protect them accordingly; permission failures must remain closed.
 
+WordPress Manager must also be enabled for the hosting account/package. A valid
+Login Key with the `wordpress` command can still receive HTTP 403 when account
+configuration reports `wordpress=OFF`. A general session feature flag does not
+prove account-level enablement. Ask the hosting provider to enable WordPress
+Manager; granting more key permissions does not enable the account feature.
+See [DirectAdmin WordPress Manager prerequisites](https://docs.directadmin.com/other-hosting-services/wordpress/#prerequisites).
+
 ```json
 {"name":"list_subdomains","arguments":{"serverId":"primary","domain":"example.com"}}
 {"name":"list_wordpress_sites","arguments":{"serverId":"primary","limit":50}}
