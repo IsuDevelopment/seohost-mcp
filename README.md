@@ -1,6 +1,6 @@
 # SeoHost MCP
 
-Version 0.3.0: a standalone TypeScript/Node.js server with HTTP and stdio transports,
+Version 0.4.0: a standalone TypeScript/Node.js server with HTTP and stdio transports,
 Bearer and built-in OAuth authentication, domain/subdomain and WordPress inventory,
 and bounded reads of web-server and existing WordPress debug logs.
 
@@ -23,11 +23,15 @@ npm start
 ```
 
 Test the running HTTP server with `npm run smoke`. Available tools:
-`get_server_info`, `list_servers`, `resolve_server`, `list_domains`, `list_subdomains`,
-`list_wordpress_sites`, `read_web_log` and `read_wordpress_log`.
+`get_server_info`, `list_servers`, `resolve_server`, `get_server_capabilities`,
+`list_domains`, `list_subdomains`, `list_wordpress_sites`, `get_wordpress_info`,
+`get_wordpress_log_info`, `read_web_log` and `read_wordpress_log`.
 See [logs, aliases and key setup](docs/LOGS.md),
 [WordPress inventory and logs](docs/WORDPRESS.md) and
 [configuration and deployment](docs/DEPLOYMENT.md). MIT license.
+
+[Diagnostics](docs/DIAGNOSTICS.md) distinguish loaded configuration readiness from
+unverified provider permissions and inspect WordPress details/log metadata safely.
 
 ## Deployment
 

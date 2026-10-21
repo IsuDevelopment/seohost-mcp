@@ -3,6 +3,7 @@ import { HostingError } from './hosting-error.js'
 
 type ReadPath = '/CMD_API_SHOW_DOMAINS' | '/CMD_SHOW_LOG' | '/CMD_API_SUBDOMAINS'
   | '/api/wordpress/locations' | '/api/filemanager/list' | '/api/filemanager/download'
+  | `/api/wordpress/locations/${string}/wordpress`
 export const MAX_RESPONSE_BYTES = 512 * 1024
 
 async function boundedBytes(response: Response) {
@@ -38,6 +39,10 @@ export class DirectAdminTransport {
 
   async downloadLog(serverId: string, path: string) {
     return this.read(serverId, '/api/filemanager/download', { path }, true)
+  }
+
+  async wordpressInfo(serverId: string, siteId: string) {
+    return this.getText(serverId, `/api/wordpress/locations/${encodeURIComponent(siteId)}/wordpress`, {})
   }
 
   private async read(serverId: string, path: ReadPath, params: Record<string, string>, range: boolean) {

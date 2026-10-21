@@ -1,7 +1,7 @@
 # SeoHost MCP — agent context
 
 Standalone MCP server for SeoHost/DirectAdmin accounts, TypeScript and Node.js >=22.23.2.
-Version 0.3.0: HTTP/stdio, Bearer/OAuth, domain/subdomain and WordPress inventory,
+Version 0.4.0: HTTP/stdio, Bearer/OAuth, inventory, configuration/site/log diagnostics,
 web-log and explicitly enabled WordPress debug-log reads. One installation
 owner can access all explicitly configured accounts. Hosting writes are unavailable.
 
@@ -17,6 +17,7 @@ Read in order:
 Operator documentation: [README](../README.md), [logs](../docs/LOGS.md),
 [OAuth](../docs/OAUTH.md), [deployment](../docs/DEPLOYMENT.md),
 [WordPress reads](../docs/WORDPRESS.md),
+[diagnostics](../docs/DIAGNOSTICS.md),
 [GitHub Actions](../docs/GITHUB-ACTIONS.md), [security](../SECURITY.md).
 
 ## Project memory

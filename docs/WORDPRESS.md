@@ -4,6 +4,9 @@ Version 0.3.0 adds three read-only tools alongside existing domain/web-log reads
 Every operation requires an explicit `serverId`. The authenticated installation
 owner has access to all configured accounts; there are no per-account ACLs.
 
+Version 0.4.0 adds [configuration, site-detail and log-metadata diagnostics](DIAGNOSTICS.md).
+Use `get_wordpress_log_info` to inspect log presence/size without downloading it.
+
 ## Inventory
 
 | Tool | Inputs | Result and scope |

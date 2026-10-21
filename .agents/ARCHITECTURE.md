@@ -34,6 +34,11 @@ and MCP server lets hosting tests run without real accounts.
 - OAuth SQLite state and env files are private, persistent and separate from releases.
 - WordPress inventory projects safe fields only; never read config/options/SSO
   endpoints or execute WP-CLI/PHP through MCP. Never enable debugging as part of a read.
+- Configuration diagnostics inspect loaded settings only, not provider authorization.
+  A shared tool-requirement catalog is checked against registrations and smoke tests.
+  WordPress details require fresh inventory ownership and safe single-segment IDs.
+  Log metadata and content reads share one inspection policy; incomplete provider
+  listings must not be reported as confirmed absence. Metadata never downloads logs.
 
 ## Extensions requiring a new decision
 
