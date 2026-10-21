@@ -4,8 +4,10 @@
 
 Node.js 22.23.2 or newer. No external database or OpenAI API key is required.
 The application uses MCP SDK v1 stateless Streamable HTTP with JSON responses.
-Version 0.2.0 exposes `get_server_info`, `list_servers`, `resolve_server`,
-`list_domains` and `read_web_log`. Hosting operations are read-only.
+Version 0.3.0 exposes eight tools: `get_server_info`, `list_servers`, `resolve_server`,
+`list_domains`, `list_subdomains`, `list_wordpress_sites`, `read_web_log` and
+`read_wordpress_log`. Hosting operations are read-only. WordPress log access requires
+private root allowlists and provider permissions; see [WORDPRESS.md](WORDPRESS.md).
 
 ## Local
 

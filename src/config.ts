@@ -2,6 +2,9 @@ import { readFile } from 'node:fs/promises'
 import { z } from 'zod'
 
 const envName = z.string().regex(/^[A-Z][A-Z0-9_]*$/)
+export const relativeHostingPath = z.string().min(1).max(1024).refine(value =>
+  value.split('/').every(part => /^[a-zA-Z0-9_.-]+$/.test(part) && part !== '.' && part !== '..'),
+  'Expected a normalized path relative to the hosting account home')
 const accountSchema = z.object({
   label: z.string().min(1).max(100),
   aliases: z.array(z.string().regex(/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$/)).max(20).default([]),
@@ -11,6 +14,9 @@ const accountSchema = z.object({
   }, 'Expected an HTTPS origin without credentials or path'),
   usernameEnv: envName,
   loginKeyEnv: envName,
+  wordpressLogRoots: z.array(relativeHostingPath).max(20).optional(),
+  wordpressLogPaths: z.record(z.string().min(1).max(256), relativeHostingPath.refine(value => value.endsWith('.log'),
+    'Explicit WordPress log paths must end in .log')).optional(),
 }).strict()
 const fileSchema = z.object({
   servers: z.record(z.string().regex(/^[a-z0-9][a-z0-9_-]{0,63}$/), accountSchema),

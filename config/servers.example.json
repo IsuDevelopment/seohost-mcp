@@ -5,7 +5,8 @@
       "aliases": ["hosting-main"],
       "baseUrl": "https://primary.example.com:2222",
       "usernameEnv": "SEOHOST_PRIMARY_USERNAME",
-      "loginKeyEnv": "SEOHOST_PRIMARY_LOGIN_KEY"
+      "loginKeyEnv": "SEOHOST_PRIMARY_LOGIN_KEY",
+      "wordpressLogRoots": []
     },
     "secondary": {
       "label": "Secondary hosting",

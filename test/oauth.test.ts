@@ -143,7 +143,7 @@ test("local OAuth: consent, PKCE, single-use code and revocation", async () => {
         requestInit: { headers: { Authorization: "Bearer " + token } },
       }),
     );
-    assert.equal((await mcp.listTools()).tools.length, 5);
+    assert.equal((await mcp.listTools()).tools.length, 8);
     await mcp.close();
     await post("/oauth/revoke", { token });
     assert.equal(peer.verify(token), false);

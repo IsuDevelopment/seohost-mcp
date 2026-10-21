@@ -11,3 +11,10 @@ must enforce authorization and explicit server selection independently of MCP an
 MCP tokens and DirectAdmin Login Keys are separate credentials. Keep secrets out of git,
 public web roots, tool results and client-side JavaScript. This project is an independent
 integration, not an official SeoHost or DirectAdmin product.
+
+WordPress log reads require explicit private root allowlists and fresh provider
+installation/file metadata. Callers cannot provide file paths or enable debug.
+Metadata checks and download are not atomic against concurrent filesystem changes;
+use trusted account-owned installations, not hostile tenant isolation. Redaction
+is best effort, not a guarantee that output is free of secrets or personal data.
+See [WordPress reads](docs/WORDPRESS.md) for limits and provider permissions.

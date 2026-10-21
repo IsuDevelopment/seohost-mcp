@@ -2,7 +2,7 @@
 
 This describes implemented behavior, not permission to operate on an arbitrary
 account. Tool registrations and schemas in `src/server.ts` are authoritative.
-All five MCP tools are available over HTTP and stdio.
+All eight MCP tools are available over HTTP and stdio.
 
 ## MCP tools
 
@@ -13,6 +13,9 @@ All five MCP tools are available over HTTP and stdio.
 | `resolve_server` | Resolves one reference to canonical ID, label and credential-presence flag. | Required `serverId`. | No hosting request. Unknown/ambiguous references fail; no default selection. |
 | `list_domains` | Reads the selected account's domains. | Required `serverId`. | Configured account username/Login Key with `CMD_API_SHOW_DOMAINS` access. |
 | `read_web_log` | Reads a bounded access/error log tail after checking domain ownership on that account. | Required `serverId`, `domain`, `logType`; optional `lines`, `contains`. | Requires both domain-list and `CMD_SHOW_LOG` access. No arbitrary files or account fallback. |
+| `list_subdomains` | Reads configured subdomains as fully qualified names after domain ownership validation. | Required `serverId`, `domain`. | Needs domain-list and legacy subdomain read permissions. Not a DNS lookup. |
+| `list_wordpress_sites` | Pages through existing installations known to DirectAdmin; omits empty locations and private filesystem/configuration details. | Required `serverId`; optional `offset` (0–2000, default 0), `limit` (1–100, default 50). | Requires provider WordPress inventory access; follow `nextOffset`. Not posts, a filesystem scan or multisite network discovery. Metadata is untrusted. |
+| `read_wordpress_log` | Reads an existing debug log for a fresh installation ID, applying configured roots, file metadata checks, bounds and redaction. | Required `serverId`, `siteId`; optional `lines`, `contains`. | Disabled without private `wordpressLogRoots`. Standard debug.log or explicit `wordpressLogPaths` override; provider filemanager access required. Never enables logging. |
 
 Input rules:
 
@@ -24,6 +27,8 @@ Input rules:
 - `lines`: integer 1–1000, default 100.
 - `contains`: optional literal, case-insensitive filter, 1–200 characters.
   Searches only the requested tail, not complete history.
+- `siteId`: nonempty provider installation ID (max 256 characters), selected from
+  this server's `list_wordpress_sites`. Never supply a filesystem path instead.
 
 HTTP requires installation authentication. OAuth uses `mcp:read`; the current
 single owner can access all configured accounts. Stdio trusts the local process.
@@ -34,6 +39,11 @@ before a tool handler runs.
 
 Suggested sequence: identify account → `list_domains` → `read_web_log`.
 See [LOGS.md](../docs/LOGS.md) for contracts, credentials and examples.
+For WordPress use `list_wordpress_sites` → `read_wordpress_log`. Review
+[WORDPRESS.md](../docs/WORDPRESS.md) for setup and provider trust limitations.
+Suffix reads are limited to 512 KiB and may yield fewer lines; inspect
+`byteWindowLimited`. File metadata and download are not atomic isolation from
+concurrent path swaps. Use trusted account-owned sites only.
 
 ## Development operations for Codex and Claude
 
@@ -52,5 +62,5 @@ agent's actual environment access and the authorized task.
 | Deploy existing app | GitHub Actions → Deploy MCP | Authorized deployment, `main`, production environment with one owner-supplied SSH secret and six variables, existing CloudLinux app; restart and rollback can modify app code. |
 
 Not implemented: hosting writes, arbitrary file/shell execution through MCP,
-WordPress debug logs, global machine logs, rotated-history search, multi-user
+global machine logs, automatic debug enablement, rotated-history search, multi-user
 ACLs, refresh tokens or automatic production deployment on push.

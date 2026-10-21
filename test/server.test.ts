@@ -53,9 +53,9 @@ test('real MCP HTTP client initializes, lists tools and calls both infrastructur
   try {
     await client.connect(new StreamableHTTPClientTransport(url, { requestInit: { headers: { Authorization: `Bearer ${token}` } } }))
     const tools = await client.listTools()
-    assert.deepEqual(tools.tools.map(t => t.name).sort(), ['get_server_info', 'list_domains', 'list_servers', 'read_web_log', 'resolve_server'])
+    assert.deepEqual(tools.tools.map(t => t.name).sort(), ['get_server_info', 'list_domains', 'list_servers', 'list_subdomains', 'list_wordpress_sites', 'read_web_log', 'read_wordpress_log', 'resolve_server'])
     const info = await client.callTool({ name: 'get_server_info', arguments: {} })
-    assert.deepEqual(info.structuredContent, { name: 'seohost-mcp', version: '0.2.0', stage: 'read-only-hosting', hostingOperationsEnabled: true, hostingWritesEnabled: false })
+    assert.deepEqual(info.structuredContent, { name: 'seohost-mcp', version: '0.3.0', stage: 'read-only-hosting', hostingOperationsEnabled: true, hostingWritesEnabled: false })
     const servers = await client.callTool({ name: 'list_servers', arguments: {} })
     assert.deepEqual(servers.structuredContent, { servers: [{ serverId: 'primary', label: 'Primary hosting', aliases: ['hosting-main'], credentialsConfigured: false }, { serverId: 'secondary', label: 'Secondary hosting', aliases: ['hosting-backup'], credentialsConfigured: false }] })
     assert(!JSON.stringify(servers).includes('LOGIN_KEY'))
@@ -69,7 +69,7 @@ test('stdio works with no HTTP token and no hosting credentials', async () => {
   const transport = new StdioClientTransport({ command: process.execPath, args, env: { PATH: process.env.PATH || '' }, stderr: 'pipe' })
   try {
     await client.connect(transport)
-    assert.equal((await client.listTools()).tools.length, 5)
+    assert.equal((await client.listTools()).tools.length, 8)
     assert.equal((await client.callTool({ name: 'get_server_info', arguments: {} })).isError, undefined)
   } finally { await client.close() }
 })

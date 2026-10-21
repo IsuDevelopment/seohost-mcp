@@ -42,7 +42,10 @@ jobs:
           [[ "$SSH_PORT" =~ ^[0-9]+$ ]]
           [[ "$APP_ROOT" =~ ^[a-zA-Z0-9_/-]+$ && "$APP_ROOT" != /* && "$APP_ROOT" != */ && "$APP_ROOT" != *//* ]]
           [[ "$NODE_BIN" =~ ^/[a-zA-Z0-9_./-]+$ ]]
-          test -n "$SSH_PRIVATE_KEY"
+          if [[ -z "$SSH_PRIVATE_KEY" ]]; then
+            echo '::error::Missing SEOHOST_SSH_PRIVATE_KEY. Set the production environment secret or grant this repository access to the repository/organization secret.'
+            exit 1
+          fi
           test -n "$SSH_KNOWN_HOSTS"
           umask 077
           ssh_dir=$(mktemp -d "$RUNNER_TEMP/seohost-ssh.XXXXXX")

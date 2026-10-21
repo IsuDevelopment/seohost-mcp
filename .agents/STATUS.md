@@ -2,38 +2,34 @@
 
 Updated: 2026-10-21.
 
-- Version 0.2.0: five MCP tools, domain/log reads, HTTP/stdio and OAuth.
-- Initial code and agent workflow published on `origin/main` in commit `d896abd`.
-- Check and manual Deploy MCP workflows are versioned. Production deployment of
-  this code/workflow has not been performed or verified in these sessions.
-- Historical OAuth notes describe an earlier installation; they do not establish
-  deployment of the current code. Real account details remain outside Git.
-- GitHub environment `production` and all six non-secret deployment variables are
-  configured. The owner still needs to set `SEOHOST_SSH_PRIVATE_KEY` using the
-  existing key authorized for the hosting account. No private key was uploaded.
-- SSH preflight confirmed the existing app is version 0.1.0, its installed production
-  dependency graph matches the candidate lockfile, and the configured Node binary
-  exists. Created the missing private `scripts` directory for the workflow backup
-  precondition; no code replacement or restart was performed.
-- Next operational step: add the SSH secret, then verify the manual deployment,
-  HTTPS, authentication and complete OAuth client connection. OAuth-only installs
-  need a separate authenticated test: without Bearer, that MCP smoke step is skipped.
+- Version 0.3.0 implements eight read-only MCP tools: existing server/domain/web-log
+  reads plus subdomain and WordPress installation inventory and WordPress debug logs.
+- WordPress logs are disabled without private `wordpressLogRoots`; optional per-site
+  `wordpressLogPaths` supports custom layouts. No debug enablement or caller paths.
+- Local `npm run check` passes: types, 28/28 tests and build. New APIs are verified
+  against provider-schema fixtures, not live Login Key calls.
+- Live authenticated MCP preflight still reports version 0.1.0 and no configured
+  hosting credentials across its two accounts. No live hosting reads are verified.
+- GitHub `production` has six deployment variables. First deployment run
+  `39665654039` passed checks/build but stopped before SSH because
+  `SEOHOST_SSH_PRIVATE_KEY` was empty. The owner reports setting a key; its location
+  and name are being clarified. The workflow now reports the missing secret clearly.
+- Existing local SSH access to the hosting account works. The app dependency graph
+  matches the locked runtime packages; the private scripts directory is prepared.
+  A deployment using this trusted connection can proceed without uploading a key.
+- Next: publish/verify CI for 0.3.0, deploy and check HTTPS/MCP; configure per-account
+  Login Keys privately and verify inventory, filemanager permissions and Range
+  behavior before enabling narrow WordPress log roots. OAuth full owner login remains
+  a separate client check. Private env/config/OAuth state must survive deployment.
 
 ## Recent changes
 
-2026-10-21 — refined project memory, added an AI capability catalog and standardized
-documentation on English. Review memory for every change; update only affected
-documents. Keep a module-level code map and optional temporary task handoffs.
-D07 supersedes D06's mandatory per-change STATUS entry. Updated agent entry points,
-memory documents, public README and OAuth guide. Runtime behavior is unchanged.
-Documentation checks cover relative links, referenced paths and whitespace.
-Deployment configuration now uses one owner-supplied SSH secret and six variables
-(D08); hosting access and dependency compatibility were checked without reading
-the server env or modifying application code.
+2026-10-21 — added provider subdomain and WordPress reads (D09/D10), shared bounded
+HTTP transport, private log path policy, SDK/security tests and operator documentation.
+Code map and capability catalog updated together. No new runtime dependencies.
+Metadata/download checks are not atomic isolation against concurrent path swaps;
+trusted account-owned sites are required. Inventory covers provider-known installs.
 
-2026-10-21 — initial publication and shared Codex/Claude workflow.
-Local `npm run check` passed: types, 16/16 tests and build. Deployment tests simulate
-provider restart and HTTPS probes; they do not verify production SSH.
-Those results apply to the initial code. A fresh `npm run check` also passed after
-this update to documentation and deployment variable references: types, 16/16 tests
-and build. Production deployment remains unverified.
+2026-10-21 — shared English agent memory established (D07) and deployment configured
+with one owner-supplied SSH secret and six variables (D08). Initial code published
+on `origin/main`; the initial 16-test suite and GitHub Check runs passed.

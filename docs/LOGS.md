@@ -66,7 +66,9 @@ No fallback to session cookies, account passwords or another server occurs.
 
 ## Scope of the logs
 
-These are per-domain web-server logs exposed by the DirectAdmin user panel,
+For the separate WordPress debug-log reader added in 0.3.0, see [WORDPRESS.md](WORDPRESS.md).
+
+`read_web_log` reads per-domain web-server logs exposed by the DirectAdmin user panel,
 not WordPress `debug.log`, historical rotated archives, or unrestricted machine
 logs such as system journal, SSH, mail or a host-wide `/var/log`. The current API
 does not distinguish HTTP/HTTPS variants; it returns the same access/error streams

@@ -4,7 +4,8 @@
 
 Small modular server without a DI container or extra DDD layers. Domain concepts:
 configured account (`serverId`), alias, account-owned domain and a bounded web-log
-tail. Transport exposes operations; the provider adapter performs I/O. `Settings`
+tail. WordPress adds provider-known installation IDs and explicit log root/path policy.
+Transport exposes operations; provider adapters share bounded HTTP I/O. `Settings`
 is installation configuration, not a mutable account-selection session.
 
 Add reads within these boundaries. Extract another module or port when a second
@@ -17,6 +18,12 @@ and MCP server lets hosting tests run without real accounts.
   ACLs. Stdio trusts the local process; HTTP requires Bearer or complete OAuth.
 - Every hosting operation selects an account explicitly. Aliases must be unambiguous;
   domains do not select accounts. Log reads require a fresh ownership check.
+- WordPress log reads refresh the account's installation inventory and accept a
+  `siteId`, never a caller path. Logs are disabled without private root allowlists;
+  default to `wp-content/debug.log`, with explicit per-site `.log` overrides.
+  Reject unsafe relative paths, changed canonical parents and symlink/non-regular
+  files. Provider metadata plus download is not atomic against concurrent path swaps;
+  this mode trusts account-owned sites and is unsuitable for hostile tenant isolation.
 - Provider URLs come from HTTPS configuration, never tool arguments.
   No redirects, arbitrary paths, shell commands or hosting mutations are exposed.
 - Inputs and responses are bounded. Filtering covers only the requested log tail.
@@ -25,6 +32,8 @@ and MCP server lets hosting tests run without real accounts.
 - Audit events exclude log contents and secrets. Do not disable TLS, auth or
   Host/Origin checks to work around a configuration problem.
 - OAuth SQLite state and env files are private, persistent and separate from releases.
+- WordPress inventory projects safe fields only; never read config/options/SSO
+  endpoints or execute WP-CLI/PHP through MCP. Never enable debugging as part of a read.
 
 ## Extensions requiring a new decision
 
