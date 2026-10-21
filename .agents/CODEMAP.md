@@ -5,11 +5,11 @@ module responsibilities or important flows change; keep this map short.
 
 | File / directory | Responsibility and purpose |
 | --- | --- |
-| `src/http.ts` | HTTP entry point, Host/Origin checks, health/discovery, authentication, per-request MCP transport and cleanup. |
-| `src/stdio.ts` | Local process entry point; stdout reserved for MCP, trusts the process owner. |
+| `src/http.ts` | HTTP entry point, Host/Origin checks, health/discovery, authenticated actor/write context, per-request MCP transport and cleanup. |
+| `src/stdio.ts` | Local process entry point; stdout reserved for MCP, owner write context still subject to account operation policy. |
 | `src/server.ts` | Version, eighteen tool registrations, input schemas, MCP results/errors and safe auditing. |
 | `src/capabilities.ts` | Shared tool/configuration-requirement catalog and honest configuration-only readiness; smoke tests verify names against the catalog. |
-| `src/config.ts` | Validates env/JSON, origins and aliases; resolves explicit accounts without a default account. |
+| `src/config.ts` | Validates env/JSON, origins, aliases, distinct read/write tokens, account write operations and trusted NS; selects private state files and resolves explicit accounts. |
 | `src/directadmin.ts` | Domain/subdomain reads, ownership checks and bounded/redacted web-log results. |
 | `src/domain-dns.ts` | Account-owned domain settings, local DNS records/IDs/snapshots and contextual diagnostics. |
 | `src/public-dns.ts` | Fixed-origin public recursive DNS observations, TTL cache, NS/provider hints; no lookups in log/list flows. |
@@ -37,17 +37,18 @@ module responsibilities or important flows change; keep this map short.
 | `test/account-log.test.ts` | Fixed-file/account isolation, unsafe/missing/incomplete metadata, suffix bounds, redaction and real SDK reads. |
 | `test/wordpress.test.ts` | Subdomain ownership, installation projection/paging, cross-account IDs, root boundaries, file metadata, suffix ranges, output caps and custom log paths. |
 | `test/diagnostics.test.ts` | Configuration-only readiness, catalog/registration agreement, safe detail projection, ID encoding, account isolation and metadata inspection without downloads. |
-| `test/oauth.test.ts` | Consent, CSRF, PKCE, single-use codes, shared SQLite, MCP and revocation. |
+| `test/oauth.test.ts` | Separate read/read-write consent, scope non-escalation, CSRF, PKCE, single-use codes, shared SQLite, HTTP context propagation and revocation. |
 | `test/deploy.test.ts` | Dependency graph, archive contents, release/rollback and private file preservation. |
 | `test/smoke-hosting.test.ts` | Real HTTP SDK/subprocess smoke: explicit selection, bounded log requests, payload-free output and nonzero failure status. |
 | `docs/`, `SECURITY.md` | Operator contracts, setup and security limitations. |
-| `AGENTS.md`, `CLAUDE.md`, `.agents/` | Codex/Claude entry points and shared memory; `CAPABILITIES.md` catalogs AI operations, optional `tasks/` holds temporary handoffs. |
+| `AGENTS.md`, `CLAUDE.md`, `.agents/` | Codex/Claude entry points and shared memory; `CAPABILITIES.md` catalogs operations, `REVIEW.md` guides the next peer review, optional `tasks/` holds temporary handoffs. |
 
 ## Flows
 
 - HTTP → `loadSettings` → Host/Origin → OAuth/discovery/health or MCP auth →
-  new `createMcpServer` + stateless transport → tool → DirectAdmin adapter.
-- Stdio → `loadSettings(..., false)` → the same tool server → the same adapter.
+  actor + `canWrite` → new `createMcpServer` + stateless transport → tool → adapter.
+- Stdio → `loadSettings(..., false)` → owner context → the same tool server and
+  adapters; explicit account write policy is still enforced.
 - Log → explicit account → fresh domain list for that account → GET `CMD_SHOW_LOG` →
   response bound → tail/filter/redaction → bounded output. No account fallback.
 - Subdomains → fresh account domain ownership → legacy subdomain GET → validated FQDNs.
@@ -65,9 +66,21 @@ module responsibilities or important flows change; keep this map short.
 - DNS diagnostics → fresh local ownership/zone → fixed public resolver/cache → observed NS and local/public comparison.
 - Changes → write scope + account allowlist → actor-bound preview in SQLite →
   review → account reservation → fresh state/NS checks → one POST → provider read
-  verification → persistent receipt. Unknown outcomes lock writes until reconciled.
+  verification → persistent receipt. `applying`/`unknown` reserve the whole account.
+  Explicit reconciliation can move `unknown` to `applied` only after observing the
+  expected provider state, without another POST. Interrupted `applying` needs review.
 - Deploy → check → allowlisted archive → SSH → dependency compatibility → code
   backup → restart → HTTPS + optional Bearer smoke; failure after copying begins → rollback.
 
+## State boundaries
+
+| State | Default location / lifetime | Owner |
+| --- | --- | --- |
+| Account settings and keys | Ignored config and env, loaded at startup | `config.ts`; never include real values in project memory. |
+| OAuth grants/tokens/consents | Private `data/oauth.sqlite`, persistent local disk | `local-oauth.ts`; old tokens default to read scope. |
+| Change previews/locks/receipts | Private `data/changes.sqlite`, persistent local disk | `change-store.ts`; ten-minute ready plans, up to 200 retained changes, unknown/applying locks survive expiry/restart. |
+| Positive public DNS observations | Process memory, minimum answer TTL capped at 300 seconds | `public-dns.ts`; at most 256 keys, fresh bypasses app cache, failures/negative/zero-TTL results are not cached. |
+
+See [review handoff](REVIEW.md) for the release comparison and critical code paths.
 `dist/` is generated from TypeScript; do not edit it manually. `node_modules/`,
 `data/` and real configuration are installation runtime, not versioned project memory.

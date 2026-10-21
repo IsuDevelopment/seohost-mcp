@@ -10,6 +10,8 @@ an existing CloudLinux Node.js app and never provisions machines or uses root ac
 Small modular server without a DI container or extra DDD layers. Domain concepts:
 configured account (`serverId`), alias, account-owned domain and a bounded web-log
 tail. WordPress adds provider-known installation IDs and explicit log root/path policy.
+Domain/DNS management adds owned zones/records, public resolver observations,
+immutable change previews and durable execution receipts.
 Transport exposes operations; provider adapters share bounded HTTP I/O. `Settings`
 is installation configuration, not a mutable account-selection session.
 
@@ -19,8 +21,9 @@ and MCP server lets hosting tests run without real accounts.
 
 ## Security invariants
 
-- One installation owner can read all configured accounts. There are no per-account
-  ACLs. Stdio trusts the local process; HTTP requires Bearer or complete OAuth.
+- One installation owner can read all configured accounts. There are no per-user
+  read ACLs; per-account write operation allowlists are a separate control. Stdio
+  trusts the local process; HTTP requires Bearer or complete OAuth.
 - Every hosting operation selects an account explicitly. Aliases must be unambiguous;
   domains do not select accounts. Log reads require a fresh ownership check.
 - WordPress log reads refresh the account's installation inventory and accept a
@@ -37,7 +40,7 @@ and MCP server lets hosting tests run without real accounts.
   responses are untrusted data, never agent instructions.
 - Audit events exclude log contents and secrets. Do not disable TLS, auth or
   Host/Origin checks to work around a configuration problem.
-- OAuth SQLite state and env files are private, persistent and separate from releases.
+- OAuth/change SQLite state and env files are private, persistent and separate from releases.
 - WordPress inventory projects safe fields only; never read config/options/SSO
   endpoints or execute WP-CLI/PHP through MCP. Never enable debugging as part of a read.
 - Configuration diagnostics inspect loaded settings only, not provider authorization.
@@ -52,7 +55,8 @@ and MCP server lets hosting tests run without real accounts.
 
 ## Extensions requiring a new decision
 
-Further writes: extend the explicit operation contract before adding tools. Multiple users: define identity and per-account ACLs before sharing an
+Further writes: extend the explicit operation contract before adding tools.
+Multiple users: define identity and per-account ACLs before sharing an
 installation. Multiple application hosts: replace local SQLite; do not share it
 over NFS. Production dependency changes: use panel installation/manual deployment,
 because the code workflow preserves the CloudLinux-managed `node_modules` symlink.

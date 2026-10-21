@@ -43,8 +43,15 @@ Updated: 2026-10-22.
   change. Request H57 WordPress Manager enablement, then verify WordPress inventory,
   log metadata and Range behavior. H93 credentials are deferred. Full owner OAuth
   login remains a separate client check.
+- Independent review is pending. [REVIEW.md](REVIEW.md) identifies the 0.6.0 diff,
+  inspection order and verification gaps; it does not represent review approval.
 
 ## Recent changes
+
+2026-10-22 — synchronized agent navigation, module/state map, architecture wording
+and D02/D14 relationship against 0.6.0; added the independent review handoff.
+Documentation-only: references/tool inventory checked, no runtime or production
+changes. Existing 57-test evidence is historical feature validation.
 
 2026-10-22 — domain/DNS workflow (D14): owned domain/zone projections, contextual
 TTL-cached fixed-origin public DNS, separate write authorization/OAuth consent,

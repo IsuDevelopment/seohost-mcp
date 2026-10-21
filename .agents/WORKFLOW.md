@@ -15,7 +15,8 @@
   the DirectAdmin adapter and authentication separate. Add abstractions only
   when a concrete requirement justifies them.
 - New tool: input schema and registration in `src/server.ts`, account rules in
-  `src/config.ts`, provider I/O in `src/directadmin.ts`. Test behavior and
+  `src/config.ts`, provider I/O in the responsible adapter shown in CODEMAP and
+  fixed routes in `src/directadmin-http.ts`. Test behavior and
   security boundaries rather than mirroring the implementation.
 - Hosting writes or multiple users require a decision about operation scopes
   and account permissions first. MCP annotations do not enforce authorization.

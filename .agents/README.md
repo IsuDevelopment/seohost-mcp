@@ -4,9 +4,11 @@ Standalone MCP server for SeoHost/DirectAdmin accounts, TypeScript and Node.js >
 The product targets standard SeoHost shared hosting. VPS compatibility is untested;
 do not infer either full support or endpoint absence from the VPS label.
 Version 0.6.0: HTTP/stdio, Bearer/OAuth, inventory, configuration/site/log diagnostics,
-domain/DNS diagnostics, web-log, fixed account-root `log.txt` and explicitly enabled WordPress debug-log reads. One installation
+domain/DNS diagnostics, web-log, fixed account-root `log.txt` and explicitly enabled
+WordPress debug-log reads. One installation
 owner can read all configured accounts. Planned domain/DNS writes require separate
-authorization and per-account operation allowlists; see D14 and DOMAIN-DNS.md.
+authorization and per-account operation allowlists; see D14 and the
+[domain/DNS contract](../docs/DOMAIN-DNS.md).
 
 Read in order:
 
@@ -16,6 +18,10 @@ Read in order:
 4. [DECISIONS.md](DECISIONS.md) — accepted choices and their rationale.
 5. [STATUS.md](STATUS.md) — current scope, verification and next steps.
 6. [CAPABILITIES.md](CAPABILITIES.md) — AI-facing tools and development operations.
+
+For the next independent code review, also read [REVIEW.md](REVIEW.md): release
+baseline, inspection order, evidence requirements and verification gaps. It is a
+review handoff, not an approval or proof that the implementation is correct.
 
 Operator documentation: [README](../README.md), [logs](../docs/LOGS.md),
 [OAuth](../docs/OAUTH.md), [deployment](../docs/DEPLOYMENT.md),
