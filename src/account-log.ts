@@ -50,7 +50,7 @@ export class AccountLogClient {
     } catch (error) { if (error instanceof HostingError) throw error }
     const tail = downloaded.text.replace(/\r\n/g, '\n').replace(/\n$/, '').split('\n')
       .filter((line, i, all) => !(all.length === 1 && line === '')).slice(-requestedLines)
-    const secrets = [this.settings.authToken, ...Object.values(this.settings.credentials).map(value => value?.loginKey)]
+    const secrets = [this.settings.authToken, this.settings.writeAuthToken, ...Object.values(this.settings.credentials).map(value => value?.loginKey)]
     const selected = tail.filter(line => !contains || line.toLowerCase().includes(contains.toLowerCase())).map(line => {
       for (const secret of secrets) if (secret) line = line.split(secret).join('[REDACTED]')
       return redactLog(line)

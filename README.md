@@ -1,11 +1,12 @@
 # SeoHost MCP
 
-Read-only MCP integration for **standard SeoHost shared hosting** accounts using
+MCP integration with read-only defaults and reviewed domain/DNS changes for **standard SeoHost shared hosting** accounts using
 DirectAdmin.
 
-Version 0.5.0: a standalone TypeScript/Node.js server with HTTP and stdio transports,
+Version 0.6.0: a standalone TypeScript/Node.js server with HTTP and stdio transports,
 Bearer and built-in OAuth authentication, domain/subdomain and WordPress inventory,
-and bounded reads of web-server logs, account-root `log.txt` and existing WordPress debug logs.
+bounded reads of web-server logs, account-root `log.txt` and existing WordPress debug logs,
+plus local/public DNS diagnostics and separately authorized domain/DNS changes.
 
 ## Hosting scope
 
@@ -42,7 +43,9 @@ npm start
 Test the running HTTP server with `npm run smoke`. Available tools:
 `get_server_info`, `list_servers`, `resolve_server`, `get_server_capabilities`,
 `list_domains`, `list_subdomains`, `list_wordpress_sites`, `get_wordpress_info`,
-`get_wordpress_log_info`, `read_account_log`, `read_web_log` and `read_wordpress_log`.
+`get_wordpress_log_info`, `read_account_log`, `read_web_log`, `read_wordpress_log`,
+`get_domain_info`, `list_dns_records`, `check_dns`, `plan_hosting_change`,
+`apply_hosting_change` and `get_hosting_change`.
 See [logs, aliases and key setup](docs/LOGS.md),
 [WordPress inventory and logs](docs/WORDPRESS.md) and
 [configuration and deployment](docs/DEPLOYMENT.md). MIT license.
@@ -53,6 +56,10 @@ It reports counts/status without printing logs; see [hosting verification](docs/
 
 [Diagnostics](docs/DIAGNOSTICS.md) distinguish loaded configuration readiness from
 unverified provider permissions and inspect WordPress details/log metadata safely.
+
+Domain/subdomain creation and individual DNS record edits use expiring previews,
+separate write authorization and per-account operation allowlists. Existing read
+tokens remain read-only. See [domain/DNS workflow](docs/DOMAIN-DNS.md).
 
 ## Deployment
 

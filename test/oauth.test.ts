@@ -9,12 +9,14 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { loadSettings } from "../src/config.js";
 
-test("local OAuth: consent, PKCE, single-use code and revocation", async () => {
+for (const requestedScope of ["mcp:read", "mcp:read mcp:write"]) {
+test(`local OAuth: consent, PKCE, single-use code and revocation (${requestedScope})`, async () => {
   const dir = await mkdtemp(tmpdir() + "/seohost-oauth-");
   const salt = randomBytes(16).toString("hex"),
     password = randomBytes(24).toString("hex");
   const settings = await loadSettings({ MCP_AUTH_TOKEN: "a".repeat(32) });
   settings.localOAuth = {
+    allowWrites: true,
     file: dir + "/state.json",
     username: "owner",
     passwordHash: salt + ":" + scryptSync(password, salt, 64).toString("hex"),
@@ -64,7 +66,7 @@ test("local OAuth: consent, PKCE, single-use code and revocation", async () => {
       client_id: client.client_id,
       redirect_uri: "https://client.example/callback",
       resource: settings.publicUrl.href,
-      scope: "mcp:read",
+      scope: requestedScope,
       response_type: "code",
       code_challenge_method: "S256",
       code_challenge: createHash("sha256").update(verifier).digest("base64url"),
@@ -122,10 +124,11 @@ test("local OAuth: consent, PKCE, single-use code and revocation", async () => {
       ).status,
       400,
     );
-    const result = await post("/oauth/token", exchange);
+    const result = await post("/oauth/token", { ...exchange, scope: "mcp:read mcp:write" });
     assert.equal(result.status, 200);
-    const token = ((await result.json()) as { access_token: string })
-      .access_token;
+    const granted = (await result.json()) as { access_token: string; scope: string };
+    assert.equal(granted.scope, requestedScope);
+    const token = granted.access_token;
     assert.equal((await post("/oauth/token", exchange)).status, 400);
     assert.equal(
       (
@@ -137,13 +140,17 @@ test("local OAuth: consent, PKCE, single-use code and revocation", async () => {
     );
     const peer = createLocalOAuth(settings.localOAuth!, settings.publicUrl);
     assert.equal(peer.verify(token), true);
+    assert.equal(peer.authorize(token)?.canWrite, requestedScope.includes("mcp:write"));
     const mcp = new Client({ name: "oauth-test", version: "1" });
     await mcp.connect(
       new StreamableHTTPClientTransport(settings.publicUrl, {
         requestInit: { headers: { Authorization: "Bearer " + token } },
       }),
     );
-    assert.equal((await mcp.listTools()).tools.length, 12);
+    assert.equal((await mcp.listTools()).tools.length, 18);
+    const rejected = await mcp.callTool({ name: 'plan_hosting_change', arguments: { serverId: 'primary', change: { operation: 'create_domain', domain: 'new.example' } } });
+    assert.equal(rejected.isError, true);
+    assert.equal((rejected.structuredContent as { error: { code: string } }).error.code, requestedScope.includes('mcp:write') ? 'WRITE_DISABLED' : 'WRITE_SCOPE_REQUIRED');
     await mcp.close();
     await post("/oauth/revoke", { token });
     assert.equal(peer.verify(token), false);
@@ -161,3 +168,5 @@ test("local OAuth: consent, PKCE, single-use code and revocation", async () => {
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+}

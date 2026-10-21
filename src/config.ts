@@ -2,6 +2,8 @@ import { readFile } from 'node:fs/promises'
 import { z } from 'zod'
 
 const envName = z.string().regex(/^[A-Z][A-Z0-9_]*$/)
+export const writeOperations = ['create_domain', 'create_subdomain', 'add_dns_record', 'update_dns_record', 'delete_dns_record'] as const
+export type WriteOperation = typeof writeOperations[number]
 export const relativeHostingPath = z.string().min(1).max(1024).refine(value =>
   value.split('/').every(part => /^[a-zA-Z0-9_.-]+$/.test(part) && part !== '.' && part !== '..'),
   'Expected a normalized path relative to the hosting account home')
@@ -14,6 +16,9 @@ const accountSchema = z.object({
   }, 'Expected an HTTPS origin without credentials or path'),
   usernameEnv: envName,
   loginKeyEnv: envName,
+  writeOperations: z.array(z.enum(writeOperations)).max(5).optional(),
+  dnsNameservers: z.array(z.string().max(253).transform(value => value.toLowerCase().replace(/\.$/, ''))
+    .refine(value => value.includes('.') && value.split('.').every(label => /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(label)), 'Expected an exact nameserver hostname')).max(10).optional(),
   wordpressLogRoots: z.array(relativeHostingPath).max(20).optional(),
   wordpressLogPaths: z.record(z.string().min(1).max(256), relativeHostingPath.refine(value => value.endsWith('.log'),
     'Explicit WordPress log paths must end in .log')).optional(),
@@ -29,6 +34,8 @@ export interface Settings {
   accounts: Record<string, Account>
   credentials: Record<string, { username: string; loginKey: string } | undefined>
   authToken?: string
+  writeAuthToken?: string
+  changeStateFile?: string
   oauth?: { issuer: string; audience: string; subjects: string[] }
   localOAuth?: import('./local-oauth.js').LocalOAuthConfig
   allowedOrigins: Set<string>
@@ -56,6 +63,8 @@ export async function loadSettings(env: NodeJS.ProcessEnv = process.env, http = 
   const port = z.coerce.number().int().min(0).max(65535).parse(env.PORT || '3000')
   const authToken = env.MCP_AUTH_TOKEN || undefined
   if (authToken && authToken.length < 32) throw new Error('MCP_AUTH_TOKEN must contain at least 32 characters')
+  const writeAuthToken = env.MCP_WRITE_AUTH_TOKEN || undefined
+  if (writeAuthToken && (writeAuthToken.length < 32 || writeAuthToken === authToken)) throw new Error('The write token must be distinct and at least 32 characters')
   const issuer = env.MCP_OAUTH_ISSUER || undefined
   const audience = env.MCP_OAUTH_AUDIENCE || undefined
   const subjects = (env.MCP_OAUTH_SUBJECTS || '').split(',').map(x => x.trim()).filter(Boolean)
@@ -74,16 +83,18 @@ export async function loadSettings(env: NodeJS.ProcessEnv = process.env, http = 
     if (!/^[a-f0-9]{32}:[a-f0-9]{128}$/.test(passwordHash) || !env.MCP_OWNER_USERNAME || !redirects.length) throw new Error('Local OAuth requires owner credentials and explicit redirect URIs')
     for (const uri of redirects) { const u = new URL(uri); if (u.protocol !== 'https:' || u.hash || u.username || u.password) throw new Error('Redirect URIs must use HTTPS') }
     if (oauth) throw new Error('Select local or external OAuth')
-    localOAuth = { file: env.MCP_OAUTH_STATE_FILE || 'data/oauth.sqlite', passwordHash, username: env.MCP_OWNER_USERNAME, redirects }
+    localOAuth = { file: env.MCP_OAUTH_STATE_FILE || 'data/oauth.sqlite', passwordHash, username: env.MCP_OWNER_USERNAME, redirects,
+      allowWrites: Object.values(accounts).some(account => account.writeOperations?.length) }
   }
-  if (http && !authToken && !oauth && !localOAuth) throw new Error('Configure MCP_AUTH_TOKEN or OAuth before starting HTTP')
+  if (http && !authToken && !writeAuthToken && !oauth && !localOAuth) throw new Error('Configure MCP_AUTH_TOKEN or OAuth before starting HTTP')
   const allowedOrigins = new Set([publicUrl.origin])
   for (const value of (env.MCP_ALLOWED_ORIGINS || '').split(',').filter(Boolean)) {
     const url = new URL(value.trim())
     if (url.origin !== value.trim() || !['http:', 'https:'].includes(url.protocol)) throw new Error('Invalid allowed origin')
     allowedOrigins.add(url.origin)
   }
-  return { host: env.HOST || '127.0.0.1', port, publicUrl, accounts, credentials, authToken, oauth, localOAuth, allowedOrigins }
+  return { host: env.HOST || '127.0.0.1', port, publicUrl, accounts, credentials, authToken, writeAuthToken,
+    changeStateFile: env.MCP_CHANGE_STATE_FILE || 'data/changes.sqlite', oauth, localOAuth, allowedOrigins }
 }
 
 export function normalizeServerReference(value: string | number): string {

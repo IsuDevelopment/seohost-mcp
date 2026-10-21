@@ -27,7 +27,7 @@ export class WordPressClient {
   }
 
   private mask(text: string) {
-    for (const secret of [this.settings.authToken, ...Object.values(this.settings.credentials).map(v => v?.loginKey)]) {
+    for (const secret of [this.settings.authToken, this.settings.writeAuthToken, ...Object.values(this.settings.credentials).map(v => v?.loginKey)]) {
       if (secret) text = text.split(secret).join('[REDACTED]')
     }
     return redactLog(text)

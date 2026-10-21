@@ -66,11 +66,11 @@ do not generate or install another authentication key merely to configure this r
 6. Checks the expected version at HTTPS `/healthz` and verifies that `/mcp` without credentials returns 401.
 7. If a Bearer token is configured in the server `.env`, runs the real MCP SDK smoke test without printing it.
 
-The archive excludes `.env`, account configuration, OAuth SQLite state, source tests
+The archive excludes `.env`, account configuration, OAuth/change SQLite state, source tests
 and `node_modules`. Deployments leave the host-managed dependency symlink intact.
 The account config already on the server is preserved, including installations
 that use `config/servers.example.json`. Public example changes are never deployed
-over that file. Local OAuth state is never replaced or restored from a code backup.
+over that file. Local OAuth and change receipts/locks are never replaced or restored from a code backup.
 
 This first workflow supports code updates with unchanged production dependencies.
 A runtime dependency change requires a manual deployment and hosting-panel dependency

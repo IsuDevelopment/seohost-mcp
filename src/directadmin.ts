@@ -82,7 +82,7 @@ export class DirectAdminClient {
       try { const data = JSON.parse(raw); if (data.error !== undefined) throw new HostingError('ACCESS_DENIED', 'DirectAdmin rejected this log request.') } catch (e) { if (e instanceof HostingError) throw e }
     }
     const tail = raw.replace(/\r\n/g, '\n').replace(/\n$/, '').split('\n').filter((line, i, all) => !(all.length === 1 && line === '')).slice(-requestedLines)
-    const knownSecrets = [this.settings.authToken, ...Object.values(this.settings.credentials).map(value => value?.loginKey)].filter((value): value is string => Boolean(value))
+    const knownSecrets = [this.settings.authToken, this.settings.writeAuthToken, ...Object.values(this.settings.credentials).map(value => value?.loginKey)].filter((value): value is string => Boolean(value))
     const selected = tail.filter(line => !contains || line.toLowerCase().includes(contains.toLowerCase())).map(line => {
       for (const secret of knownSecrets) line = line.split(secret).join('[REDACTED]')
       return redactLog(line)

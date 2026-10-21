@@ -2,9 +2,11 @@ import type { Settings } from './config.js'
 import { HostingError } from './hosting-error.js'
 
 type ReadPath = '/CMD_API_SHOW_DOMAINS' | '/CMD_SHOW_LOG' | '/CMD_API_SUBDOMAINS'
+  | '/CMD_API_ADDITIONAL_DOMAINS' | '/CMD_API_DNS_CONTROL'
   | '/api/wordpress/locations' | '/api/filemanager/list' | '/api/filemanager/download'
   | `/api/wordpress/locations/${string}/wordpress`
 export const MAX_RESPONSE_BYTES = 512 * 1024
+export type WritePath = '/CMD_API_DOMAIN' | '/CMD_API_SUBDOMAINS' | '/CMD_API_DNS_CONTROL'
 
 async function boundedBytes(response: Response) {
   if (Number(response.headers.get('content-length')) > MAX_RESPONSE_BYTES) {
@@ -43,6 +45,30 @@ export class DirectAdminTransport {
 
   async wordpressInfo(serverId: string, siteId: string) {
     return this.getText(serverId, `/api/wordpress/locations/${encodeURIComponent(siteId)}/wordpress`, {})
+  }
+
+  // Internal only: callers enforce write authorization, allowlists and stored plans.
+  // Never retry a POST: a lost response can still mean a completed mutation.
+  async postForm(serverId: string, path: WritePath, params: Record<string, string>) {
+    const credentials = this.settings.credentials[serverId]
+    if (!credentials) throw new HostingError('CREDENTIALS_MISSING', 'Hosting credentials are missing.')
+    try {
+      const response = await this.request(new URL(path, this.settings.accounts[serverId]!.baseUrl), {
+        method: 'POST', redirect: 'manual', signal: AbortSignal.timeout(10_000),
+        headers: { Authorization: 'Basic ' + Buffer.from(credentials.username + ':' + credentials.loginKey).toString('base64'),
+          'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json, application/x-www-form-urlencoded' },
+        body: new URLSearchParams(params).toString(),
+      })
+      if (response.status !== 200) { await response.body?.cancel(); throw new Error('Uncertain provider result') }
+      const raw = (await boundedBytes(response)).toString('utf8')
+      let result: Record<string, unknown>
+      try { result = JSON.parse(raw) } catch { result = Object.fromEntries(new URLSearchParams(raw)) }
+      if (result && [0, '0', false].includes(result.error as number | string | boolean)) return
+      // Even explicit errors may follow partial provider changes; require reconciliation.
+      throw new Error('Provider did not confirm success')
+    } catch {
+      throw new HostingError('WRITE_OUTCOME_UNKNOWN', 'The provider did not confirm the write. Inspect current state; do not retry blindly.')
+    }
   }
 
   private async read(serverId: string, path: ReadPath, params: Record<string, string>, range: boolean) {

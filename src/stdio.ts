@@ -2,7 +2,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { loadSettings } from './config.js'
 import { createMcpServer } from './server.js'
 try {
-  const server = createMcpServer(await loadSettings(process.env, false))
+  const server = createMcpServer(await loadSettings(process.env, false), fetch, { actor: 'stdio-owner', canWrite: true })
   await server.connect(new StdioServerTransport())
 } catch {
   console.error('MCP startup failed; check configuration and config file')

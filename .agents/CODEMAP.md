@@ -7,16 +7,20 @@ module responsibilities or important flows change; keep this map short.
 | --- | --- |
 | `src/http.ts` | HTTP entry point, Host/Origin checks, health/discovery, authentication, per-request MCP transport and cleanup. |
 | `src/stdio.ts` | Local process entry point; stdout reserved for MCP, trusts the process owner. |
-| `src/server.ts` | Version, twelve tool registrations, input schemas, MCP results/errors and safe auditing. |
+| `src/server.ts` | Version, eighteen tool registrations, input schemas, MCP results/errors and safe auditing. |
 | `src/capabilities.ts` | Shared tool/configuration-requirement catalog and honest configuration-only readiness; smoke tests verify names against the catalog. |
 | `src/config.ts` | Validates env/JSON, origins and aliases; resolves explicit accounts without a default account. |
 | `src/directadmin.ts` | Domain/subdomain reads, ownership checks and bounded/redacted web-log results. |
+| `src/domain-dns.ts` | Account-owned domain settings, local DNS records/IDs/snapshots and contextual diagnostics. |
+| `src/public-dns.ts` | Fixed-origin public recursive DNS observations, TTL cache, NS/provider hints; no lookups in log/list flows. |
+| `src/hosting-changes.ts` | Validated operation previews/apply/reconciliation, write gates, stale checks, provider verification and no blind retries. |
+| `src/change-store.ts` | Private persistent SQLite previews, actor binding, account reservations and receipts across stateless MCP requests. |
 | `src/account-log.ts` | Fixed account-root `log.txt` policy, file metadata checks and bounded/redacted reads independent of WordPress. |
-| `src/directadmin-http.ts` | Shared account-bound GET transport: credentials, fixed routes, timeout, response caps, redirect refusal and log suffix validation. |
+| `src/directadmin-http.ts` | Shared account-bound GET and fixed form-POST transport: credentials, fixed routes, timeout, response caps, redirect refusal and log suffix validation. |
 | `src/hosting-error.ts` | Shared safe provider error codes/messages; no raw upstream diagnostics. |
 | `src/wordpress.ts` | Provider-known installations, safe details, pagination, shared log inspection/read policy, metadata, bounds and redaction. |
-| `src/auth.ts` | Bearer with constant-time hash comparison; external RS256/JWKS JWT, subject and `mcp:read` checks. |
-| `src/local-oauth.ts` | Owner OAuth: registration, consent, PKCE, tokens and revocation; private SQLite state. |
+| `src/auth.ts` | Distinct read/write Bearer contexts; external RS256/JWKS JWT, subject and scope checks. |
+| `src/local-oauth.ts` | Owner OAuth: registration, scope-specific consent, PKCE, tokens and revocation; private SQLite state. |
 | `config/servers.example.json`, `.env.example` | Public templates without real accounts or secrets. |
 | `scripts/setup-{local,oauth,hosting}.mjs` | Local setup of private environment files and credentials. |
 | `scripts/smoke.mjs`, `scripts/smoke-oauth.mjs` | Real MCP client / OAuth probes against the configured environment. |
@@ -29,6 +33,7 @@ module responsibilities or important flows change; keep this map short.
 | `deploy/start.cjs`, `deploy/verify.mjs` | CloudLinux bootstrap with env / HTTPS health and unauthenticated rejection probes. |
 | `test/server.test.ts` | HTTP auth, Host/Origin, method/body limits, real HTTP SDK and stdio. |
 | `test/directadmin.test.ts` | Account isolation, aliases, domain validation, provider failures, limits, plain/JSON/PHP WordPress credential redaction and SDK. |
+| `test/domain-dns.test.ts`, `test/hosting-changes.test.ts` | Provider projection, contextual DNS/cache/failure handling, scopes/allowlists, stale/actor/expiry checks, exact record selectors, replay/uncertainty and concurrent reservations. |
 | `test/account-log.test.ts` | Fixed-file/account isolation, unsafe/missing/incomplete metadata, suffix bounds, redaction and real SDK reads. |
 | `test/wordpress.test.ts` | Subdomain ownership, installation projection/paging, cross-account IDs, root boundaries, file metadata, suffix ranges, output caps and custom log paths. |
 | `test/diagnostics.test.ts` | Configuration-only readiness, catalog/registration agreement, safe detail projection, ID encoding, account isolation and metadata inspection without downloads. |
@@ -57,6 +62,10 @@ module responsibilities or important flows change; keep this map short.
   no download. Incomplete listings do not establish absence.
 - Capabilities → loaded settings + tool requirement catalog → missing configuration;
   no provider calls, permission checks or implied network success.
+- DNS diagnostics → fresh local ownership/zone → fixed public resolver/cache → observed NS and local/public comparison.
+- Changes → write scope + account allowlist → actor-bound preview in SQLite →
+  review → account reservation → fresh state/NS checks → one POST → provider read
+  verification → persistent receipt. Unknown outcomes lock writes until reconciled.
 - Deploy → check → allowlisted archive → SSH → dependency compatibility → code
   backup → restart → HTTPS + optional Bearer smoke; failure after copying begins → rollback.
 

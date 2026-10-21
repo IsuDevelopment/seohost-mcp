@@ -6,7 +6,9 @@
       "baseUrl": "https://primary.example.com:2222",
       "usernameEnv": "SEOHOST_PRIMARY_USERNAME",
       "loginKeyEnv": "SEOHOST_PRIMARY_LOGIN_KEY",
-      "wordpressLogRoots": []
+      "wordpressLogRoots": [],
+      "writeOperations": [],
+      "dnsNameservers": []
     },
     "secondary": {
       "label": "Secondary hosting",

@@ -42,7 +42,10 @@ connection-specific callback.
 | `/mcp` | Protected MCP endpoint |
 
 Supported flow: `authorization_code`, PKCE `S256`, public clients
-(`token_endpoint_auth_method=none`), scope `mcp:read`. The required `resource`
+(`token_endpoint_auth_method=none`), scope `mcp:read`. Accounts with enabled write
+operations also support an explicit `mcp:read mcp:write` consent. Existing read-only
+grants are never upgraded automatically, and account allowlists still apply.
+Reconnect/re-authorize with the write scope to use change previews/apply. The required `resource`
 parameter must equal `MCP_PUBLIC_URL` during both authorization and code exchange.
 Codes and consent forms expire after five minutes. Access tokens last one hour.
 There are no refresh tokens; expiration requires another login.

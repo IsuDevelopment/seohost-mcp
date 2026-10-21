@@ -1,7 +1,7 @@
 import { createServer, type ServerResponse } from 'node:http'
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js'
 import { createLocalOAuth } from './local-oauth.js'
-import { createAuthenticator } from './auth.js'
+import { createAuthenticator, type AccessContext } from './auth.js'
 import { loadSettings, type Settings } from './config.js'
 import { createMcpServer, VERSION } from './server.js'
 import { pathToFileURL } from 'node:url'
@@ -40,12 +40,12 @@ export function createHttpServer(settings: Settings) {
     if (path === '/.well-known/oauth-protected-resource/mcp' || path === '/api/mcp/oauth-protected-resource') {
       if (request.method !== 'GET') { response.setHeader('Allow', 'GET'); return json(response, 405, { error: 'Method not allowed' }) }
       if (!settings.oauth && !localOAuth) return json(response, 503, { error: 'OAuth not configured' })
-      return json(response, 200, { resource: settings.publicUrl.href, authorization_servers: [settings.oauth?.issuer || settings.publicUrl.origin], scopes_supported: ['mcp:read'], bearer_methods_supported: ['header'] })
+      return json(response, 200, { resource: settings.publicUrl.href, authorization_servers: [settings.oauth?.issuer || settings.publicUrl.origin], scopes_supported: ['mcp:read', ...(Object.values(settings.accounts).some(account => account.writeOperations?.length) ? ['mcp:write'] : [])], bearer_methods_supported: ['header'] })
     }
     if (path !== '/mcp') return json(response, 404, { error: 'Not found' })
-    let authorized = false
+    let authorized: AccessContext | undefined
     try {
-      authorized = await authenticate(request) || Boolean(localOAuth?.verify(request.headers.authorization?.match(/^Bearer ([^\s]+)$/i)?.[1] || ''))
+      authorized = await authenticate(request) || localOAuth?.authorize(request.headers.authorization?.match(/^Bearer ([^\s]+)$/i)?.[1] || '')
     } catch {
       return json(response, 503, { error: 'Authentication temporarily unavailable' })
     }
@@ -59,7 +59,7 @@ export function createHttpServer(settings: Settings) {
       response.setHeader('Allow', 'POST')
       return json(response, 405, { jsonrpc: '2.0', error: { code: -32000, message: 'Stateless endpoint supports POST only' }, id: null })
     }
-    const server = createMcpServer(settings)
+    const server = createMcpServer(settings, fetch, authorized)
     const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true, maxRequestBodySize: 131072 })
     // SDK handleRequest may finish before the response body is flushed.
     response.once('close', () => { void server.close().catch(() => console.error('MCP cleanup failed')) })

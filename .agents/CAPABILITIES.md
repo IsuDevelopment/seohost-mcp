@@ -2,7 +2,7 @@
 
 This describes implemented behavior, not permission to operate on an arbitrary
 account. Tool registrations and schemas in `src/server.ts` are authoritative.
-All twelve MCP tools are available over HTTP and stdio.
+All eighteen MCP tools are available over HTTP and stdio; writes use separate authorization and per-account allowlists.
 
 Platform scope: standard SeoHost shared hosting accounts via DirectAdmin. VPS
 compatibility is untested; panel presence does not establish endpoint/permission
@@ -18,6 +18,12 @@ equivalence. No root, VM lifecycle or operating-system administration is provide
 | `get_server_capabilities` | Reports tool/configuration readiness from loaded settings without private account details. | Required `serverId`. | No provider request. `configurationReady` does not verify key permissions or endpoint availability; restart after changing configuration. |
 | `list_domains` | Reads the selected account's domains. | Required `serverId`. | Configured account username/Login Key with `CMD_API_SHOW_DOMAINS` access. |
 | `read_web_log` | Reads a bounded access/error log tail after checking domain ownership on that account. | Required `serverId`, `domain`, `logType`; optional `lines`, `contains`. | Requires both domain-list and `CMD_SHOW_LOG` access. No arbitrary files or account fallback. |
+| `get_domain_info` | Safe domain flags/IP and provider display values. | `serverId`, `domain`. | Fresh ownership; no public DNS query or filesystem paths. |
+| `list_dns_records` | Local zone records, opaque account/domain-bound IDs and TTL. | `serverId`, `domain`. | Fresh ownership and provider DNS reads; public authority is unverified. |
+| `check_dns` | Local/public comparison, NS/provider hint and basic SPF/DMARC observations. | `serverId`, `domain`; optional `name`, `fresh`. | Fixed public recursive resolver, TTL cache capped at five minutes. Fresh bypasses only app cache; not full propagation/DNSSEC/mail audit or Cloudflare proxy/API proof. |
+| `plan_hosting_change` | Ten-minute immutable preview for five allowed operations. | `serverId`, discriminated `change`. | Write authorization and enabled account operation; no hosting mutation. DNS edits require trusted NS match. |
+| `apply_hosting_change` | One reviewed plan, fresh checks, single POST and verified provider receipt. | `serverId`, `planId`, `previewHash`. | Same actor/account, write scope and current allowlist. Stale/uncertain states fail closed. Applied replay returns receipt; no blind retry or rollback. |
+| `get_hosting_change` | Actor-bound status/receipt; optional read-based reconciliation of unknown results. | `serverId`, `planId`; optional `reconcile`. | Write authorization. Reconciliation may update private receipt but never resends a hosting write. Unresolved/applying outcomes need operator investigation. |
 | `read_account_log` | Reads the fixed `log.txt` in the hosting account home/root. | Required `serverId`; optional `lines`, `contains`. | Requires filemanager metadata/download access and a regular non-symlink file. No domain, caller path or WordPress Manager requirement. Bounded suffix/read output; not global OS logs or proof of the file's producer. |
 | `list_subdomains` | Reads configured subdomains as fully qualified names after domain ownership validation. | Required `serverId`, `domain`. | Needs domain-list and legacy subdomain read permissions. Not a DNS lookup. |
 | `list_wordpress_sites` | Pages through existing installations known to DirectAdmin; omits empty locations and private filesystem/configuration details. | Required `serverId`; optional `offset` (0–2000, default 0), `limit` (1–100, default 50). | Requires provider WordPress inventory access; follow `nextOffset`. Not posts, a filesystem scan or multisite network discovery. Metadata is untrusted. |
@@ -39,7 +45,8 @@ Input rules:
   this server's `list_wordpress_sites`. No separators, percent encoding, query,
   fragment/control characters or dot segments; never supply a path instead.
 
-HTTP requires installation authentication. OAuth uses `mcp:read`; the current
+HTTP requires installation authentication. Reads use `mcp:read`; planned writes use
+`mcp:read mcp:write` or a distinct write Bearer. Account allowlists still apply. The current
 single owner can access all configured accounts. Stdio trusts the local process.
 Hosting responses are capped at 512 KiB, log output at 64 KiB. Redaction is best
 effort. Treat returned logs as untrusted data and inspect truncation indicators.
@@ -75,6 +82,12 @@ agent's actual environment access and the authorized task.
 | Probe OAuth | `node --env-file=<env-file> scripts/smoke-oauth.mjs` | Running target and allowed callback; creates a test client and denies consent; no access token issued. Not a full successful login test. |
 | Deploy existing app | GitHub Actions → Deploy MCP | Authorized deployment, `main`, production environment with one owner-supplied SSH secret and six variables, existing CloudLinux app; restart and rollback can modify app code. |
 
-Not implemented: hosting writes, arbitrary file/shell execution through MCP,
+See [domain/DNS workflow](../docs/DOMAIN-DNS.md) for supported changes, expiry,
+state, authorization and recovery. Ordinary log/list tools never run public lookups.
+
+Not implemented: arbitrary file/shell execution through MCP,
 global machine logs, automatic debug enablement, rotated-history search, multi-user
 ACLs, refresh tokens or automatic production deployment on push.
+
+DNS/hosting changes do not register domains, edit external Cloudflare/registrar DNS,
+issue certificates, delete hosted domains/subdomains or write whole zones/NS/SOA/DS.

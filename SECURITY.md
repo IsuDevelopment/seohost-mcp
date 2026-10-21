@@ -18,3 +18,13 @@ Metadata checks and download are not atomic against concurrent filesystem change
 use trusted account-owned installations, not hostile tenant isolation. Redaction
 is best effort, not a guarantee that output is free of secrets or personal data.
 See [WordPress reads](docs/WORDPRESS.md) for limits and provider permissions.
+
+Domain/DNS changes require `mcp:write` or a distinct write Bearer token, an account
+operation allowlist and an actor-bound expiring preview. Original read tokens never
+gain write access. DNS edits require fresh NS observations matching trusted account
+nameservers; recursive-resolver observations are not a DNSSEC/root-delegation proof.
+Preview hashes do not prove human consent. Stale checks are optimistic, not atomic
+against external panel users. A SQLite account lock and persistent receipt prevent
+blind retries after uncertain writes; there is no automatic DNS/hosting rollback.
+Keep change state private on local disk and preserve it across deployments. See
+[domain/DNS workflow](docs/DOMAIN-DNS.md) for limits and reconciliation.

@@ -21,6 +21,7 @@ const escape = (s: string) =>
   );
 type Client = { redirect_uris: string[]; client_name: string };
 type Grant = {
+  scope?: string;
   client: string;
   redirect: string;
   challenge: string;
@@ -30,9 +31,10 @@ type Grant = {
 type State = {
   clients: Record<string, Client>;
   codes: Record<string, Grant>;
-  tokens: Record<string, { expires: number; client: string }>;
+  tokens: Record<string, { expires: number; client: string; scope?: string }>;
 };
 export interface LocalOAuthConfig {
+  allowWrites?: boolean;
   file: string;
   passwordHash: string;
   username: string;
@@ -99,12 +101,21 @@ export function createLocalOAuth(config: LocalOAuthConfig, resource: URL) {
     return data;
   }
   const issuer = resource.origin;
+  const validScope = (scope: string) => {
+    const parts = scope.split(/\s+/);
+    return parts.includes('mcp:read') && parts.every(value => value === 'mcp:read' || (config.allowWrites && value === 'mcp:write'));
+  };
   return {
     close() {
       db.close();
     },
     verify(token: string) {
       return (read().tokens[hash(token)]?.expires ?? 0) > Date.now();
+    },
+    authorize(token: string) {
+      const grant = read().tokens[hash(token)];
+      if (!grant || grant.expires <= Date.now()) return undefined;
+      return { actor: 'local:' + hash(grant.client), canWrite: Boolean(config.allowWrites && grant.scope?.split(/\s+/).includes('mcp:write')) };
     },
     async handle(req: IncomingMessage, res: ServerResponse): Promise<boolean> {
       const url = new URL(req.url!, issuer),
@@ -153,7 +164,7 @@ export function createLocalOAuth(config: LocalOAuthConfig, resource: URL) {
             grant_types_supported: ["authorization_code"],
             token_endpoint_auth_methods_supported: ["none"],
             code_challenge_methods_supported: ["S256"],
-            scopes_supported: ["mcp:read"],
+            scopes_supported: ["mcp:read", ...(config.allowWrites ? ["mcp:write"] : [])],
           });
           return true;
         }
@@ -173,7 +184,7 @@ export function createLocalOAuth(config: LocalOAuthConfig, resource: URL) {
           if (input.token_endpoint_auth_method && input.token_endpoint_auth_method !== "none") invalid.push("token_endpoint_auth_method");
           if (input.grant_types && JSON.stringify(input.grant_types) !== '["authorization_code"]') invalid.push("grant_types");
           if (input.response_types && JSON.stringify(input.response_types) !== '["code"]') invalid.push("response_types");
-          if (input.scope && input.scope !== "mcp:read") invalid.push("scope");
+          if (input.scope && (typeof input.scope !== 'string' || !validScope(input.scope))) invalid.push("scope");
           if (invalid.length) {
             console.error("OAuth registration rejected: " + invalid.join(","));
             send(res, 400, { error: "invalid_client_metadata", error_description: "Rejected fields: " + invalid.join(", ") });
@@ -216,7 +227,7 @@ export function createLocalOAuth(config: LocalOAuthConfig, resource: URL) {
             q.get("code_challenge_method") !== "S256" ||
             !/^[A-Za-z0-9_-]{43}$/.test(challenge) ||
             q.get("resource") !== resource.href ||
-            q.get("scope") !== "mcp:read"
+            !validScope(q.get("scope") || '')
           )
             throw new Error("invalid authorization");
           for (const [key, value] of pending)
@@ -230,6 +241,7 @@ export function createLocalOAuth(config: LocalOAuthConfig, resource: URL) {
             expires = Date.now() + 300000;
           pending.set(ticket, {
             grant: {
+              scope: [...new Set(q.get('scope')!.split(/\s+/))].sort().join(' '),
               client,
               redirect,
               challenge,
@@ -246,7 +258,7 @@ export function createLocalOAuth(config: LocalOAuthConfig, resource: URL) {
           );
           res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
           res.end(
-            `<!doctype html><html lang="pl"><meta charset="utf-8"><title>SeoHost MCP — dostęp</title><h1>SeoHost MCP</h1><p>Aplikacja: ${escape(state.clients[client]!.client_name)}</p><p>Adres powrotu: ${escape(redirect)}</p><p>Zezwalasz na odczyt informacji MCP (mcp:read).</p><form method="post" action="/oauth/consent"><input type="hidden" name="ticket" value="${ticket}"><label>Login <input name="username" autocomplete="username" required></label><label>Hasło <input type="password" name="password" autocomplete="current-password" required></label><button name="decision" value="allow">Zaloguj i zezwól</button><button name="decision" value="deny" formnovalidate>Odmów</button></form></html>`,
+            `<!doctype html><html lang="pl"><meta charset="utf-8"><title>SeoHost MCP — dostęp</title><h1>SeoHost MCP</h1><p>Aplikacja: ${escape(state.clients[client]!.client_name)}</p><p>Adres powrotu: ${escape(redirect)}</p><p>${q.get('scope')!.split(/\s+/).includes('mcp:write') ? 'Zezwalasz na odczyt oraz zmiany hostingu i DNS (mcp:read mcp:write), w granicach ustawień konta.' : 'Zezwalasz na odczyt informacji MCP (mcp:read).'}</p><form method="post" action="/oauth/consent"><input type="hidden" name="ticket" value="${ticket}"><label>Login <input name="username" autocomplete="username" required></label><label>Hasło <input type="password" name="password" autocomplete="current-password" required></label><button name="decision" value="allow">Zaloguj i zezwól</button><button name="decision" value="deny" formnovalidate>Odmów</button></form></html>`,
           );
           return true;
         }
@@ -333,6 +345,7 @@ export function createLocalOAuth(config: LocalOAuthConfig, resource: URL) {
           delete state.codes[key];
           const token = random();
           state.tokens[hash(token)] = {
+            scope: grant.scope || 'mcp:read',
             client: grant.client,
             expires: Date.now() + 3600000,
           };
@@ -341,7 +354,7 @@ export function createLocalOAuth(config: LocalOAuthConfig, resource: URL) {
             access_token: token,
             token_type: "Bearer",
             expires_in: 3600,
-            scope: "mcp:read",
+            scope: grant.scope || 'mcp:read',
           });
           return true;
         }

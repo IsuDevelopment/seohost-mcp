@@ -10,6 +10,12 @@ export const TOOL_REQUIREMENTS = {
   list_subdomains: { credentials: true, wordpressLogs: false },
   read_web_log: { credentials: true, wordpressLogs: false },
   read_account_log: { credentials: true, wordpressLogs: false },
+  get_domain_info: { credentials: true, wordpressLogs: false },
+  list_dns_records: { credentials: true, wordpressLogs: false },
+  check_dns: { credentials: true, wordpressLogs: false },
+  plan_hosting_change: { credentials: true, wordpressLogs: false, write: true },
+  apply_hosting_change: { credentials: true, wordpressLogs: false, write: true },
+  get_hosting_change: { credentials: false, wordpressLogs: false, write: true },
   list_wordpress_sites: { credentials: true, wordpressLogs: false },
   get_wordpress_info: { credentials: true, wordpressLogs: false },
   get_wordpress_log_info: { credentials: true, wordpressLogs: true },
@@ -25,10 +31,15 @@ export function getServerCapabilities(settings: Settings, reference: string | nu
     const missingConfiguration: string[] = []
     if (requirements.credentials && !credentialsConfigured) missingConfiguration.push('hosting_credentials')
     if (requirements.wordpressLogs && !wordpressLogRootsConfigured) missingConfiguration.push('wordpress_log_roots')
+    if ('write' in requirements && name !== 'get_hosting_change' && !settings.accounts[serverId]!.writeOperations?.length) missingConfiguration.push('account_write_operations')
     return { name, configurationReady: missingConfiguration.length === 0, missingConfiguration,
-      providerPermission: requirements.credentials ? 'unverified' : 'not_applicable', readOnly: true }
+      providerPermission: requirements.credentials ? 'unverified' : 'not_applicable',
+      requiredScope: 'write' in requirements ? 'mcp:write' : 'mcp:read',
+      readOnly: !['plan_hosting_change', 'apply_hosting_change', 'get_hosting_change'].includes(name) }
   })
   return { serverId, credentialsConfigured, wordpressLogRootsConfigured,
     source: 'installation_configuration', providerContacted: false,
-    authorizationModel: 'single_owner_all_configured_accounts', hostingWritesEnabled: false, tools }
+    authorizationModel: 'single_owner_all_configured_accounts', hostingWritesEnabled: Boolean(settings.accounts[serverId]!.writeOperations?.length),
+    enabledWriteOperations: settings.accounts[serverId]!.writeOperations ?? [],
+    dnsWriteAuthorityConfigured: Boolean(settings.accounts[serverId]!.dnsNameservers?.length), tools }
 }

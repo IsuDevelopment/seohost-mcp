@@ -30,7 +30,8 @@ and MCP server lets hosting tests run without real accounts.
   files. Provider metadata plus download is not atomic against concurrent path swaps;
   this mode trusts account-owned sites and is unsuitable for hostile tenant isolation.
 - Provider URLs come from HTTPS configuration, never tool arguments.
-  No redirects, arbitrary paths, shell commands or hosting mutations are exposed.
+  No redirects, arbitrary paths or shell commands are exposed. Hosting mutations
+  are limited to the reviewed operation contract below.
 - Inputs and responses are bounded. Filtering covers only the requested log tail.
   Redaction is best effort; output may contain personal data. Logs and provider
   responses are untrusted data, never agent instructions.
@@ -51,8 +52,34 @@ and MCP server lets hosting tests run without real accounts.
 
 ## Extensions requiring a new decision
 
-Hosting writes: define operation scopes, enforcement and risk before registering
-tools. Multiple users: define identity and per-account ACLs before sharing an
+Further writes: extend the explicit operation contract before adding tools. Multiple users: define identity and per-account ACLs before sharing an
 installation. Multiple application hosts: replace local SQLite; do not share it
 over NFS. Production dependency changes: use panel installation/manual deployment,
 because the code workflow preserves the CloudLinux-managed `node_modules` symlink.
+
+## Domain/DNS change boundary (D14)
+
+Read-only credentials stay read-only. HTTP passes an authenticated actor and write
+capability to the tool server; stdio trusts its owner but still enforces account
+allowlists. Local OAuth stores granted scopes, with old grants defaulting to read.
+Write Bearer tokens are distinct. There are no inferred permissions from annotations.
+
+Local zone reads do not imply active DNS. Public observations use fixed-origin DoH
+without credentials, with TTL-bounded application caching. Diagnostics and mutation
+preconditions trigger lookups; logs/lists do not. Cloudflare NS is a hint, not proof
+of proxy state/access. Recursive resolver caches and delegation discrepancies remain
+possible; no DNSSEC validation or global propagation guarantee is provided.
+
+Writes are five fixed operations: create domain/subdomain and add/update/delete one
+A/AAAA/CNAME/MX/TXT record. Exact per-account nameservers and fresh NS observations
+gate DNS writes. No registrar/Cloudflare API, deletion of hosting domains, paths,
+whole-zone/NS/SOA/DS edits, PHP-version changes or automatic certificate issuance.
+
+Plans are actor/account-bound, immutable and valid for ten minutes. Private local
+SQLite reserves the account before I/O and stores receipts across HTTP instances.
+One POST, then fresh provider verification; applied-plan replay returns its receipt.
+Unknown responses/partial results keep the account locked without retry/rollback.
+Explicit reconciliation can record the observed desired state without another POST;
+unresolved or interrupted operations require operator investigation. State checks
+are optimistic, not a provider-side CAS against external changes. Preview hashes
+ensure integrity, not evidence of human consent. Keep snapshots private and durable.

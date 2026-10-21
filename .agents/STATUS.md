@@ -4,11 +4,13 @@ Updated: 2026-10-22.
 
 - Release 0.5.0 is deployed from code commit `8be139a` through GitHub Actions run
   `39691928331`; Check run `39691924809` and deployment both passed.
+- Version 0.6.0 adds domain settings, local/public DNS diagnostics and scoped,
+  per-account planned changes (18 tools). Deployment/live verification pending.
 - Version 0.5.0 adds `read_account_log` for fixed account-root `log.txt`, bringing
   the catalog to twelve read-only tools. Independent production MCP SDK verification
   discovers all twelve and successfully reads H57 account-root `log.txt` without
   truncation. Only counts/status were printed, not log content.
-- Local `npm run check` passes: types, 44/44 tests and build. Automated provider
+- Local `npm run check` passes: types, 57/57 tests and build. Automated provider
   tests use schema fixtures and the real MCP SDK; live verification is listed below.
 - Configuration readiness uses loaded settings and never probes provider access.
   WordPress details revalidate installation ownership and return safe fields only.
@@ -39,6 +41,14 @@ Updated: 2026-10-22.
   login remains a separate client check.
 
 ## Recent changes
+
+2026-10-22 — domain/DNS workflow (D14): owned domain/zone projections, contextual
+TTL-cached fixed-origin public DNS, separate write authorization/OAuth consent,
+per-account operations and durable actor-bound previews/receipts. Five fixed
+operations, stale checks, account reservation, no retries, provider verification
+and explicit read-based reconciliation. New integration tests pass locally (57).
+No production hosting/DNS mutations have been performed for testing.
+
 
 2026-10-22 — account-root `log.txt` identified and read through H57 filemanager API;
 only metadata/counts were printed. Added dedicated fixed-file MCP read (D13),
