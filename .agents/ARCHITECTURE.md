@@ -44,6 +44,10 @@ and MCP server lets hosting tests run without real accounts.
   WordPress details require fresh inventory ownership and safe single-segment IDs.
   Log metadata and content reads share one inspection policy; incomplete provider
   listings must not be reported as confirmed absence. Metadata never downloads logs.
+- Account-root log reads expose only the fixed relative file `log.txt`, independent
+  of WordPress Manager. Require root canonical metadata and a regular non-symlink
+  file before a bounded suffix download. No caller path or domain is accepted.
+  As with WordPress, metadata/download are not atomic; trust account-owned files.
 
 ## Extensions requiring a new decision
 

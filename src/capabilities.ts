@@ -9,6 +9,7 @@ export const TOOL_REQUIREMENTS = {
   list_domains: { credentials: true, wordpressLogs: false },
   list_subdomains: { credentials: true, wordpressLogs: false },
   read_web_log: { credentials: true, wordpressLogs: false },
+  read_account_log: { credentials: true, wordpressLogs: false },
   list_wordpress_sites: { credentials: true, wordpressLogs: false },
   get_wordpress_info: { credentials: true, wordpressLogs: false },
   get_wordpress_log_info: { credentials: true, wordpressLogs: true },

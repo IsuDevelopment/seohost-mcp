@@ -111,7 +111,7 @@ test('real MCP client discovers and calls read tools; concurrent server choices 
   const client = new Client({ name: 'hosting-tests', version: '1' })
   await server.connect(serverTransport); await client.connect(clientTransport)
   try {
-    assert.deepEqual((await client.listTools()).tools.map(t => t.name).sort(), ['get_server_capabilities', 'get_server_info', 'get_wordpress_info', 'get_wordpress_log_info', 'list_domains', 'list_servers', 'list_subdomains', 'list_wordpress_sites', 'read_web_log', 'read_wordpress_log', 'resolve_server'])
+    assert.deepEqual((await client.listTools()).tools.map(t => t.name).sort(), ['get_server_capabilities', 'get_server_info', 'get_wordpress_info', 'get_wordpress_log_info', 'list_domains', 'list_servers', 'list_subdomains', 'list_wordpress_sites', 'read_account_log', 'read_web_log', 'read_wordpress_log', 'resolve_server'])
     const values = await Promise.all([101,202].map(serverId => client.callTool({ name: 'read_web_log', arguments: {serverId, domain: 'site.example', logType: 'access'} })))
     assert.deepEqual(values.map(r => (r.structuredContent as Record<string,unknown>)?.serverId), ['h101','h202'])
     assert.deepEqual(values.map(r => (r.structuredContent as Record<string,unknown>)?.lines), [['first.example:2222'],['second.example:2222']])

@@ -91,6 +91,33 @@ when explicitly invoked, not automatically during deployment.
 
 For the separate WordPress debug-log reader added in 0.3.0, see [WORDPRESS.md](WORDPRESS.md).
 
+### Account-root log.txt
+
+Version 0.5.0 adds `read_account_log` for the fixed `log.txt` file in the hosting
+account home/root, visible through SSH/SFTP or the account file manager. This is
+account-relative `log.txt`, not the machine's absolute `/log.txt` or a website URL.
+It does not require WordPress Manager or a domain:
+
+```json
+{"name":"read_account_log","arguments":{"serverId":"primary","lines":100}}
+{"name":"read_account_log","arguments":{"serverId":"primary","lines":200,"contains":"error"}}
+```
+
+The provider must allow `/api/filemanager/list` and `/api/filemanager/download`.
+Before each read, metadata must resolve to the account root and show a regular
+non-symlink `log.txt`. Missing files produce `LOG_NOT_FOUND`; incomplete listings
+do not establish absence. There is no caller path, file creation or logging toggle.
+The name does not prove which application writes the file or whether it contains
+all account errors. This is not an unrestricted system-log reader.
+
+Line/filter/redaction rules match the other log tools. Downloads are bounded to
+512 KiB; valid suffix ranges discard any initial partial record. Providers ignoring
+Range cannot serve a larger file through this tool. Output is capped at 64 KiB;
+inspect `truncated` and `byteWindowLimited`. Metadata and download are separate,
+not atomic against a concurrent filesystem swap; use trusted account-owned files.
+
+### Domain web-server logs
+
 `read_web_log` reads per-domain web-server logs exposed by the DirectAdmin user panel,
 not WordPress `debug.log`, historical rotated archives, or unrestricted machine
 logs such as system journal, SSH, mail or a host-wide `/var/log`. The current API

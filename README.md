@@ -3,9 +3,9 @@
 Read-only MCP integration for **standard SeoHost shared hosting** accounts using
 DirectAdmin.
 
-Version 0.4.0: a standalone TypeScript/Node.js server with HTTP and stdio transports,
+Version 0.5.0: a standalone TypeScript/Node.js server with HTTP and stdio transports,
 Bearer and built-in OAuth authentication, domain/subdomain and WordPress inventory,
-and bounded reads of web-server and existing WordPress debug logs.
+and bounded reads of web-server logs, account-root `log.txt` and existing WordPress debug logs.
 
 ## Hosting scope
 
@@ -42,7 +42,7 @@ npm start
 Test the running HTTP server with `npm run smoke`. Available tools:
 `get_server_info`, `list_servers`, `resolve_server`, `get_server_capabilities`,
 `list_domains`, `list_subdomains`, `list_wordpress_sites`, `get_wordpress_info`,
-`get_wordpress_log_info`, `read_web_log` and `read_wordpress_log`.
+`get_wordpress_log_info`, `read_account_log`, `read_web_log` and `read_wordpress_log`.
 See [logs, aliases and key setup](docs/LOGS.md),
 [WordPress inventory and logs](docs/WORDPRESS.md) and
 [configuration and deployment](docs/DEPLOYMENT.md). MIT license.

@@ -2,7 +2,7 @@
 
 This describes implemented behavior, not permission to operate on an arbitrary
 account. Tool registrations and schemas in `src/server.ts` are authoritative.
-All eleven MCP tools are available over HTTP and stdio.
+All twelve MCP tools are available over HTTP and stdio.
 
 Platform scope: standard SeoHost shared hosting accounts via DirectAdmin. VPS
 compatibility is untested; panel presence does not establish endpoint/permission
@@ -18,6 +18,7 @@ equivalence. No root, VM lifecycle or operating-system administration is provide
 | `get_server_capabilities` | Reports tool/configuration readiness from loaded settings without private account details. | Required `serverId`. | No provider request. `configurationReady` does not verify key permissions or endpoint availability; restart after changing configuration. |
 | `list_domains` | Reads the selected account's domains. | Required `serverId`. | Configured account username/Login Key with `CMD_API_SHOW_DOMAINS` access. |
 | `read_web_log` | Reads a bounded access/error log tail after checking domain ownership on that account. | Required `serverId`, `domain`, `logType`; optional `lines`, `contains`. | Requires both domain-list and `CMD_SHOW_LOG` access. No arbitrary files or account fallback. |
+| `read_account_log` | Reads the fixed `log.txt` in the hosting account home/root. | Required `serverId`; optional `lines`, `contains`. | Requires filemanager metadata/download access and a regular non-symlink file. No domain, caller path or WordPress Manager requirement. Bounded suffix/read output; not global OS logs or proof of the file's producer. |
 | `list_subdomains` | Reads configured subdomains as fully qualified names after domain ownership validation. | Required `serverId`, `domain`. | Needs domain-list and legacy subdomain read permissions. Not a DNS lookup. |
 | `list_wordpress_sites` | Pages through existing installations known to DirectAdmin; omits empty locations and private filesystem/configuration details. | Required `serverId`; optional `offset` (0–2000, default 0), `limit` (1–100, default 50). | Requires provider WordPress inventory access; follow `nextOffset`. Not posts, a filesystem scan or multisite network discovery. Metadata is untrusted. |
 | `get_wordpress_info` | Reads safe details after fresh installation ownership validation: title/version/template, sanitized site URL, provider update flags and an error boolean. | Required `serverId`, `siteId`. | Needs inventory/detail read permission. No config, options, SSO or raw error output; metadata is untrusted. |

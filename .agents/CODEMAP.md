@@ -7,10 +7,11 @@ module responsibilities or important flows change; keep this map short.
 | --- | --- |
 | `src/http.ts` | HTTP entry point, Host/Origin checks, health/discovery, authentication, per-request MCP transport and cleanup. |
 | `src/stdio.ts` | Local process entry point; stdout reserved for MCP, trusts the process owner. |
-| `src/server.ts` | Version, eleven tool registrations, input schemas, MCP results/errors and safe auditing. |
+| `src/server.ts` | Version, twelve tool registrations, input schemas, MCP results/errors and safe auditing. |
 | `src/capabilities.ts` | Shared tool/configuration-requirement catalog and honest configuration-only readiness; smoke tests verify names against the catalog. |
 | `src/config.ts` | Validates env/JSON, origins and aliases; resolves explicit accounts without a default account. |
 | `src/directadmin.ts` | Domain/subdomain reads, ownership checks and bounded/redacted web-log results. |
+| `src/account-log.ts` | Fixed account-root `log.txt` policy, file metadata checks and bounded/redacted reads independent of WordPress. |
 | `src/directadmin-http.ts` | Shared account-bound GET transport: credentials, fixed routes, timeout, response caps, redirect refusal and log suffix validation. |
 | `src/hosting-error.ts` | Shared safe provider error codes/messages; no raw upstream diagnostics. |
 | `src/wordpress.ts` | Provider-known installations, safe details, pagination, shared log inspection/read policy, metadata, bounds and redaction. |
@@ -28,6 +29,7 @@ module responsibilities or important flows change; keep this map short.
 | `deploy/start.cjs`, `deploy/verify.mjs` | CloudLinux bootstrap with env / HTTPS health and unauthenticated rejection probes. |
 | `test/server.test.ts` | HTTP auth, Host/Origin, method/body limits, real HTTP SDK and stdio. |
 | `test/directadmin.test.ts` | Account isolation, aliases, domain validation, provider failures, limits, plain/JSON/PHP WordPress credential redaction and SDK. |
+| `test/account-log.test.ts` | Fixed-file/account isolation, unsafe/missing/incomplete metadata, suffix bounds, redaction and real SDK reads. |
 | `test/wordpress.test.ts` | Subdomain ownership, installation projection/paging, cross-account IDs, root boundaries, file metadata, suffix ranges, output caps and custom log paths. |
 | `test/diagnostics.test.ts` | Configuration-only readiness, catalog/registration agreement, safe detail projection, ID encoding, account isolation and metadata inspection without downloads. |
 | `test/oauth.test.ts` | Consent, CSRF, PKCE, single-use codes, shared SQLite, MCP and revocation. |
@@ -44,6 +46,8 @@ module responsibilities or important flows change; keep this map short.
 - Log → explicit account → fresh domain list for that account → GET `CMD_SHOW_LOG` →
   response bound → tail/filter/redaction → bounded output. No account fallback.
 - Subdomains → fresh account domain ownership → legacy subdomain GET → validated FQDNs.
+- Account log → explicit account → root canonical/regular-file metadata → fixed
+  `log.txt` suffix download → redacted tail; no domain or WordPress inventory.
 - WordPress → fresh provider inventory → existing installation ID → private root/path
   policy → canonical parent + regular-file metadata → bounded download → redacted tail.
   Metadata and download are separate provider operations, not atomic filesystem isolation.
