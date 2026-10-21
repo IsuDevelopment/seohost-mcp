@@ -2,10 +2,12 @@
 
 Updated: 2026-10-22.
 
-- Release 0.4.0 is deployed from code commit `799738b` through GitHub Actions run
-  `39686166152`; Check run `39686143680` and deployment both passed.
+- Release 0.5.0 is deployed from code commit `8be139a` through GitHub Actions run
+  `39691928331`; Check run `39691924809` and deployment both passed.
 - Version 0.5.0 adds `read_account_log` for fixed account-root `log.txt`, bringing
-  the catalog to twelve read-only tools. Production upgrade pending verification.
+  the catalog to twelve read-only tools. Independent production MCP SDK verification
+  discovers all twelve and successfully reads H57 account-root `log.txt` without
+  truncation. Only counts/status were printed, not log content.
 - Local `npm run check` passes: types, 44/44 tests and build. Automated provider
   tests use schema fixtures and the real MCP SDK; live verification is listed below.
 - Configuration readiness uses loaded settings and never probes provider access.
@@ -42,6 +44,8 @@ Updated: 2026-10-22.
 only metadata/counts were printed. Added dedicated fixed-file MCP read (D13),
 account isolation/metadata/range/redaction/SDK tests and English operator/agent
 documentation. No WordPress dependency, caller paths or runtime dependency changes.
+Local `npm run check` passes (44 tests); production deployment and independent
+MCP discovery/account-log read passed. H93 remains deferred.
 
 2026-10-22 — verified existing domain/subdomain and access/error MCP tools on H57.
 Added explicit `smoke:hosting` for repeatable live read verification without log
