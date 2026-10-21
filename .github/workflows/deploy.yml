@@ -1,0 +1,56 @@
+name: Deploy MCP
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: seohost-mcp-production
+  cancel-in-progress: false
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - name: Package runtime files
+        run: bash deploy/package.sh "$RUNNER_TEMP/bundle.tar.gz"
+      - name: Deploy through SSH and verify HTTPS
+        shell: bash
+        env:
+          SSH_HOST: ${{ secrets.SEOHOST_SSH_HOST }}
+          SSH_PORT: ${{ secrets.SEOHOST_SSH_PORT }}
+          SSH_USER: ${{ secrets.SEOHOST_SSH_USER }}
+          SSH_PRIVATE_KEY: ${{ secrets.SEOHOST_SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SEOHOST_SSH_KNOWN_HOSTS }}
+          APP_ROOT: ${{ vars.SEOHOST_APP_ROOT }}
+          NODE_BIN: ${{ vars.SEOHOST_NODE_BIN }}
+          RELEASE_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          set -euo pipefail
+          [[ "$SSH_HOST" =~ ^[a-zA-Z0-9][a-zA-Z0-9.-]*$ ]]
+          [[ "$SSH_USER" =~ ^[a-zA-Z0-9_][a-zA-Z0-9_-]*$ ]]
+          [[ "$SSH_PORT" =~ ^[0-9]+$ ]]
+          [[ "$APP_ROOT" =~ ^[a-zA-Z0-9_/-]+$ && "$APP_ROOT" != /* && "$APP_ROOT" != */ && "$APP_ROOT" != *//* ]]
+          [[ "$NODE_BIN" =~ ^/[a-zA-Z0-9_./-]+$ ]]
+          test -n "$SSH_PRIVATE_KEY"
+          test -n "$SSH_KNOWN_HOSTS"
+          umask 077
+          ssh_dir=$(mktemp -d "$RUNNER_TEMP/seohost-ssh.XXXXXX")
+          trap 'rm -rf -- "$ssh_dir"' EXIT
+          printf '%s\n' "$SSH_PRIVATE_KEY" > "$ssh_dir/key"
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > "$ssh_dir/known_hosts"
+          opts=(-i "$ssh_dir/key" -o "UserKnownHostsFile=$ssh_dir/known_hosts" -o StrictHostKeyChecking=yes -o BatchMode=yes -o IdentitiesOnly=yes -o ConnectTimeout=20)
+          target="$SSH_USER@$SSH_HOST"
+          ssh "${opts[@]}" -p "$SSH_PORT" "$target" "umask 077; mkdir -p .seohost-mcp-deploy; mkdir .seohost-mcp-deploy/$RELEASE_ID"
+          scp "${opts[@]}" -P "$SSH_PORT" "$RUNNER_TEMP/bundle.tar.gz" "$target:.seohost-mcp-deploy/$RELEASE_ID/bundle.tar.gz"
+          ssh "${opts[@]}" -p "$SSH_PORT" "$target" "bash -s -- '$APP_ROOT' '$NODE_BIN' '$RELEASE_ID'" < deploy/remote.sh

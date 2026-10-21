@@ -1,0 +1,20 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+config/servers.json
+*.log
+coverage/
+.DS_Store
+
+data/
+
+# Private deployment notes, account research and installed plugin metadata.
+docs/DEPLOYMENT-STATUS.md
+docs/api/
+plugins/
+.artifacts/
+.mcp-deploy-release
+*.tar.gz
+*.zip

@@ -1,0 +1,18 @@
+{
+  "servers": {
+    "primary": {
+      "label": "Primary hosting",
+      "aliases": ["hosting-main"],
+      "baseUrl": "https://primary.example.com:2222",
+      "usernameEnv": "SEOHOST_PRIMARY_USERNAME",
+      "loginKeyEnv": "SEOHOST_PRIMARY_LOGIN_KEY"
+    },
+    "secondary": {
+      "label": "Secondary hosting",
+      "aliases": ["hosting-backup"],
+      "baseUrl": "https://secondary.example.com:2222",
+      "usernameEnv": "SEOHOST_SECONDARY_USERNAME",
+      "loginKeyEnv": "SEOHOST_SECONDARY_LOGIN_KEY"
+    }
+  }
+}
