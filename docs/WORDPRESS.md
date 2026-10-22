@@ -82,12 +82,26 @@ names on the provider; legacy command names do not establish modern API access.
 Filemanager credentials may have broader account access than these MCP tools expose.
 Protect them accordingly; permission failures must remain closed.
 
-WordPress Manager must also be enabled for the hosting account/package. A valid
+Native DirectAdmin WordPress Manager must also be enabled for the hosting account/package. A valid
 Login Key with the `wordpress` command can still receive HTTP 403 when account
 configuration reports `wordpress=OFF`. A general session feature flag does not
-prove account-level enablement. Ask the hosting provider to enable WordPress
-Manager; granting more key permissions does not enable the account feature.
+prove account-level enablement. Granting more key permissions does not enable the
+account feature or provide access to a different WordPress manager.
 See [DirectAdmin WordPress Manager prerequisites](https://docs.directadmin.com/other-hosting-services/wordpress/#prerequisites).
+
+On 2026-10-22 the owner relayed provider support's explanation that the visible
+WordPress Manager may be Softaculous rather than DirectAdmin's native feature.
+This is consistent with the observed native `wordpress=OFF` / HTTP 403, but does
+not establish Softaculous API accessibility or prove the native API is unavailable
+on every SeoHost account. Do not treat the GUI manager as proof that these MCP
+WordPress tools work, or continue widening Login Key permissions to fix it.
+
+Softaculous documents its own [API, including WordPress inventory](https://www.softaculous.com/docs/api/api/).
+A future adapter needs separately verified account-level routes, authentication,
+response projection and installation ID handling; existing DA IDs are not presumed
+interchangeable. No Softaculous adapter or automatic authentication fallback is
+implemented. Keep TLS verification and the existing read-only/secret-output boundaries
+even if vendor sample code disables certificate validation or prints raw responses.
 
 ```json
 {"name":"list_subdomains","arguments":{"serverId":"primary","domain":"example.com"}}

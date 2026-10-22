@@ -8,6 +8,15 @@
   Challenge approaches that weaken security or make extension harder.
 - Read only relevant files. Never copy private configuration, OAuth state or logs
   into chat, documentation or commits.
+- API documentation is the first source for provider work: read local `docs/api/`
+  topic notes, endpoint/model files and cached Swagger before external research,
+  UI inspection or implementation. See the agent README for entry points. Compare
+  with the server's current `/static/swagger.json` and official legacy/plugin docs
+  when needed. Documented routes, authentication, parameters, response/error shapes
+  and effect scope come before safe read verification, then implementation/tests.
+  UI availability is not an API contract. Do not guess write routes, selector slots
+  or interchangeable native/plugin behavior. Ask for missing documentation only
+  after checking the local research and official sources; record any concrete gap.
 
 ## Implementation
 

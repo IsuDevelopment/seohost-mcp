@@ -30,6 +30,21 @@ Operator documentation: [README](../README.md), [logs](../docs/LOGS.md),
 [certificates/HTTPS](../docs/TLS.md),
 [GitHub Actions](../docs/GITHUB-ACTIONS.md), [security](../SECURITY.md).
 
+## API documentation first
+
+Before investigating or implementing a provider operation, read the existing local
+API research in `docs/api/`: `00-zakres.md`, `05-indeks-api.md`, the relevant topic
+and endpoint/model files, and `sources/h57-swagger.json`. For PHP, start with
+`02-domeny-php.md`; for WordPress, `03-wordpress.md` and `endpoints/wordpress.md`.
+This private, ignored directory exists in the owner's workspace and is intentionally
+absent from public clones. Do not publish it or ask the owner for documentation
+already present there. If unavailable, use official provider documentation.
+
+The research is dated evidence, not proof that a Login Key can perform an operation.
+Check contract freshness and permissions separately. Read [PHP API findings](../docs/PHP.md)
+for the current missing plugin contract; do not substitute the native DA selector
+for SeoHost PHP Changer. See WORKFLOW for the required evidence order.
+
 ## Project memory
 
 Keep concise, versioned Markdown alongside the code. The code map answers where;

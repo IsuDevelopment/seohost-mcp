@@ -32,13 +32,21 @@ Updated: 2026-10-22.
   WordPress details revalidate installation ownership and return safe fields only.
   Metadata inspection shares log policy without downloading bytes; incomplete
   provider listings do not establish absence.
+- PHP management is requested but not implemented. Read `docs/PHP.md` and
+  `tasks/php-selector.md`: existing private API research already records the missing
+  SeoHost PHP Changer contract. The live Swagger was re-read (269 paths, no modern
+  PHP version/INI endpoint); the native selector reports disabled on the observed
+  domain. No PHP write was sent. Resolve the plugin contract before implementation.
 - After the owner corrected H57 credentials, only the MCP application was restarted.
   Live `list_domains` through the production MCP SDK succeeds for H57. WordPress
   inventory remains denied with HTTP 403. Targeted diagnostics confirm the key's
   effective commands include `wordpress`, but account configuration reports
   `wordpress=OFF`; the session's general WordPress feature flag alone is insufficient.
-  WordPress Manager needs provider/account-level enablement before inventory can
-  be verified. H93 setup is deferred by the owner; it was not retried. No log contents
+  The owner subsequently relayed support's explanation that the GUI manager may
+  be Softaculous, a separate integration. Native `wordpress=OFF` is not evidence
+  of a missing key permission, and the existing adapter does not use Softaculous.
+  Its separate documented API requires account-specific verification and a future
+  adapter; do not assume native feature enablement is the resolution. H93 setup is deferred by the owner; it was not retried. No log contents
   were downloaded during that authentication diagnostic.
 - Subsequent owner-authorized H57 checks through the production MCP SDK verified
   subdomain lists and both access/error log reads on representative owned domains.
@@ -50,13 +58,20 @@ Updated: 2026-10-22.
   Metadata is not an atomic lock against concurrent filesystem swaps; use trusted
   account-owned installations. No tool enables logging or accepts caller paths.
 - Next: re-authorize the client with write scope before its first reviewed concrete
-  change. Request H57 WordPress Manager enablement, then verify WordPress inventory,
-  log metadata and Range behavior. H93 credentials are deferred. Full owner OAuth
+  change. Establish the SeoHost PHP Changer API contract; for WordPress, investigate
+  documented Softaculous integration rather than repeating native permission changes.
+  Native inventory/log metadata/Range remain unverified on this account. H93 credentials are deferred. Full owner OAuth
   login remains a separate client check.
 - Independent review is pending. [REVIEW.md](REVIEW.md) identifies the domain/DNS and candidate TLS diffs,
   inspection order and verification gaps; it does not represent review approval.
 
 ## Recent changes
+
+2026-10-22 — API-first workflow made explicit, with private `docs/api/` navigation
+in agent context. Recorded PHP contract gaps and a pending implementation handoff;
+corrected the WordPress next step using the owner's support reply (Softaculous vs
+native DA). Documentation-only change: local links/consistency checked, no runtime
+change or deployment. The 65-test result above remains historical TLS validation.
 
 2026-10-22 — candidate TLS workflow (D15): metadata-only inspection, secret-preserving
 ACME PUT, parent-wide scope acknowledgement and conservative certificate coverage

@@ -28,7 +28,7 @@ equivalence. No root, VM lifecycle or operating-system administration is provide
 | `read_account_log` | Reads the fixed `log.txt` in the hosting account home/root. | Required `serverId`; optional `lines`, `contains`. | Requires filemanager metadata/download access and a regular non-symlink file. No domain, caller path or WordPress Manager requirement. Bounded suffix/read output; not global OS logs or proof of the file's producer. |
 | `list_subdomains` | Reads configured subdomains as fully qualified names after domain ownership validation. | Required `serverId`, `domain`. | Needs domain-list and legacy subdomain read permissions. Not a DNS lookup. |
 | `list_wordpress_sites` | Pages through existing installations known to DirectAdmin; omits empty locations and private filesystem/configuration details. | Required `serverId`; optional `offset` (0–2000, default 0), `limit` (1–100, default 50). | Requires provider WordPress inventory access; follow `nextOffset`. Not posts, a filesystem scan or multisite network discovery. Metadata is untrusted. |
-| `get_wordpress_info` | Reads safe details after fresh installation ownership validation: title/version/template, sanitized site URL, provider update flags and an error boolean. | Required `serverId`, `siteId`. | Needs inventory/detail read permission. No config, options, SSO or raw error output; metadata is untrusted. |
+| `get_wordpress_info` | Reads safe details after fresh installation ownership validation: title/version/template, sanitized site URL, provider update flags and an error boolean. | Required `serverId`, `siteId`. | Needs inventory/detail read permission. Native DirectAdmin inventory only; no Softaculous adapter. No config, options, SSO or raw error output; metadata is untrusted. |
 | `get_wordpress_log_info` | Inspects log presence, size and optional timestamp without downloading content or exposing paths. | Required `serverId`, `siteId`. | Same root/metadata policy as log reads; disabled without log roots. Does not prove logging enabled or Range support. |
 | `read_wordpress_log` | Reads an existing debug log for a fresh installation ID, applying configured roots, file metadata checks, bounds and redaction. | Required `serverId`, `siteId`; optional `lines`, `contains`. | Disabled without private `wordpressLogRoots`. Standard debug.log or explicit `wordpressLogPaths` override; provider filemanager access required. Never enables logging. |
 
@@ -101,3 +101,11 @@ coverage of all listed web/www hosts. Agents may chain separate creation/ACME/HT
 plans on explicit request, disclose parent-wide effects for children, and report
 pending issuance honestly. No default automatic enablement, background polling or
 child-only toggle. Read [TLS workflow](../docs/TLS.md).
+
+PHP management is requested, not available as an MCP tool. Existing private API
+research and current server documentation do not establish SeoHost PHP Changer's
+contract; the native DA selector is a different mechanism. Start with the local
+API sources listed in the agent README and [PHP findings](../docs/PHP.md).
+The account's GUI WordPress Manager may be Softaculous, per support relayed by the
+owner; the current WordPress tools use native DA and remain unavailable on H57.
+See [WordPress provider distinction](../docs/WORDPRESS.md).

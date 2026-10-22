@@ -42,7 +42,7 @@ module responsibilities or important flows change; keep this map short.
 | `test/oauth.test.ts` | Separate read/read-write consent, scope non-escalation, CSRF, PKCE, single-use codes, shared SQLite, HTTP context propagation and revocation. |
 | `test/deploy.test.ts` | Dependency graph, archive contents, release/rollback and private file preservation. |
 | `test/smoke-hosting.test.ts` | Real HTTP SDK/subprocess smoke: explicit selection, bounded log requests, payload-free output and nonzero failure status. |
-| `docs/`, `SECURITY.md` | Operator contracts, setup and security limitations. |
+| `docs/`, `SECURITY.md` | Operator contracts, setup and security limitations; `PHP.md` records the pending plugin API contract, `WORDPRESS.md` distinguishes native DA from Softaculous. Private ignored `docs/api/` is the API research entry point listed in the agent README. |
 | `AGENTS.md`, `CLAUDE.md`, `.agents/` | Codex/Claude entry points and shared memory; `CAPABILITIES.md` catalogs operations, `REVIEW.md` guides the next peer review, optional `tasks/` holds temporary handoffs. |
 
 ## Flows
