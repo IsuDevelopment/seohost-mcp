@@ -19,6 +19,7 @@ const accountSchema = z.object({
   writeOperations: z.array(z.enum(writeOperations)).max(writeOperations.length).optional(),
   dnsNameservers: z.array(z.string().max(253).transform(value => value.toLowerCase().replace(/\.$/, ''))
     .refine(value => value.includes('.') && value.split('.').every(label => /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(label)), 'Expected an exact nameserver hostname')).max(10).optional(),
+  backupRoots: z.array(relativeHostingPath).max(5).optional(),
   wordpressLogRoots: z.array(relativeHostingPath).max(20).optional(),
   wordpressLogPaths: z.record(z.string().min(1).max(256), relativeHostingPath.refine(value => value.endsWith('.log'),
     'Explicit WordPress log paths must end in .log')).optional(),

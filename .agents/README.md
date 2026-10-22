@@ -3,8 +3,8 @@
 Standalone MCP server for SeoHost/DirectAdmin accounts, TypeScript and Node.js >=22.23.2.
 The product targets standard SeoHost shared hosting. VPS compatibility is untested;
 do not infer either full support or endpoint absence from the VPS label.
-Version 0.8.0: HTTP/stdio, Bearer/OAuth, inventory, configuration/site/log diagnostics,
-domain/DNS diagnostics, site redirects, web-log, fixed account-root `log.txt` and explicitly enabled
+Version 0.9.0: HTTP/stdio, Bearer/OAuth, inventory, configuration/site/log diagnostics,
+account/database/backup metadata, log summaries, domain/DNS diagnostics, site redirects, web-log, fixed account-root `log.txt` and explicitly enabled
 WordPress debug-log reads. One installation
 owner can read all configured accounts. Planned domain/DNS/TLS writes require separate
 authorization and per-account operation allowlists; see D14/D15/D17 and the
@@ -26,7 +26,7 @@ review handoff, not an approval or proof that the implementation is correct.
 Operator documentation: [README](../README.md), [logs](../docs/LOGS.md),
 [OAuth](../docs/OAUTH.md), [deployment](../docs/DEPLOYMENT.md),
 [WordPress reads](../docs/WORDPRESS.md),
-[diagnostics](../docs/DIAGNOSTICS.md), [domain/DNS workflow](../docs/DOMAIN-DNS.md),
+[diagnostics](../docs/DIAGNOSTICS.md), [hosting diagnostics](../docs/HOSTING-DIAGNOSTICS.md), [domain/DNS workflow](../docs/DOMAIN-DNS.md),
 [certificates/HTTPS](../docs/TLS.md), [site redirects](../docs/REDIRECTS.md),
 [GitHub Actions](../docs/GITHUB-ACTIONS.md), [security](../SECURITY.md).
 

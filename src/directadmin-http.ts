@@ -1,7 +1,9 @@
 import type { Settings } from './config.js'
 import { HostingError } from './hosting-error.js'
 
-type ReadPath = '/CMD_API_SHOW_DOMAINS' | '/CMD_SHOW_LOG' | '/CMD_API_SUBDOMAINS'
+type ReadPath = '/CMD_API_SHOW_USER_USAGE' | '/CMD_API_SHOW_USER_CONFIG' | '/api/resource-usage/latest' | '/api/resource-usage/history'
+  | '/api/db-show/databases' | `/api/db-show/databases/${string}`
+  | '/CMD_API_SHOW_DOMAINS' | '/CMD_SHOW_LOG' | '/CMD_API_SUBDOMAINS'
   | '/CMD_API_REDIRECT' | '/CMD_API_ADDITIONAL_DOMAINS' | '/CMD_API_DNS_CONTROL'
   | `/api/domain-tls/${string}/acme-config` | `/api/domain-tls/${string}/certs`
   | '/api/wordpress/locations' | '/api/filemanager/list' | '/api/filemanager/download'
@@ -42,6 +44,10 @@ export class DirectAdminTransport {
 
   async downloadLog(serverId: string, path: string) {
     return this.read(serverId, '/api/filemanager/download', { path }, true)
+  }
+
+  async databaseInfo(serverId: string, database: string) {
+    return this.getText(serverId, `/api/db-show/databases/${encodeURIComponent(database)}`, {})
   }
 
   async wordpressInfo(serverId: string, siteId: string) {

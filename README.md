@@ -3,8 +3,9 @@
 MCP integration with read-only defaults and reviewed domain/DNS/TLS changes for **standard SeoHost shared hosting** accounts using
 DirectAdmin.
 
-Version 0.8.0: a standalone TypeScript/Node.js server with HTTP and stdio transports,
+Version 0.9.0: a standalone TypeScript/Node.js server with HTTP and stdio transports,
 Bearer and built-in OAuth authentication, domain/subdomain and WordPress inventory,
+account/database/backup metadata diagnostics, single-read log summaries,
 bounded reads of web-server logs, account-root `log.txt` and existing WordPress debug logs,
 plus local/public DNS diagnostics and separately authorized domain/DNS changes, free certificate automation, HTTPS enforcement and site redirect rules.
 
@@ -42,7 +43,8 @@ npm start
 
 Test the running HTTP server with `npm run smoke`. Available tools:
 `get_server_info`, `list_servers`, `resolve_server`, `get_server_capabilities`,
-`list_domains`, `list_subdomains`, `list_wordpress_sites`, `get_wordpress_info`,
+`get_account_usage`, `get_resource_usage`, `list_databases`, `get_database_info`,
+`list_backup_files`, `summarize_web_log`, `list_domains`, `list_subdomains`, `list_wordpress_sites`, `get_wordpress_info`,
 `get_wordpress_log_info`, `read_account_log`, `read_web_log`, `read_wordpress_log`,
 `get_domain_info`, `get_tls_info`, `list_redirects`, `list_dns_records`, `check_dns`, `plan_hosting_change`,
 `apply_hosting_change` and `get_hosting_change`.
@@ -56,6 +58,10 @@ It reports counts/status without printing logs; see [hosting verification](docs/
 
 [Diagnostics](docs/DIAGNOSTICS.md) distinguish loaded configuration readiness from
 unverified provider permissions and inspect WordPress details/log metadata safely.
+[Account/log/database/backup diagnostics](docs/HOSTING-DIAGNOSTICS.md) add compact
+read-only troubleshooting tools; CPU/RAM metrics and Softaculous access remain
+provider-dependent. Backup file metadata needs private roots and does not prove
+backup integrity.
 
 Domain/subdomain creation and individual DNS record edits use expiring previews,
 separate write authorization and per-account operation allowlists. Existing read

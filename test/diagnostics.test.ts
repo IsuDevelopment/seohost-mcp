@@ -20,7 +20,7 @@ const hasCode = (code: string) => (error: unknown) => error instanceof HostingEr
 async function fixture() {
   const settings = await loadSettings({}, false)
   settings.accounts = {
-    h101: { label: 'One', aliases: ['first'], baseUrl: 'https://first.example:2222', usernameEnv: 'FIRST_USER', loginKeyEnv: 'FIRST_KEY', wordpressLogRoots: ['domains/site.example'] },
+    h101: { label: 'One', aliases: ['first'], baseUrl: 'https://first.example:2222', usernameEnv: 'FIRST_USER', loginKeyEnv: 'FIRST_KEY', wordpressLogRoots: ['domains/site.example'], backupRoots: ['private-backups'] },
     h202: { label: 'Two', aliases: [], baseUrl: 'https://second.example:2222', usernameEnv: 'SECOND_USER', loginKeyEnv: 'SECOND_KEY' },
   }
   settings.credentials = { h101: { username: 'first-user', loginKey: 'first-private-key' } }
@@ -37,6 +37,7 @@ test('capabilities describe configuration without claiming provider permission o
   const missing = getServerCapabilities(settings, 202)
   assert.equal(missing.tools.find(tool => tool.name === 'get_server_capabilities')?.configurationReady, true)
   assert.deepEqual(missing.tools.find(tool => tool.name === 'get_wordpress_log_info')?.missingConfiguration, ['hosting_credentials', 'wordpress_log_roots'])
+  assert.deepEqual(missing.tools.find(tool => tool.name === 'list_backup_files')?.missingConfiguration, ['hosting_credentials', 'backup_roots'])
   settings.accounts.h101!.wordpressLogRoots = []
   assert.deepEqual(getServerCapabilities(settings, 101).tools.find(tool => tool.name === 'read_wordpress_log')?.missingConfiguration, ['wordpress_log_roots'])
   assert.throws(() => getServerCapabilities(settings, 'unknown'), /Unknown or ambiguous/)

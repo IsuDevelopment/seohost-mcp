@@ -122,3 +122,22 @@ the gap and reporting partial failure without rollback/retry. Full rule-map snap
 reject stale state and verify retained entries. API equality is not live HTTP behavior
 or precedence verification; prefix overlaps, shared roots, manual/app/proxy rules and
 external races remain relevant. See [REDIRECTS.md](../docs/REDIRECTS.md).
+
+## Read diagnostics (D18)
+
+Self-account legacy tally/config and modern user metrics/database metadata use fixed
+routes with existing read authorization. Project named numeric/state fields only;
+unknown/missing values stay unknown. No arbitrary-user/global metrics, SQL, database
+credentials, mutations or automatic provider-auth fallback. Database detail reads
+require fresh account inventory ownership and matching response identity.
+
+Summaries share the bounded log reader with fresh domain ownership and redaction.
+The public raw cap stays 64 KiB; internal aggregation can inspect the fetched tail
+up to 512 KiB so common noise does not hide one fatal before frequency ranking.
+Counts describe lines, not incidents; timestamp timezone is not inferred.
+
+Backup metadata requires explicit private root indexes, unchanged canonical directory
+and regular non-symlink archive candidates. No caller path, recursion, download or
+restore; metadata does not establish integrity or a successful backup. Keep the
+Softaculous/Backuply contract separate: visible plugins and HTTP 200 non-JSON do not
+establish working authenticated inventory. See HOSTING-DIAGNOSTICS.md.

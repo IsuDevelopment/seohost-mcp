@@ -6,7 +6,8 @@ source; accepted decisions explain intent and do not exempt code from criticism.
 
 ## Baseline and evidence
 
-- Candidate: 0.8.0, 20 MCP tools; redirects diff: `git diff 1fef5a2..HEAD -- src test docs .agents`.
+- Candidate: 0.9.0, 26 MCP tools; diagnostics diff: `git diff 210bfa0..HEAD -- src test docs .agents config`.
+  Redirects diff: `git diff 1fef5a2..HEAD -- src test docs .agents`.
   TLS + redirects diff: `git diff c25bf96..HEAD -- src test docs .agents`.
   Deployed release: 0.6.0, feature commit `556b134`.
 - Focus diff: `git diff c242a28..556b134 -- src test scripts config .env.example`.
@@ -16,9 +17,12 @@ source; accepted decisions explain intent and do not exempt code from criticism.
 - Provider mutations are fixture-tested, not live-verified. No production test
   domains/subdomains/records were created. Owner write OAuth consent remains a
   client action; read-token write rejection was verified live.
-- Candidate validation: `npm run check`, 74 passing tests/types/build. TLS and redirect
+- Candidate validation: `npm run check`, 85 passing tests/types/build. Account/DB/
+  backup metadata and one-read error summary candidate adapters passed read-only H57
+  probes. Resource latest is denied; Softaculous list responses were non-JSON. No
+  plugin inventory/backup job adapter is claimed. TLS and redirect
   writes use fixtures; candidate redirect adapter live H57 inventory read passed; H57 modern metadata GETs returned 200. No TLS mutation or full
-  creation→issuance→redirect workflow has been verified live; 0.8.0 is not deployed.
+  creation→issuance→redirect workflow has been verified live; 0.9.0 is not deployed.
   Passing checks are not independent security certification.
 
 ## Inspection order
@@ -29,12 +33,13 @@ source; accepted decisions explain intent and do not exempt code from criticism.
 | Persistent execution | `hosting-changes.ts`, `change-store.ts`: trace ready → applying → applied/failed/unknown, expiry, concurrent requests, interrupted processes, actor/account binding, replay and reconciliation. Check database write/error paths, not only success cases. |
 | Provider contracts | `directadmin-http.ts`, `hosting-changes.ts`: verify fixed paths/forms, application-level error handling, exact DNS selectors, TTL/TXT/MX normalization, create defaults, post-write verification and uncertain outcomes. Fixtures are not provider confirmation. |
 | TLS scope and secrets | `tls.ts`, `hosting-changes.ts`, `directadmin-http.ts`: verify parent-wide consent, secret-preserving strict config handling, metadata-only reads, production-provider guard, certificate date/wildcard/all-host checks, PUT ambiguity and no premature HTTPS. Assess alias/proxy/browser-trust limitations and daily issuance/pending reporting. |
+| Diagnostics and summary bounds | `account-diagnostics.ts`, `backup-inventory.ts`, `log-summary.ts`, `directadmin.ts`: self-account routes, numeric/unit/unknown semantics, fresh DB identity, private canonical backup roots/pagination, no content downloads, rare fatal preservation beyond raw-output cap, line-vs-incident counts and safe projections. Check resource/Softaculous failures remain explicit. |
 | Site redirect semantics | `redirects.ts`, `hosting-changes.ts`, `directadmin-http.ts`: typed double decoding, duplicate/error handling, URL-secret projection, literal input safety, full-map verification and no destination fetches. Trace delete/add partial failure and ensure no undocumented overwrite assumption; assess prefixes/shared roots/precedence limitations. |
 | DNS evidence | `domain-dns.ts`, `public-dns.ts`: verify ownership, record IDs/snapshots, in-zone names, cache/fresh semantics, bounded responses and failed/truncated answers. Recursive NS matching is not a direct authoritative/delegation/DNSSEC proof. |
 | Disclosure and regressions | `server.ts`, log readers, deploy scripts: inspect error/audit payloads, token masking, untrusted metadata, read behavior, private file exclusions and state preservation. |
 
 Use [CODEMAP.md](CODEMAP.md) to find tests for each boundary and
-[DOMAIN-DNS.md](../docs/DOMAIN-DNS.md) and [TLS.md](../docs/TLS.md) / [REDIRECTS.md](../docs/REDIRECTS.md) for operator contracts.
+[DOMAIN-DNS.md](../docs/DOMAIN-DNS.md) and [TLS.md](../docs/TLS.md) / [REDIRECTS.md](../docs/REDIRECTS.md) / [HOSTING-DIAGNOSTICS.md](../docs/HOSTING-DIAGNOSTICS.md) for operator contracts.
 
 ## Review execution and output
 

@@ -7,6 +7,7 @@
       "usernameEnv": "SEOHOST_PRIMARY_USERNAME",
       "loginKeyEnv": "SEOHOST_PRIMARY_LOGIN_KEY",
       "wordpressLogRoots": [],
+      "backupRoots": [],
       "writeOperations": [],
       "dnsNameservers": []
     },

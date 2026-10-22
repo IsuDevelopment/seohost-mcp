@@ -100,7 +100,10 @@ Softaculous documents its own [API, including WordPress inventory](https://www.s
 A future adapter needs separately verified account-level routes, authentication,
 response projection and installation ID handling; existing DA IDs are not presumed
 interchangeable. No Softaculous adapter or automatic authentication fallback is
-implemented. Keep TLS verification and the existing read-only/secret-output boundaries
+implemented. The 0.9.0 investigation found the advertised plugin route, but JSON
+installation/backup list actions returned non-JSON HTTP 200 responses with the
+existing Login Key; this is not an empty inventory. See
+[account/backup diagnostics](HOSTING-DIAGNOSTICS.md). Keep TLS verification and the existing read-only/secret-output boundaries
 even if vendor sample code disables certificate validation or prints raw responses.
 
 ```json

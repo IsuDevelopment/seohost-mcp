@@ -75,3 +75,7 @@ Suggested sequence: capabilities → WordPress inventory → site details/log me
 bounded log read when enabled. Diagnostics never change hosting configuration or
 enable logging. Provider fixtures and real SDK tests validate implementation;
 live hosting permissions still require separate account-specific verification.
+
+Version 0.9.0 adds [account, resource, database, log-summary and backup-file diagnostics](HOSTING-DIAGNOSTICS.md).
+`get_server_capabilities` now reports missing `backup_roots` and safe configuration
+presence without exposing the paths. It still makes no provider requests.

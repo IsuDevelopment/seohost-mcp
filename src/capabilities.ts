@@ -6,6 +6,12 @@ export const TOOL_REQUIREMENTS = {
   list_servers: { credentials: false, wordpressLogs: false },
   resolve_server: { credentials: false, wordpressLogs: false },
   get_server_capabilities: { credentials: false, wordpressLogs: false },
+  get_account_usage: { credentials: true, wordpressLogs: false },
+  get_resource_usage: { credentials: true, wordpressLogs: false },
+  list_databases: { credentials: true, wordpressLogs: false },
+  get_database_info: { credentials: true, wordpressLogs: false },
+  summarize_web_log: { credentials: true, wordpressLogs: false },
+  list_backup_files: { credentials: true, wordpressLogs: false, backupMetadata: true },
   list_domains: { credentials: true, wordpressLogs: false },
   list_subdomains: { credentials: true, wordpressLogs: false },
   read_web_log: { credentials: true, wordpressLogs: false },
@@ -33,6 +39,7 @@ export function getServerCapabilities(settings: Settings, reference: string | nu
     const missingConfiguration: string[] = []
     if (requirements.credentials && !credentialsConfigured) missingConfiguration.push('hosting_credentials')
     if (requirements.wordpressLogs && !wordpressLogRootsConfigured) missingConfiguration.push('wordpress_log_roots')
+    if ('backupMetadata' in requirements && !settings.accounts[serverId]!.backupRoots?.length) missingConfiguration.push('backup_roots')
     if ('write' in requirements && name !== 'get_hosting_change' && !settings.accounts[serverId]!.writeOperations?.length) missingConfiguration.push('account_write_operations')
     return { name, configurationReady: missingConfiguration.length === 0, missingConfiguration,
       providerPermission: requirements.credentials ? 'unverified' : 'not_applicable',
@@ -43,5 +50,6 @@ export function getServerCapabilities(settings: Settings, reference: string | nu
     source: 'installation_configuration', providerContacted: false,
     authorizationModel: 'single_owner_all_configured_accounts', hostingWritesEnabled: Boolean(settings.accounts[serverId]!.writeOperations?.length),
     enabledWriteOperations: settings.accounts[serverId]!.writeOperations ?? [],
+    backupRootsConfigured: Boolean(settings.accounts[serverId]!.backupRoots?.length),
     dnsWriteAuthorityConfigured: Boolean(settings.accounts[serverId]!.dnsNameservers?.length), tools }
 }

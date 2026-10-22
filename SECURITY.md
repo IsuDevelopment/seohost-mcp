@@ -42,3 +42,11 @@ never raw rewrite directives. Inventory redacts existing destination credentials
 query and fragment; no destination HTTP request is sent. Source-prefix/shared-root
 effects need preview review. Editing is non-atomic delete/add, with no undocumented
 overwrite, blind retries or automatic rollback. See [redirect contract](docs/REDIRECTS.md).
+
+Account/database diagnostics project only named non-secret metadata and never
+expose SQL, connection credentials or arbitrary-user resource routes. Backup-file
+inventory requires narrow private roots and canonical regular-file metadata; it
+does not download or restore archives. Log summaries inspect the bounded redacted
+tail once, count lines rather than incidents and retain rare critical examples.
+Neither heuristic classification nor file presence proves security or restorability.
+See [diagnostic contracts](docs/HOSTING-DIAGNOSTICS.md).

@@ -132,3 +132,10 @@ not verify Login Key permissions or access to other configured accounts.
 Sources:
 - https://docs.directadmin.com/developer/api/legacy-api.html
 - https://docs.directadmin.com/changelog/version-1.21.1.html
+
+## Compact log summaries (0.9.0)
+
+Use `summarize_web_log` for alerts before requesting raw details. It fetches one
+bounded tail, examines all retained lines and includes rare PHP fatal findings
+regardless of frequency. Error and access summaries have different counts; neither
+proves complete history, uptime or infection. See [summary limits](HOSTING-DIAGNOSTICS.md).

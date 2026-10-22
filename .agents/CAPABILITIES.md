@@ -2,7 +2,7 @@
 
 This describes implemented behavior, not permission to operate on an arbitrary
 account. Tool registrations and schemas in `src/server.ts` are authoritative.
-All twenty MCP tools are available over HTTP and stdio; writes use separate authorization and per-account allowlists.
+All twenty-six MCP tools are available over HTTP and stdio; writes use separate authorization and per-account allowlists.
 
 Platform scope: standard SeoHost shared hosting accounts via DirectAdmin. VPS
 compatibility is untested; panel presence does not establish endpoint/permission
@@ -16,6 +16,12 @@ equivalence. No root, VM lifecycle or operating-system administration is provide
 | `list_servers` | Configured server IDs, labels, aliases and `credentialsConfigured`. | None. | No hosting request; omits URLs and secrets. Credential presence is not proof of validity. |
 | `resolve_server` | Resolves one reference to canonical ID, label and credential-presence flag. | Required `serverId`. | No hosting request. Unknown/ambiguous references fail; no default selection. |
 | `get_server_capabilities` | Reports tool/configuration readiness from loaded settings without private account details. | Required `serverId`. | No provider request. `configurationReady` does not verify key permissions or endpoint availability; restart after changing configuration. |
+| `get_account_usage` | Safe tally, limits and near-limit indicators for disk/bandwidth/inodes/counts. | `serverId`. | Self-account; provider tally can lag. Missing is null, unlimited explicit; no contact/config secrets. |
+| `get_resource_usage` | Latest or bounded historical CPU/RAM/tasks/I/O metadata and limits. | `serverId`; optional `hours`, `points`, `aggregation`. | Account-only; H57 latest returns 403. No fake zeros or permission bypass. |
+| `list_databases` | Account database names, sizes and object/user counts with paging. | `serverId`; optional `offset`, `limit`. | Metadata only, no SQL/credentials or inferred site mapping. |
+| `get_database_info` | Charset/collation and object counts for a fresh owned database. | `serverId`, `database`. | Fresh inventory and exact name validation; no exports/contents/repair. |
+| `summarize_web_log` | Single-read bounded error classifications/critical excerpts or access statuses/top paths. | `serverId`, `domain`, `logType`; optional `lines`. | Retains rare fatals before frequency ranking. Heuristics/line counts, no full-history/uptime/infection proof or external lookups. |
+| `list_backup_files` | Paged archive candidates in one configured backup root. | `serverId`; optional `rootIndex`, `offset`, `limit`. | Private roots required; canonical regular files only, no bodies/restore or integrity claim. |
 | `list_domains` | Reads the selected account's domains. | Required `serverId`. | Configured account username/Login Key with `CMD_API_SHOW_DOMAINS` access. |
 | `read_web_log` | Reads a bounded access/error log tail after checking domain ownership on that account. | Required `serverId`, `domain`, `logType`; optional `lines`, `contains`. | Requires both domain-list and `CMD_SHOW_LOG` access. No arbitrary files or account fallback. |
 | `get_domain_info` | Safe domain flags/IP and provider display values. | `serverId`, `domain`. | Fresh ownership; no public DNS query or filesystem paths. |
@@ -117,3 +123,9 @@ URL `to`, explicit `type` 301/302/303. `delete_redirect` takes `domain` and fres
 separate delete/add plans after checking both permissions and validating replacement
 inputs; report partial failure. No implicit overwrite, target requests, arbitrary
 `.htaccess` edits or atomic replacement. See [redirect contract](../docs/REDIRECTS.md).
+
+See [hosting diagnostic contracts](../docs/HOSTING-DIAGNOSTICS.md) for limits and
+permission evidence. Backup roots default disabled. Softaculous/Backuply were
+investigated using documented read actions; H57 returned non-JSON rather than the
+expected API inventory. No plugin adapter or implicit authentication fallback is
+implemented. Archive metadata works independently, with explicit private roots.

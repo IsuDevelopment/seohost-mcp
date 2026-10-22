@@ -4,13 +4,14 @@ import { resolveServer, type Settings } from './config.js'
 
 export { HostingError } from './hosting-error.js'
 import { HostingError } from './hosting-error.js'
-import { DirectAdminTransport } from './directadmin-http.js'
+import { DirectAdminTransport, MAX_RESPONSE_BYTES } from './directadmin-http.js'
 
 export const domainSchema = z.string().trim().min(1).max(253).refine(value => !/[\s\/:?#@%\\]/.test(value), 'Use a domain name only').transform(value => domainToASCII(value.toLowerCase())).refine(value => {
   const labels = value.split('.')
   return value.length <= 253 && labels.length >= 2 && labels.every(label => /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(label))
 }, 'Use a domain name only, without a URL, port, path or query')
 
+type WebLogInput = { serverId: string | number; domain: string; logType: 'access' | 'error'; lines?: number; contains?: string }
 const MAX_OUTPUT_BYTES = 64 * 1024
 
 export function redactLog(text: string): string {
@@ -66,7 +67,12 @@ export class DirectAdminClient {
     return { serverId, domains: [...new Set(domains)].sort() }
   }
 
-  async readWebLog(input: { serverId: string | number; domain: string; logType: 'access' | 'error'; lines?: number; contains?: string }) {
+  async readWebLog(input: WebLogInput) { return this.webLog(input, MAX_OUTPUT_BYTES) }
+
+  // Internal aggregation can inspect more of the bounded fetch than the raw MCP output cap.
+  async readWebLogForSummary(input: WebLogInput) { return this.webLog(input, MAX_RESPONSE_BYTES) }
+
+  private async webLog(input: WebLogInput, outputLimit: number) {
     const { serverId } = resolveServer(this.settings.accounts, input.serverId)
     const domain = domainSchema.parse(input.domain)
     const requestedLines = z.number().int().min(1).max(1000).parse(input.lines ?? 100)
@@ -92,7 +98,7 @@ export class DirectAdminClient {
     // Keep the most recent complete records when enforcing the output byte cap.
     for (let i = selected.length - 1; i >= 0; i--) {
       const line = selected[i]!, size = Buffer.byteLength(line) + 1
-      if (bytes + size > MAX_OUTPUT_BYTES) break
+      if (bytes + size > outputLimit) break
       output.unshift(line); bytes += size
     }
     return { serverId, domain, logType, requestedLines, scannedLines: tail.length, returnedLines: output.length, truncated: output.length < selected.length, filterScope: 'last_requested_lines', redaction: 'best_effort', untrustedContent: true, fetchedAt: new Date().toISOString(), lines: output }

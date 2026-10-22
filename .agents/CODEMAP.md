@@ -7,10 +7,13 @@ module responsibilities or important flows change; keep this map short.
 | --- | --- |
 | `src/http.ts` | HTTP entry point, Host/Origin checks, health/discovery, authenticated actor/write context, per-request MCP transport and cleanup. |
 | `src/stdio.ts` | Local process entry point; stdout reserved for MCP, owner write context still subject to account operation policy. |
-| `src/server.ts` | Version, twenty tool registrations, input schemas, MCP results/errors and safe auditing. |
+| `src/server.ts` | Version, twenty-six tool registrations, input schemas, MCP results/errors and safe auditing. |
 | `src/capabilities.ts` | Shared tool/configuration-requirement catalog and honest configuration-only readiness; smoke tests verify names against the catalog. |
 | `src/config.ts` | Validates env/JSON, origins, aliases, distinct read/write tokens, account write operations and trusted NS; selects private state files and resolves explicit accounts. |
-| `src/directadmin.ts` | Domain/subdomain reads, ownership checks and bounded/redacted web-log results. |
+| `src/directadmin.ts` | Domain/subdomain reads, ownership checks and bounded/redacted web-log results; public raw output stays 64 KiB, internal summaries inspect up to the 512 KiB provider bound. |
+| `src/account-diagnostics.ts` | Safe self-account tally/limits, typed account resource metrics/history and fresh-owned database inventory/details; no SQL or credentials. |
+| `src/log-summary.ts` | One log fetch, all-line error classification with rare fatal preservation; access status/path aggregation without request identities. |
+| `src/backup-inventory.ts` | Opt-in private root, canonical/regular-file checks and paged archive candidate metadata; no contents, recursion or restore. |
 | `src/domain-dns.ts` | Account-owned domain settings, local DNS records/IDs/snapshots and contextual diagnostics. |
 | `src/redirects.ts` | Typed legacy site-redirect inventory, opaque selection, secret-safe URL projection, literal input policy and rule-map snapshots. |
 | `src/tls.ts` | Owned parent-domain ACME/certificate metadata, safe projections, secret-preserving config snapshots and conservative all-web-host redirect readiness. |
@@ -36,6 +39,7 @@ module responsibilities or important flows change; keep this map short.
 | `test/server.test.ts` | HTTP auth, Host/Origin, method/body limits, real HTTP SDK and stdio. |
 | `test/directadmin.test.ts` | Account isolation, aliases, domain validation, provider failures, limits, plain/JSON/PHP WordPress credential redaction and SDK. |
 | `test/domain-dns.test.ts`, `test/hosting-changes.test.ts` | Provider projection, contextual DNS/cache/failure handling, scopes/allowlists, stale/actor/expiry checks, exact record selectors, replay/uncertainty and concurrent reservations. |
+| `test/account-diagnostics.test.ts`, `test/log-summary.test.ts` | Tally projection/unknown limits, resource denial/series validation, fresh DB ownership, backup boundaries/pagination and single-read/rare fatal/SDK summaries. |
 | `test/redirects.test.ts` | Typed decoding, secret projection, exact delete/add edits, authorization, stale/full-state checks, uncertainty/replay and SDK discovery. |
 | `test/tls.test.ts` | Parent-wide scope/write gates, config-secret preservation, certificate coverage/date checks, stale state, PUT uncertainty/reconciliation and MCP projection. |
 | `test/account-log.test.ts` | Fixed-file/account isolation, unsafe/missing/incomplete metadata, suffix bounds, redaction and real SDK reads. |
@@ -79,6 +83,12 @@ module responsibilities or important flows change; keep this map short.
 - Site redirect edit → API-listed opaque rule ID → separately authorized delete
   receipt → refreshed inventory → add receipt. No assumed overwrite or atomic edit;
   failure after deletion is partial completion. No destination HTTP requests.
+- Diagnostic reads → self-account fixed APIs → schema/projection → bounded metadata.
+  Database details refresh inventory ownership. Resource denial is not zero usage.
+- Log summary → one ownership/read operation → full bounded redacted tail → counts
+  and critical excerpts, without fetching once per category or external lookups.
+- Backup candidates → configured root index → canonical directory metadata page →
+  regular archive basenames/IDs; no download or claim of backup integrity.
 - Deploy → check → allowlisted archive → SSH → dependency compatibility → code
   backup → restart → HTTPS + optional Bearer smoke; failure after copying begins → rollback.
 

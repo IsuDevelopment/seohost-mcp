@@ -2,7 +2,19 @@
 
 Updated: 2026-10-22.
 
-- Candidate 0.8.0 adds API-listed site redirect reads and planned add/delete
+- Candidate 0.9.0 adds six read-only diagnostic tools (26 total): account usage,
+  user resources, database inventory/details, one-read web-log summaries and opt-in
+  backup archive metadata. `npm run check` passes: 85/85 tests, types and build.
+  Candidate adapter reads passed on H57 for usage, DB inventory/details, metadata
+  in two known backup directories and a domain error summary. Only counts/status
+  were printed; credentials stayed on hosting. Backup roots were set in process
+  memory for verification, not persisted; no archive/SQL body was downloaded.
+  Resource latest returns 403. Advertised Softaculous JSON installations/backups
+  actions returned non-JSON HTTP 200 with the existing Login Key, so no plugin
+  adapter/auth fallback is claimed. See HOSTING-DIAGNOSTICS.md. No code deployment
+  or live site setting change was performed; production remains 0.6.0. Add private
+  backupRoots only after deploying compatible code. H93 stays deferred.
+- Historical candidate 0.8.0 adds API-listed site redirect reads and planned add/delete
   operations (20 tools). Editing is a non-atomic sequence, not assumed overwrite.
   Local check: types/build and 74/74 tests pass. The candidate adapter's live H57
   read found the owner's expected root 302 rule; only counts/status were printed.
@@ -75,6 +87,13 @@ Updated: 2026-10-22.
   inspection order and verification gaps; it does not represent review approval.
 
 ## Recent changes
+
+2026-10-22 — candidate 0.9.0 diagnostics (D18), owner-confirmed scope: safe account
+usage, typed account resource metrics/history, fresh-owned database metadata,
+single-fetch log summary and configured-root backup metadata. Six new tools;
+85 tests/types/build pass. Live H57 supported reads passed; resource and Softaculous
+limits are explicit rather than fabricated empty/zero results. No runtime dependency,
+production config, site setting or deployment change. English memory/docs updated.
 
 2026-10-22 — candidate 0.8.0 site redirects (D17), following local research and
 legacy API documentation: typed inventory/IDs, URL projection and two fixed planned
