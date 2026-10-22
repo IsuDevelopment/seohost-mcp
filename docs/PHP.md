@@ -32,6 +32,30 @@ operation allowlist, fresh before-state checks, verification and no blind retrie
 Keep requested changes explicit; creating a domain alone must not select a PHP
 version automatically. INI and extension edits need their own bounded contracts.
 
+## Idea: optional local diagnostics adapter
+
+Owner suggestion, recorded 2026-10-22; backlog only, not an approved implementation
+or a working MCP capability. When MCP runs on the hosting account, investigate
+reading that account's domain PHP configuration locally if no supported API exists.
+
+- Prefer bounded configuration reads inside the existing Node adapter; a separate
+  PHP file is not necessary merely to read files. First establish the provider's
+  actual configuration sources, permissions, handler overrides and inheritance.
+- Report configured version and evidence source separately from the version serving
+  web requests. Local CLI PHP or one shared helper cannot establish every domain's
+  effective web runtime. Missing/ambiguous evidence must remain unknown.
+- Opt in per account; local access covers only the account where MCP runs. It does
+  not establish access to other configured accounts or remote hosting servers.
+- Accept owned domain IDs, never caller paths. Bound reads and validate canonical
+  paths/file types; return only selected non-secret fields, never raw INI, environment
+  or site configuration. No arbitrary execution or PHP/configuration writes.
+- If effective-runtime probing needs a PHP helper, design authentication, narrow
+  output and deployment/removal explicitly before implementation. Do not publish
+  `phpinfo()` or silently add scripts to hosted websites.
+
+This would be a separate, documented local read contract rather than a claimed
+PHP Changer API. Verify feasibility and security before adopting it.
+
 Sources: [DirectAdmin API and server Swagger](https://docs.directadmin.com/developer/api/),
 [native domain PHP selector](https://docs.directadmin.com/changelog/version-1.48.0.html),
 [native subdomain PHP selector](https://docs.directadmin.com/changelog/version-1.61.0.html),

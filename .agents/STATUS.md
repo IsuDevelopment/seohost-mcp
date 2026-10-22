@@ -37,6 +37,9 @@ Updated: 2026-10-22.
   SeoHost PHP Changer contract. The live Swagger was re-read (269 paths, no modern
   PHP version/INI endpoint); the native selector reports disabled on the observed
   domain. No PHP write was sent. Resolve the plugin contract before implementation.
+  Owner's alternative idea is recorded in `docs/PHP.md`: optional account-local
+  read-only configuration diagnostics, with any runtime helper separately designed.
+  Backlog only; no helper or local filesystem adapter has been implemented.
 - After the owner corrected H57 credentials, only the MCP application was restarted.
   Live `list_domains` through the production MCP SDK succeeds for H57. WordPress
   inventory remains denied with HTTP 403. Targeted diagnostics confirm the key's
