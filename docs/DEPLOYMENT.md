@@ -12,9 +12,9 @@ or root/system administration. See [hosting scope](../README.md#hosting-scope).
 
 Node.js 22.23.2 or newer. No external database or OpenAI API key is required.
 The application uses MCP SDK v1 stateless Streamable HTTP with JSON responses.
-Version 0.6.0 exposes eighteen tools, including fixed account-root `log.txt` reads,
-configuration readiness, WordPress
-details and log metadata [diagnostics](DIAGNOSTICS.md) alongside inventory/log reads.
+Version 0.9.0 exposes twenty-six tools, including fixed account-root `log.txt`,
+configuration/site/log diagnostics, TLS/redirect reads and
+[account/database/backup metadata and log summaries](HOSTING-DIAGNOSTICS.md).
 Hosting reads are the default. Domain/DNS writes require separate authorization,
 account operation allowlists and a stored preview; see [domain/DNS workflow](DOMAIN-DNS.md). WordPress log access requires
 private root allowlists and provider permissions; see [WORDPRESS.md](WORDPRESS.md).

@@ -2,7 +2,14 @@
 
 Updated: 2026-10-22.
 
-- Candidate 0.9.0 adds six read-only diagnostic tools (26 total): account usage,
+- Production 0.9.0 is deployed from `cccf886` through successful Deploy MCP run
+  `39760091947`; Check run `39754158408` also passed. Independent HTTPS health
+  and authenticated SDK checks confirm version 0.9.0 and 26 tools. H57 usage,
+  database inventory/details and one-fetch error summary passed. Metrics denial,
+  backup-root opt-in and read-token write rejection behaved as expected. Private
+  configuration/state were preserved; the original five-operation policy remains.
+  TLS/redirect operations and backup roots were not enabled by this deployment.
+- Version 0.9.0 adds six read-only diagnostic tools (26 total): account usage,
   user resources, database inventory/details, one-read web-log summaries and opt-in
   backup archive metadata. `npm run check` passes: 85/85 tests, types and build.
   Candidate adapter reads passed on H57 for usage, DB inventory/details, metadata
@@ -11,15 +18,15 @@ Updated: 2026-10-22.
   memory for verification, not persisted; no archive/SQL body was downloaded.
   Resource latest returns 403. Advertised Softaculous JSON installations/backups
   actions returned non-JSON HTTP 200 with the existing Login Key, so no plugin
-  adapter/auth fallback is claimed. See HOSTING-DIAGNOSTICS.md. No code deployment
-  or live site setting change was performed; production remains 0.6.0. Add private
-  backupRoots only after deploying compatible code. H93 stays deferred.
+  adapter/auth fallback is claimed. See HOSTING-DIAGNOSTICS.md. No live site
+  setting change was performed. Private backupRoots remain unconfigured; enable
+  them separately for archive metadata. H93 stays deferred.
 - Historical candidate 0.8.0 adds API-listed site redirect reads and planned add/delete
   operations (20 tools). Editing is a non-atomic sequence, not assumed overwrite.
   Local check: types/build and 74/74 tests pass. The candidate adapter's live H57
   read found the owner's expected root 302 rule; only counts/status were printed.
-  No redirect write or deployment was performed. Production remains 0.6.0; the
-  new operation names stay disabled until explicitly configured after deployment.
+  No redirect write was performed. Included in the 0.9.0 deployment; the new
+  operation names stay disabled until explicitly configured.
 - Historical candidate 0.7.0 adds TLS metadata and two planned parent-wide operations (19 tools):
   production Let's Encrypt automation and HTTPS redirects. Creation+TLS is an
   explicitly requested sequence; daily issuance may remain pending. No child-only
@@ -27,10 +34,10 @@ Updated: 2026-10-22.
 - Historical 0.7.0 validation: `npm run check` (65/65 tests, types and build).
   H57 modern ACME/certificate metadata GETs returned HTTP 200, with only safe
   summary fields printed. TLS mutations and the full live create/issue/redirect
-  sequence remain fixture-tested, not production-verified. Candidate 0.7.0 is not
-  deployed; production remains 0.6.0 with its five-operation policy. Enable the two
-  new operation names privately only after deploying compatible code, with a backup.
-- Release 0.6.0 is deployed from code commit `556b134` through GitHub Actions run
+  sequence remain fixture-tested, not production-verified. Included in the 0.9.0
+  deployment; the original five-operation policy remains. Enable the two new
+  operation names separately in private configuration, with a backup.
+- Historical release 0.6.0 was deployed from code commit `556b134` through GitHub Actions run
   `39695303040`; Check run `39695291773` and deployment both passed.
 - Version 0.6.0 adds domain settings, local/public DNS diagnostics and scoped,
   per-account planned changes (18 tools). Production SDK discovery, owned-domain
@@ -87,6 +94,12 @@ Updated: 2026-10-22.
   inspection order and verification gaps; it does not represent review approval.
 
 ## Recent changes
+
+2026-10-22 — owner-authorized 0.9.0 production deployment through run `39760091947`
+from `cccf886`. Workflow check/package/dependency compatibility/backup/restart/HTTPS/
+authenticated smoke passed. Independent SDK verified 26 tools and supported H57
+diagnostic reads, expected metrics denial, backup opt-in and read-token write
+rejection. No private configuration, site setting or operation allowlist changed.
 
 2026-10-22 — candidate 0.9.0 diagnostics (D18), owner-confirmed scope: safe account
 usage, typed account resource metrics/history, fresh-owned database metadata,

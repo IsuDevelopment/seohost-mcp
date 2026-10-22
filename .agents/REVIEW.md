@@ -6,10 +6,10 @@ source; accepted decisions explain intent and do not exempt code from criticism.
 
 ## Baseline and evidence
 
-- Candidate: 0.9.0, 26 MCP tools; diagnostics diff: `git diff 210bfa0..HEAD -- src test docs .agents config`.
+- Review target: 0.9.0, 26 MCP tools; diagnostics diff: `git diff 210bfa0..HEAD -- src test docs .agents config`.
   Redirects diff: `git diff 1fef5a2..HEAD -- src test docs .agents`.
   TLS + redirects diff: `git diff c25bf96..HEAD -- src test docs .agents`.
-  Deployed release: 0.6.0, feature commit `556b134`.
+  Deployed release: 0.9.0, feature commit `cccf886`, Deploy run `39760091947`.
 - Focus diff: `git diff c242a28..556b134 -- src test scripts config .env.example`.
   `c242a28` is the last pre-0.6.0 commit. Review current `main` too for later changes.
 - Historical validation for this code: `npm run check`, 57 passing tests, successful
@@ -22,7 +22,10 @@ source; accepted decisions explain intent and do not exempt code from criticism.
   probes. Resource latest is denied; Softaculous list responses were non-JSON. No
   plugin inventory/backup job adapter is claimed. TLS and redirect
   writes use fixtures; candidate redirect adapter live H57 inventory read passed; H57 modern metadata GETs returned 200. No TLS mutation or full
-  creation→issuance→redirect workflow has been verified live; 0.9.0 is not deployed.
+  creation→issuance→redirect workflow has been verified live; 0.9.0 is deployed.
+  Post-deploy SDK checks confirmed 26 tools, supported diagnostic reads, expected
+  metrics denial/backup opt-in and read-token write rejection. No new private
+  write operations or backup roots were enabled.
   Passing checks are not independent security certification.
 
 ## Inspection order

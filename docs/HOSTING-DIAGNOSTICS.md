@@ -100,7 +100,13 @@ and details, two known backup directories and one domain's error summary. Only
 counts/status were printed; credentials stayed in the hosting process. Backup roots
 were selected in process memory for verification, not written to private configuration.
 No archive/SQL contents were read and no production code or site setting was changed.
-Resource latest remains denied; H93 remains deferred. Deployment is a separate step.
+Resource latest remains denied; H93 remains deferred.
+
+Owner-authorized production deployment of 0.9.0 subsequently passed on 2026-10-22
+(Deploy MCP run `39760091947`, code `cccf886`). Independent authenticated MCP checks
+confirmed 26 tools, account/database/log-summary reads and expected metrics denial,
+backup-root opt-in and read-token write rejection. Private roots remain unconfigured;
+no new write operations were enabled.
 
 Sources: [DirectAdmin API and server Swagger](https://docs.directadmin.com/developer/api/),
 [legacy account usage/config](https://docs.directadmin.com/developer/api/legacy-api.html),
