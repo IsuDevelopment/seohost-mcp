@@ -107,3 +107,18 @@ provisioning is installed. HTTPS enablement requires conservative provider metad
 coverage of all listed web/www hosts, valid dates and no reported missing names.
 It is not live chain/browser trust, alias completeness or Cloudflare mode validation.
 See [TLS.md](../docs/TLS.md) for recovery, scope and verification limits.
+
+## Site redirects (D17)
+
+Use documented legacy `CMD_API_REDIRECT`, not raw `.htaccess` editing. Fresh domain
+ownership and typed, bounded inventory supply account/domain-bound rule IDs. Reads
+strip credentials/query/fragment from destinations; plans/receipts retain safe
+projections and fingerprints rather than unrelated raw URLs. No target is fetched.
+
+Two separately allowlisted operations add one literal-path 301/302/303 rule or
+delete one freshly selected rule. Refuse overwrite; the documented API exposes no
+confirmed edit operation. Agents edit through separate delete/add plans, disclosing
+the gap and reporting partial failure without rollback/retry. Full rule-map snapshots
+reject stale state and verify retained entries. API equality is not live HTTP behavior
+or precedence verification; prefix overlaps, shared roots, manual/app/proxy rules and
+external races remain relevant. See [REDIRECTS.md](../docs/REDIRECTS.md).

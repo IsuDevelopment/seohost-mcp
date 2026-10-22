@@ -2,7 +2,7 @@
 
 This describes implemented behavior, not permission to operate on an arbitrary
 account. Tool registrations and schemas in `src/server.ts` are authoritative.
-All nineteen MCP tools are available over HTTP and stdio; writes use separate authorization and per-account allowlists.
+All twenty MCP tools are available over HTTP and stdio; writes use separate authorization and per-account allowlists.
 
 Platform scope: standard SeoHost shared hosting accounts via DirectAdmin. VPS
 compatibility is untested; panel presence does not establish endpoint/permission
@@ -20,9 +20,10 @@ equivalence. No root, VM lifecycle or operating-system administration is provide
 | `read_web_log` | Reads a bounded access/error log tail after checking domain ownership on that account. | Required `serverId`, `domain`, `logType`; optional `lines`, `contains`. | Requires both domain-list and `CMD_SHOW_LOG` access. No arbitrary files or account fallback. |
 | `get_domain_info` | Safe domain flags/IP and provider display values. | `serverId`, `domain`. | Fresh ownership; no public DNS query or filesystem paths. |
 | `get_tls_info` | Parent-wide ACME flags, safe certificate metadata/expiry, child coverage and conservative redirect readiness. | `serverId`, owned parent `domain`; optional listed `hostname`. | No keys, certificate files, DNS-provider secrets, on-demand issuance or live TLS probes. See TLS.md. |
+| `list_redirects` | API-listed site redirect paths, status, projected destinations, opaque IDs and map version. | `serverId`, owned `domain`. | Fresh ownership; credentials/query/fragment stripped from destinations. No target requests, arbitrary rewrites or live HTTP proof. |
 | `list_dns_records` | Local zone records, opaque account/domain-bound IDs and TTL. | `serverId`, `domain`. | Fresh ownership and provider DNS reads; public authority is unverified. |
 | `check_dns` | Local/public comparison, NS/provider hint and basic SPF/DMARC observations. | `serverId`, `domain`; optional `name`, `fresh`. | Fixed public recursive resolver, TTL cache capped at five minutes. Fresh bypasses only app cache; not full propagation/DNSSEC/mail audit or Cloudflare proxy/API proof. |
-| `plan_hosting_change` | Ten-minute immutable preview for seven allowed operations. | `serverId`, discriminated `change`. | Write authorization and enabled account operation; no hosting mutation. DNS edits require trusted NS match. |
+| `plan_hosting_change` | Ten-minute immutable preview for nine allowed operations. | `serverId`, discriminated `change`. | Write authorization and enabled account operation; no hosting mutation. DNS edits require trusted NS match. |
 | `apply_hosting_change` | One reviewed plan, fresh checks, single POST/PUT and verified provider receipt. | `serverId`, `planId`, `previewHash`. | Same actor/account, write scope and current allowlist. Stale/uncertain states fail closed. Applied replay returns receipt; no blind retry or rollback. |
 | `get_hosting_change` | Actor-bound status/receipt; optional read-based reconciliation of unknown results. | `serverId`, `planId`; optional `reconcile`. | Write authorization. Reconciliation may update private receipt but never resends a hosting write. Unresolved/applying outcomes need operator investigation. |
 | `read_account_log` | Reads the fixed `log.txt` in the hosting account home/root. | Required `serverId`; optional `lines`, `contains`. | Requires filemanager metadata/download access and a regular non-symlink file. No domain, caller path or WordPress Manager requirement. Bounded suffix/read output; not global OS logs or proof of the file's producer. |
@@ -109,3 +110,10 @@ API sources listed in the agent README and [PHP findings](../docs/PHP.md).
 The account's GUI WordPress Manager may be Softaculous, per support relayed by the
 owner; the current WordPress tools use native DA and remain unavailable on H57.
 See [WordPress provider distinction](../docs/WORDPRESS.md).
+
+Site redirects: `add_redirect` takes `domain`, literal `from`, plain HTTP(S) domain
+URL `to`, explicit `type` 301/302/303. `delete_redirect` takes `domain` and fresh
+`redirectId`. Both need exact account policy and write authorization. Edits use
+separate delete/add plans after checking both permissions and validating replacement
+inputs; report partial failure. No implicit overwrite, target requests, arbitrary
+`.htaccess` edits or atomic replacement. See [redirect contract](../docs/REDIRECTS.md).

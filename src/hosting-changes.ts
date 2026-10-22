@@ -7,6 +7,7 @@ import { DomainDnsClient, fingerprint, type ZoneRecord } from './domain-dns.js'
 import { dnsName } from './public-dns.js'
 import { ChangeStore } from './change-store.js'
 import { HostingError } from './hosting-error.js'
+import { RedirectsClient, redirectPath, redirectDestination, redirectType, projectRedirect, redirectVersion } from './redirects.js'
 import { TlsClient } from './tls.js'
 import type { WritePath } from './directadmin-http.js'
 
@@ -17,6 +18,8 @@ const tlsChange = { domain: domainSchema, enabled: z.boolean(), scope: z.literal
 export const changeInputSchema = z.discriminatedUnion('operation', [
   z.object({ operation: z.literal('create_domain'), domain: domainSchema }).strict(),
   z.object({ operation: z.literal('create_subdomain'), domain: domainSchema, label: z.string().toLowerCase().regex(/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/) }).strict(),
+  z.object({ operation: z.literal('add_redirect'), domain: domainSchema, from: redirectPath, to: redirectDestination, type: redirectType }).strict(),
+  z.object({ operation: z.literal('delete_redirect'), domain: domainSchema, redirectId: z.string().regex(/^[a-f0-9]{64}$/) }).strict(),
   z.object({ operation: z.literal('set_free_certificate'), ...tlsChange }).strict(),
   z.object({ operation: z.literal('set_https_redirect'), ...tlsChange }).strict(),
   z.object({ operation: z.literal('add_dns_record'), domain: domainSchema, record: dnsRecordInput }).strict(),
@@ -35,7 +38,8 @@ const semantic = (records: Pick<ZoneRecord, 'type' | 'name' | 'value' | 'ttl'>[]
 export class HostingChanges {
   private readonly dns: DomainDnsClient
   private readonly tls: TlsClient
-  constructor(private readonly settings: Settings, request: typeof fetch = fetch) { this.dns = new DomainDnsClient(settings, request); this.tls = new TlsClient(settings, request) }
+  private readonly redirects: RedirectsClient
+  constructor(private readonly settings: Settings, request: typeof fetch = fetch) { this.dns = new DomainDnsClient(settings, request); this.tls = new TlsClient(settings, request); this.redirects = new RedirectsClient(settings, request) }
   private authorize(reference: string | number, access: AccessContext, operation?: ChangeInput['operation']) {
     const { serverId, account } = resolveServer(this.settings.accounts, reference)
     if (!access.canWrite) throw new HostingError('WRITE_SCOPE_REQUIRED', 'A separate mcp:write grant or write token is required; read credentials cannot create/apply previews.')
@@ -72,6 +76,33 @@ export class HostingChanges {
   private async prepare(serverId: string, input: ChangeInput): Promise<Omit<Prepared, 'previewHash'>> {
     const params: Record<string, string> = { domain: input.domain, json: 'yes' }
     const warnings = ['Changes affect the selected hosting account. Review the exact preview before applying.']
+    if (input.operation === 'add_redirect' || input.operation === 'delete_redirect') {
+      const current = await this.redirects.state(serverId, input.domain)
+      const before = input.operation === 'delete_redirect' ? current.rules.find(rule => rule.id === input.redirectId) : undefined
+      if (input.operation === 'delete_redirect' && !before)
+        throw new HostingError('REDIRECT_NOT_FOUND', 'Select a fresh redirectId from list_redirects on this account/domain.')
+      if (before && !projectRedirect(before).manageable)
+        throw new HostingError('UNSUPPORTED_REDIRECT', 'This redirect path or status is read-only in the current release.')
+      const after = input.operation === 'add_redirect' ? { from: input.from, to: input.to, type: input.type } : null
+      if (after) {
+        if (current.rules.some(rule => rule.from === after.from))
+          throw new HostingError('ALREADY_EXISTS', 'This source path already has a redirect. Editing requires reviewed delete then add plans; no implicit overwrite is performed.')
+        const target = new URL(after.to)
+        if ([input.domain, `www.${input.domain}`].includes(target.hostname) && target.pathname.startsWith(after.from))
+          throw new HostingError('REDIRECT_LOOP', 'This destination would redirect back into the same source path.')
+        Object.assign(params, { action: 'add', from: after.from, to: after.to, type: String(after.type) })
+      } else Object.assign(params, { action: 'delete', select0: before!.from })
+      const affectedPath = after?.from ?? before!.from
+      const overlaps = current.rules.filter(rule => rule.id !== before?.id && (rule.from.startsWith(affectedPath) || affectedPath.startsWith(rule.from))).map(rule => rule.from)
+      if (overlaps.length) warnings.push('Other source paths overlap this prefix; rule precedence and replacement order can change which redirect takes effect. Inspect list_redirects before proceeding.')
+      warnings.push('DirectAdmin manages these rules by editing .htaccess. Source paths may match a prefix and affect multiple URLs; inspect the exact path and target. Shared document roots/aliases may also be affected.')
+      warnings.push('Only provider-managed rule state is verified, not public HTTP behavior. Application, proxy, HTTPS/www and manual rewrite rules may interact. Longer redirect loops are not detected. 301 may persist in browser/search caches.')
+      warnings.push('Editing is a non-atomic delete/add workflow with separate plans and receipts. If addition fails, the old rule remains removed; report partial completion. No automatic rollback or blind retry.')
+      return { input, snapshot: current.version, path: '/CMD_API_REDIRECT', params,
+        before: before ? projectRedirect(before) : null,
+        after: after ? { from: after.from, destination: after.to, type: after.type, overlappingPaths: overlaps } : null,
+        expected: redirectVersion([...current.rules.filter(rule => rule.id !== before?.id), ...(after ? [after] : [])]), warnings }
+    }
     if (input.operation === 'set_free_certificate' || input.operation === 'set_https_redirect') {
       const state = await this.tls.state(serverId, input.domain)
       const before = state.publicState
@@ -161,6 +192,8 @@ export class HostingChanges {
     } finally { store.close() }
   }
   private async verify(serverId: string, payload: Prepared) {
+    if (payload.input.operation === 'add_redirect' || payload.input.operation === 'delete_redirect')
+      return (await this.redirects.state(serverId, payload.input.domain)).version === payload.expected
     if (payload.input.operation === 'set_free_certificate') return fingerprint((await this.tls.state(serverId, payload.input.domain)).acme) === payload.expected
     if (payload.input.operation === 'set_https_redirect') {
       const state = (await this.tls.state(serverId, payload.input.domain)).publicState

@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises'
 import { z } from 'zod'
 
 const envName = z.string().regex(/^[A-Z][A-Z0-9_]*$/)
-export const writeOperations = ['create_domain', 'create_subdomain', 'add_dns_record', 'update_dns_record', 'delete_dns_record', 'set_free_certificate', 'set_https_redirect'] as const
+export const writeOperations = ['create_domain', 'create_subdomain', 'add_dns_record', 'update_dns_record', 'delete_dns_record', 'set_free_certificate', 'set_https_redirect', 'add_redirect', 'delete_redirect'] as const
 export type WriteOperation = typeof writeOperations[number]
 export const relativeHostingPath = z.string().min(1).max(1024).refine(value =>
   value.split('/').every(part => /^[a-zA-Z0-9_.-]+$/.test(part) && part !== '.' && part !== '..'),

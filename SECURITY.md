@@ -36,3 +36,9 @@ Never use certificate-file or legacy SSL reads that return private keys. HTTPS
 enablement checks provider metadata, not live chain trust/proxy settings. Disabling
 ACME retains installed certificates/redirects; expiration remains possible. See
 [TLS contract](docs/TLS.md).
+
+Site redirect writes accept literal paths and constrained HTTP(S) domain URLs,
+never raw rewrite directives. Inventory redacts existing destination credentials,
+query and fragment; no destination HTTP request is sent. Source-prefix/shared-root
+effects need preview review. Editing is non-atomic delete/add, with no undocumented
+overwrite, blind retries or automatic rollback. See [redirect contract](docs/REDIRECTS.md).

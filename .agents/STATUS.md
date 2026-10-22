@@ -2,11 +2,17 @@
 
 Updated: 2026-10-22.
 
-- Candidate 0.7.0 adds TLS metadata and two planned parent-wide operations (19 tools):
+- Candidate 0.8.0 adds API-listed site redirect reads and planned add/delete
+  operations (20 tools). Editing is a non-atomic sequence, not assumed overwrite.
+  Local check: types/build and 74/74 tests pass. The candidate adapter's live H57
+  read found the owner's expected root 302 rule; only counts/status were printed.
+  No redirect write or deployment was performed. Production remains 0.6.0; the
+  new operation names stay disabled until explicitly configured after deployment.
+- Historical candidate 0.7.0 adds TLS metadata and two planned parent-wide operations (19 tools):
   production Let's Encrypt automation and HTTPS redirects. Creation+TLS is an
   explicitly requested sequence; daily issuance may remain pending. No child-only
   setting, immediate provisioning or background polling is implemented. See D15/TLS.md.
-- Candidate validation: `npm run check` passes (65/65 tests, types and build).
+- Historical 0.7.0 validation: `npm run check` (65/65 tests, types and build).
   H57 modern ACME/certificate metadata GETs returned HTTP 200, with only safe
   summary fields printed. TLS mutations and the full live create/issue/redirect
   sequence remain fixture-tested, not production-verified. Candidate 0.7.0 is not
@@ -69,6 +75,13 @@ Updated: 2026-10-22.
   inspection order and verification gaps; it does not represent review approval.
 
 ## Recent changes
+
+2026-10-22 — candidate 0.8.0 site redirects (D17), following local research and
+legacy API documentation: typed inventory/IDs, URL projection and two fixed planned
+operations. Reuses scope/policy/state/receipt controls; explicit non-atomic editing
+and no target requests. Nine new redirect cases pass in the 74-test check. Live
+candidate adapter read on H57 passed without installation or credential copying;
+production rules and code were not changed. English docs/map/review handoff updated.
 
 2026-10-22 — API-first workflow made explicit, with private `docs/api/` navigation
 in agent context. Recorded PHP contract gaps and a pending implementation handoff;

@@ -2,12 +2,12 @@ import type { Settings } from './config.js'
 import { HostingError } from './hosting-error.js'
 
 type ReadPath = '/CMD_API_SHOW_DOMAINS' | '/CMD_SHOW_LOG' | '/CMD_API_SUBDOMAINS'
-  | '/CMD_API_ADDITIONAL_DOMAINS' | '/CMD_API_DNS_CONTROL'
+  | '/CMD_API_REDIRECT' | '/CMD_API_ADDITIONAL_DOMAINS' | '/CMD_API_DNS_CONTROL'
   | `/api/domain-tls/${string}/acme-config` | `/api/domain-tls/${string}/certs`
   | '/api/wordpress/locations' | '/api/filemanager/list' | '/api/filemanager/download'
   | `/api/wordpress/locations/${string}/wordpress`
 export const MAX_RESPONSE_BYTES = 512 * 1024
-export type WritePath = '/CMD_API_DOMAIN' | '/CMD_API_SUBDOMAINS' | '/CMD_API_DNS_CONTROL'
+export type WritePath = '/CMD_API_REDIRECT' | '/CMD_API_DOMAIN' | '/CMD_API_SUBDOMAINS' | '/CMD_API_DNS_CONTROL'
 
 async function boundedBytes(response: Response) {
   if (Number(response.headers.get('content-length')) > MAX_RESPONSE_BYTES) {

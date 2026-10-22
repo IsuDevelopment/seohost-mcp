@@ -104,6 +104,8 @@ when per-record TTL is supported, otherwise the observed zone TTL.
 Certificate automation/HTTPS use the same planned-change contract in 0.7.0; see
 [TLS workflow](TLS.md) for parent-wide scope, asynchronous issuance and operation
 allowlists. Create operations alone still issue no certificate.
+[Site redirects](REDIRECTS.md) add two separately gated operations in 0.8.0; their
+non-atomic delete/add editing workflow is independent of DNS and HTTPS enforcement.
 
 ## State, retries and recovery
 
