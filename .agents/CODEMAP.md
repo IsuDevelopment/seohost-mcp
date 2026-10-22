@@ -7,16 +7,17 @@ module responsibilities or important flows change; keep this map short.
 | --- | --- |
 | `src/http.ts` | HTTP entry point, Host/Origin checks, health/discovery, authenticated actor/write context, per-request MCP transport and cleanup. |
 | `src/stdio.ts` | Local process entry point; stdout reserved for MCP, owner write context still subject to account operation policy. |
-| `src/server.ts` | Version, eighteen tool registrations, input schemas, MCP results/errors and safe auditing. |
+| `src/server.ts` | Version, nineteen tool registrations, input schemas, MCP results/errors and safe auditing. |
 | `src/capabilities.ts` | Shared tool/configuration-requirement catalog and honest configuration-only readiness; smoke tests verify names against the catalog. |
 | `src/config.ts` | Validates env/JSON, origins, aliases, distinct read/write tokens, account write operations and trusted NS; selects private state files and resolves explicit accounts. |
 | `src/directadmin.ts` | Domain/subdomain reads, ownership checks and bounded/redacted web-log results. |
 | `src/domain-dns.ts` | Account-owned domain settings, local DNS records/IDs/snapshots and contextual diagnostics. |
+| `src/tls.ts` | Owned parent-domain ACME/certificate metadata, safe projections, secret-preserving config snapshots and conservative all-web-host redirect readiness. |
 | `src/public-dns.ts` | Fixed-origin public recursive DNS observations, TTL cache, NS/provider hints; no lookups in log/list flows. |
 | `src/hosting-changes.ts` | Validated operation previews/apply/reconciliation, write gates, stale checks, provider verification and no blind retries. |
 | `src/change-store.ts` | Private persistent SQLite previews, actor binding, account reservations and receipts across stateless MCP requests. |
 | `src/account-log.ts` | Fixed account-root `log.txt` policy, file metadata checks and bounded/redacted reads independent of WordPress. |
-| `src/directadmin-http.ts` | Shared account-bound GET and fixed form-POST transport: credentials, fixed routes, timeout, response caps, redirect refusal and log suffix validation. |
+| `src/directadmin-http.ts` | Shared account-bound GET and fixed form-POST/ACME-PUT transport: credentials, fixed routes, timeout, response caps, redirect refusal and log suffix validation. |
 | `src/hosting-error.ts` | Shared safe provider error codes/messages; no raw upstream diagnostics. |
 | `src/wordpress.ts` | Provider-known installations, safe details, pagination, shared log inspection/read policy, metadata, bounds and redaction. |
 | `src/auth.ts` | Distinct read/write Bearer contexts; external RS256/JWKS JWT, subject and scope checks. |
@@ -34,6 +35,7 @@ module responsibilities or important flows change; keep this map short.
 | `test/server.test.ts` | HTTP auth, Host/Origin, method/body limits, real HTTP SDK and stdio. |
 | `test/directadmin.test.ts` | Account isolation, aliases, domain validation, provider failures, limits, plain/JSON/PHP WordPress credential redaction and SDK. |
 | `test/domain-dns.test.ts`, `test/hosting-changes.test.ts` | Provider projection, contextual DNS/cache/failure handling, scopes/allowlists, stale/actor/expiry checks, exact record selectors, replay/uncertainty and concurrent reservations. |
+| `test/tls.test.ts` | Parent-wide scope/write gates, config-secret preservation, certificate coverage/date checks, stale state, PUT uncertainty/reconciliation and MCP projection. |
 | `test/account-log.test.ts` | Fixed-file/account isolation, unsafe/missing/incomplete metadata, suffix bounds, redaction and real SDK reads. |
 | `test/wordpress.test.ts` | Subdomain ownership, installation projection/paging, cross-account IDs, root boundaries, file metadata, suffix ranges, output caps and custom log paths. |
 | `test/diagnostics.test.ts` | Configuration-only readiness, catalog/registration agreement, safe detail projection, ID encoding, account isolation and metadata inspection without downloads. |
@@ -65,10 +67,13 @@ module responsibilities or important flows change; keep this map short.
   no provider calls, permission checks or implied network success.
 - DNS diagnostics → fresh local ownership/zone → fixed public resolver/cache → observed NS and local/public comparison.
 - Changes → write scope + account allowlist → actor-bound preview in SQLite →
-  review → account reservation → fresh state/NS checks → one POST → provider read
+  review → account reservation → fresh state/NS checks → one fixed POST/PUT → provider read
   verification → persistent receipt. `applying`/`unknown` reserve the whole account.
   Explicit reconciliation can move `unknown` to `applied` only after observing the
   expected provider state, without another POST. Interrupted `applying` needs review.
+- Explicit creation+TLS request → separate create receipt → parent-wide ACME plan →
+  daily provider issuance / later metadata check → HTTPS plan only when ready. No
+  automatic child-to-parent consent, on-demand issuance or background polling.
 - Deploy → check → allowlisted archive → SSH → dependency compatibility → code
   backup → restart → HTTPS + optional Bearer smoke; failure after copying begins → rollback.
 

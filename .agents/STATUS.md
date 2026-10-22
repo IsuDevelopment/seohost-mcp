@@ -2,6 +2,16 @@
 
 Updated: 2026-10-22.
 
+- Candidate 0.7.0 adds TLS metadata and two planned parent-wide operations (19 tools):
+  production Let's Encrypt automation and HTTPS redirects. Creation+TLS is an
+  explicitly requested sequence; daily issuance may remain pending. No child-only
+  setting, immediate provisioning or background polling is implemented. See D15/TLS.md.
+- Candidate validation: `npm run check` passes (65/65 tests, types and build).
+  H57 modern ACME/certificate metadata GETs returned HTTP 200, with only safe
+  summary fields printed. TLS mutations and the full live create/issue/redirect
+  sequence remain fixture-tested, not production-verified. Candidate 0.7.0 is not
+  deployed; production remains 0.6.0 with its five-operation policy. Enable the two
+  new operation names privately only after deploying compatible code, with a backup.
 - Release 0.6.0 is deployed from code commit `556b134` through GitHub Actions run
   `39695303040`; Check run `39695291773` and deployment both passed.
 - Version 0.6.0 adds domain settings, local/public DNS diagnostics and scoped,
@@ -16,7 +26,7 @@ Updated: 2026-10-22.
 - Account-root `log.txt`, domain/subdomain inventory and bounded access/error
   streams remain supported. Previous H57 production SDK reads passed; WordPress
   Manager and H93 limitations are listed below.
-- Local `npm run check` passes: types, 57/57 tests and build. Automated provider
+- Historical 0.6.0 `npm run check`: types, 57/57 tests and build. Automated provider
   tests use schema fixtures and the real MCP SDK; live verification is listed below.
 - Configuration readiness uses loaded settings and never probes provider access.
   WordPress details revalidate installation ownership and return safe fields only.
@@ -43,10 +53,17 @@ Updated: 2026-10-22.
   change. Request H57 WordPress Manager enablement, then verify WordPress inventory,
   log metadata and Range behavior. H93 credentials are deferred. Full owner OAuth
   login remains a separate client check.
-- Independent review is pending. [REVIEW.md](REVIEW.md) identifies the 0.6.0 diff,
+- Independent review is pending. [REVIEW.md](REVIEW.md) identifies the domain/DNS and candidate TLS diffs,
   inspection order and verification gaps; it does not represent review approval.
 
 ## Recent changes
+
+2026-10-22 — candidate TLS workflow (D15): metadata-only inspection, secret-preserving
+ACME PUT, parent-wide scope acknowledgement and conservative certificate coverage
+before redirect enablement. Existing change-store authorization/stale/replay/unknown
+semantics are reused. Eight new TLS cases pass within the 65-test check. Updated
+English operator/agent context and review handoff. No runtime dependencies changed,
+no production certificate/redirect setting changed, no candidate deployment started.
 
 2026-10-22 — synchronized agent navigation, module/state map, architecture wording
 and D02/D14 relationship against 0.6.0; added the independent review handoff.

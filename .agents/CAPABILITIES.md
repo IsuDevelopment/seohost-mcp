@@ -2,7 +2,7 @@
 
 This describes implemented behavior, not permission to operate on an arbitrary
 account. Tool registrations and schemas in `src/server.ts` are authoritative.
-All eighteen MCP tools are available over HTTP and stdio; writes use separate authorization and per-account allowlists.
+All nineteen MCP tools are available over HTTP and stdio; writes use separate authorization and per-account allowlists.
 
 Platform scope: standard SeoHost shared hosting accounts via DirectAdmin. VPS
 compatibility is untested; panel presence does not establish endpoint/permission
@@ -19,10 +19,11 @@ equivalence. No root, VM lifecycle or operating-system administration is provide
 | `list_domains` | Reads the selected account's domains. | Required `serverId`. | Configured account username/Login Key with `CMD_API_SHOW_DOMAINS` access. |
 | `read_web_log` | Reads a bounded access/error log tail after checking domain ownership on that account. | Required `serverId`, `domain`, `logType`; optional `lines`, `contains`. | Requires both domain-list and `CMD_SHOW_LOG` access. No arbitrary files or account fallback. |
 | `get_domain_info` | Safe domain flags/IP and provider display values. | `serverId`, `domain`. | Fresh ownership; no public DNS query or filesystem paths. |
+| `get_tls_info` | Parent-wide ACME flags, safe certificate metadata/expiry, child coverage and conservative redirect readiness. | `serverId`, owned parent `domain`; optional listed `hostname`. | No keys, certificate files, DNS-provider secrets, on-demand issuance or live TLS probes. See TLS.md. |
 | `list_dns_records` | Local zone records, opaque account/domain-bound IDs and TTL. | `serverId`, `domain`. | Fresh ownership and provider DNS reads; public authority is unverified. |
 | `check_dns` | Local/public comparison, NS/provider hint and basic SPF/DMARC observations. | `serverId`, `domain`; optional `name`, `fresh`. | Fixed public recursive resolver, TTL cache capped at five minutes. Fresh bypasses only app cache; not full propagation/DNSSEC/mail audit or Cloudflare proxy/API proof. |
-| `plan_hosting_change` | Ten-minute immutable preview for five allowed operations. | `serverId`, discriminated `change`. | Write authorization and enabled account operation; no hosting mutation. DNS edits require trusted NS match. |
-| `apply_hosting_change` | One reviewed plan, fresh checks, single POST and verified provider receipt. | `serverId`, `planId`, `previewHash`. | Same actor/account, write scope and current allowlist. Stale/uncertain states fail closed. Applied replay returns receipt; no blind retry or rollback. |
+| `plan_hosting_change` | Ten-minute immutable preview for seven allowed operations. | `serverId`, discriminated `change`. | Write authorization and enabled account operation; no hosting mutation. DNS edits require trusted NS match. |
+| `apply_hosting_change` | One reviewed plan, fresh checks, single POST/PUT and verified provider receipt. | `serverId`, `planId`, `previewHash`. | Same actor/account, write scope and current allowlist. Stale/uncertain states fail closed. Applied replay returns receipt; no blind retry or rollback. |
 | `get_hosting_change` | Actor-bound status/receipt; optional read-based reconciliation of unknown results. | `serverId`, `planId`; optional `reconcile`. | Write authorization. Reconciliation may update private receipt but never resends a hosting write. Unresolved/applying outcomes need operator investigation. |
 | `read_account_log` | Reads the fixed `log.txt` in the hosting account home/root. | Required `serverId`; optional `lines`, `contains`. | Requires filemanager metadata/download access and a regular non-symlink file. No domain, caller path or WordPress Manager requirement. Bounded suffix/read output; not global OS logs or proof of the file's producer. |
 | `list_subdomains` | Reads configured subdomains as fully qualified names after domain ownership validation. | Required `serverId`, `domain`. | Needs domain-list and legacy subdomain read permissions. Not a DNS lookup. |
@@ -90,4 +91,13 @@ global machine logs, automatic debug enablement, rotated-history search, multi-u
 ACLs, refresh tokens or automatic production deployment on push.
 
 DNS/hosting changes do not register domains, edit external Cloudflare/registrar DNS,
-issue certificates, delete hosted domains/subdomains or write whole zones/NS/SOA/DS.
+trigger immediate certificate issuance, delete hosted domains/subdomains or write whole zones/NS/SOA/DS.
+
+TLS operations: `set_free_certificate` and `set_https_redirect`, with `domain`,
+`enabled` and explicit `scope=domain_and_all_subdomains`. Both require their own
+account allowlist entries. ACME enablement uses the daily provider schedule; disabling
+retains installed certs/redirects. HTTPS enablement waits for provider metadata
+coverage of all listed web/www hosts. Agents may chain separate creation/ACME/HTTPS
+plans on explicit request, disclose parent-wide effects for children, and report
+pending issuance honestly. No default automatic enablement, background polling or
+child-only toggle. Read [TLS workflow](../docs/TLS.md).

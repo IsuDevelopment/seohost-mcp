@@ -101,10 +101,14 @@ deletion, whole-zone reset and DNSSEC changes are unavailable. Explicit TTL writ
 require provider per-record TTL support. Omitted TTL retains the old record TTL for edits. New records use 3600 seconds
 when per-record TTL is supported, otherwise the observed zone TTL.
 
+Certificate automation/HTTPS use the same planned-change contract in 0.7.0; see
+[TLS workflow](TLS.md) for parent-wide scope, asynchronous issuance and operation
+allowlists. Create operations alone still issue no certificate.
+
 ## State, retries and recovery
 
 Previews expire after ten minutes and are bound to the authenticated actor and
-account. Provider state is re-read before apply. Stale state fails before a POST;
+account. Provider state is re-read before apply. Stale state fails before a write;
 prepare a new preview. This is optimistic validation, not a provider-side atomic
 compare-and-swap: an external panel user can still race the operation.
 
@@ -115,7 +119,7 @@ not NFS/multi-host storage. Up to 200 retained changes are allowed; expired read
 previews and success/failure receipts older than seven days are pruned. Unknown
 or interrupted operations are retained and continue to block that account.
 
-A transaction reserves the account before network I/O. One provider POST is sent,
+A transaction reserves the account before network I/O. One fixed provider POST/PUT is sent,
 without redirects or automatic retry. Fresh provider reads verify the expected
 result; public propagation remains unverified. Repeating an applied plan returns
 its saved receipt, without repeating the write.

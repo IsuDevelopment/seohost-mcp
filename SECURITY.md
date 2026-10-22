@@ -28,3 +28,11 @@ against external panel users. A SQLite account lock and persistent receipt preve
 blind retries after uncertain writes; there is no automatic DNS/hosting rollback.
 Keep change state private on local disk and preserve it across deployments. See
 [domain/DNS workflow](docs/DOMAIN-DNS.md) for limits and reconciliation.
+
+TLS automation/redirects require explicit parent-domain scope and exact operation
+allowlists; they also affect children/aliases. ACME configuration may hold external
+DNS credentials: preserve them in memory without persisting/exposing them in plans.
+Never use certificate-file or legacy SSL reads that return private keys. HTTPS
+enablement checks provider metadata, not live chain trust/proxy settings. Disabling
+ACME retains installed certificates/redirects; expiration remains possible. See
+[TLS contract](docs/TLS.md).

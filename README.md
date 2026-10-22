@@ -1,12 +1,12 @@
 # SeoHost MCP
 
-MCP integration with read-only defaults and reviewed domain/DNS changes for **standard SeoHost shared hosting** accounts using
+MCP integration with read-only defaults and reviewed domain/DNS/TLS changes for **standard SeoHost shared hosting** accounts using
 DirectAdmin.
 
-Version 0.6.0: a standalone TypeScript/Node.js server with HTTP and stdio transports,
+Version 0.7.0: a standalone TypeScript/Node.js server with HTTP and stdio transports,
 Bearer and built-in OAuth authentication, domain/subdomain and WordPress inventory,
 bounded reads of web-server logs, account-root `log.txt` and existing WordPress debug logs,
-plus local/public DNS diagnostics and separately authorized domain/DNS changes.
+plus local/public DNS diagnostics and separately authorized domain/DNS changes, free certificate automation and HTTPS redirects.
 
 ## Hosting scope
 
@@ -44,7 +44,7 @@ Test the running HTTP server with `npm run smoke`. Available tools:
 `get_server_info`, `list_servers`, `resolve_server`, `get_server_capabilities`,
 `list_domains`, `list_subdomains`, `list_wordpress_sites`, `get_wordpress_info`,
 `get_wordpress_log_info`, `read_account_log`, `read_web_log`, `read_wordpress_log`,
-`get_domain_info`, `list_dns_records`, `check_dns`, `plan_hosting_change`,
+`get_domain_info`, `get_tls_info`, `list_dns_records`, `check_dns`, `plan_hosting_change`,
 `apply_hosting_change` and `get_hosting_change`.
 See [logs, aliases and key setup](docs/LOGS.md),
 [WordPress inventory and logs](docs/WORDPRESS.md) and
@@ -59,7 +59,9 @@ unverified provider permissions and inspect WordPress details/log metadata safel
 
 Domain/subdomain creation and individual DNS record edits use expiring previews,
 separate write authorization and per-account operation allowlists. Existing read
-tokens remain read-only. See [domain/DNS workflow](docs/DOMAIN-DNS.md).
+tokens remain read-only. See [domain/DNS workflow](docs/DOMAIN-DNS.md) and [certificates/HTTPS](docs/TLS.md).
+Certificate automation and redirects are parent-wide, including subdomains. Agents
+can chain them after explicitly requested creation; pending issuance delays HTTPS.
 
 ## Deployment
 

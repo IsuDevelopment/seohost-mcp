@@ -3,6 +3,7 @@ import { HostingError } from './hosting-error.js'
 
 type ReadPath = '/CMD_API_SHOW_DOMAINS' | '/CMD_SHOW_LOG' | '/CMD_API_SUBDOMAINS'
   | '/CMD_API_ADDITIONAL_DOMAINS' | '/CMD_API_DNS_CONTROL'
+  | `/api/domain-tls/${string}/acme-config` | `/api/domain-tls/${string}/certs`
   | '/api/wordpress/locations' | '/api/filemanager/list' | '/api/filemanager/download'
   | `/api/wordpress/locations/${string}/wordpress`
 export const MAX_RESPONSE_BYTES = 512 * 1024
@@ -68,6 +69,23 @@ export class DirectAdminTransport {
       throw new Error('Provider did not confirm success')
     } catch {
       throw new HostingError('WRITE_OUTCOME_UNKNOWN', 'The provider did not confirm the write. Inspect current state; do not retry blindly.')
+    }
+  }
+
+  // Fixed ACME settings route only; no certificate/key files, arbitrary verbs or retries.
+  async putAcmeConfig(serverId: string, domain: string, config: unknown) {
+    const credentials = this.settings.credentials[serverId]
+    if (!credentials) throw new HostingError('CREDENTIALS_MISSING', 'Hosting credentials are missing.')
+    try {
+      const response = await this.request(new URL(`/api/domain-tls/${encodeURIComponent(domain)}/acme-config`, this.settings.accounts[serverId]!.baseUrl), {
+        method: 'PUT', redirect: 'manual', signal: AbortSignal.timeout(10_000),
+        headers: { Authorization: 'Basic ' + Buffer.from(credentials.username + ':' + credentials.loginKey).toString('base64'),
+          'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify(config),
+      })
+      await response.body?.cancel()
+      if (response.status !== 204) throw new Error('Uncertain provider result')
+    } catch {
+      throw new HostingError('WRITE_OUTCOME_UNKNOWN', 'The provider did not confirm the ACME change. Inspect current state; do not retry blindly.')
     }
   }
 

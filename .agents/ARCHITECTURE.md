@@ -74,16 +74,36 @@ preconditions trigger lookups; logs/lists do not. Cloudflare NS is a hint, not p
 of proxy state/access. Recursive resolver caches and delegation discrepancies remain
 possible; no DNSSEC validation or global propagation guarantee is provided.
 
-Writes are five fixed operations: create domain/subdomain and add/update/delete one
+D14 introduces five fixed operations: create domain/subdomain and add/update/delete one
 A/AAAA/CNAME/MX/TXT record. Exact per-account nameservers and fresh NS observations
 gate DNS writes. No registrar/Cloudflare API, deletion of hosting domains, paths,
-whole-zone/NS/SOA/DS edits, PHP-version changes or automatic certificate issuance.
+whole-zone/NS/SOA/DS edits, PHP-version changes. D15 adds separately gated parent-wide TLS settings.
 
 Plans are actor/account-bound, immutable and valid for ten minutes. Private local
 SQLite reserves the account before I/O and stores receipts across HTTP instances.
-One POST, then fresh provider verification; applied-plan replay returns its receipt.
+One fixed POST/PUT, then fresh provider verification; applied-plan replay returns its receipt.
 Unknown responses/partial results keep the account locked without retry/rollback.
 Explicit reconciliation can record the observed desired state without another POST;
 unresolved or interrupted operations require operator investigation. State checks
 are optimistic, not a provider-side CAS against external changes. Preview hashes
 ensure integrity, not evidence of human consent. Keep snapshots private and durable.
+
+## TLS automation boundary (D15)
+
+Modern domain TLS GETs project metadata only; never fetch certificate files or legacy
+SSL data containing private keys. ACME DNS-provider secrets are fetched/preserved
+only in memory at apply; snapshots hash them but saved plans contain safe projections.
+Strict ACME config parsing prevents unknown fields being silently dropped by PUT.
+
+Two exact operations toggle production Let's Encrypt automation and HTTPS redirect.
+Both require explicit `domain_and_all_subdomains` scope: no child-only setting is
+claimed. Preserve provider secrets, exclusions/key/wildcard settings, existing certs,
+HSTS and document roots. Different ACME providers block enablement rather than
+being silently replaced. A config receipt does not establish certificate issuance.
+
+Agents chain separately reviewed plans only on an explicit creation+TLS request.
+Daily provider issuance can remain pending; no background workflow or on-demand
+provisioning is installed. HTTPS enablement requires conservative provider metadata
+coverage of all listed web/www hosts, valid dates and no reported missing names.
+It is not live chain/browser trust, alias completeness or Cloudflare mode validation.
+See [TLS.md](../docs/TLS.md) for recovery, scope and verification limits.

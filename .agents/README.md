@@ -3,12 +3,12 @@
 Standalone MCP server for SeoHost/DirectAdmin accounts, TypeScript and Node.js >=22.23.2.
 The product targets standard SeoHost shared hosting. VPS compatibility is untested;
 do not infer either full support or endpoint absence from the VPS label.
-Version 0.6.0: HTTP/stdio, Bearer/OAuth, inventory, configuration/site/log diagnostics,
+Version 0.7.0: HTTP/stdio, Bearer/OAuth, inventory, configuration/site/log diagnostics,
 domain/DNS diagnostics, web-log, fixed account-root `log.txt` and explicitly enabled
 WordPress debug-log reads. One installation
-owner can read all configured accounts. Planned domain/DNS writes require separate
-authorization and per-account operation allowlists; see D14 and the
-[domain/DNS contract](../docs/DOMAIN-DNS.md).
+owner can read all configured accounts. Planned domain/DNS/TLS writes require separate
+authorization and per-account operation allowlists; see D14/D15 and the
+[domain/DNS contract](../docs/DOMAIN-DNS.md) and [TLS contract](../docs/TLS.md).
 
 Read in order:
 
@@ -27,6 +27,7 @@ Operator documentation: [README](../README.md), [logs](../docs/LOGS.md),
 [OAuth](../docs/OAUTH.md), [deployment](../docs/DEPLOYMENT.md),
 [WordPress reads](../docs/WORDPRESS.md),
 [diagnostics](../docs/DIAGNOSTICS.md), [domain/DNS workflow](../docs/DOMAIN-DNS.md),
+[certificates/HTTPS](../docs/TLS.md),
 [GitHub Actions](../docs/GITHUB-ACTIONS.md), [security](../SECURITY.md).
 
 ## Project memory

@@ -7,20 +7,24 @@ import { DomainDnsClient, fingerprint, type ZoneRecord } from './domain-dns.js'
 import { dnsName } from './public-dns.js'
 import { ChangeStore } from './change-store.js'
 import { HostingError } from './hosting-error.js'
+import { TlsClient } from './tls.js'
 import type { WritePath } from './directadmin-http.js'
 
 const dnsRecordInput = z.object({ type: z.enum(['A', 'AAAA', 'CNAME', 'MX', 'TXT']),
   name: z.string().min(1).max(254).default('@'), value: z.string().min(1).max(8192).refine(value => !/[\u0000-\u001f\u007f]/.test(value)),
   ttl: z.number().int().min(60).max(604800).optional() }).strict()
+const tlsChange = { domain: domainSchema, enabled: z.boolean(), scope: z.literal('domain_and_all_subdomains') }
 export const changeInputSchema = z.discriminatedUnion('operation', [
   z.object({ operation: z.literal('create_domain'), domain: domainSchema }).strict(),
   z.object({ operation: z.literal('create_subdomain'), domain: domainSchema, label: z.string().toLowerCase().regex(/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/) }).strict(),
+  z.object({ operation: z.literal('set_free_certificate'), ...tlsChange }).strict(),
+  z.object({ operation: z.literal('set_https_redirect'), ...tlsChange }).strict(),
   z.object({ operation: z.literal('add_dns_record'), domain: domainSchema, record: dnsRecordInput }).strict(),
   z.object({ operation: z.literal('update_dns_record'), domain: domainSchema, recordId: z.string().regex(/^[a-f0-9]{64}$/), record: dnsRecordInput }).strict(),
   z.object({ operation: z.literal('delete_dns_record'), domain: domainSchema, recordId: z.string().regex(/^[a-f0-9]{64}$/) }).strict(),
 ])
 type ChangeInput = z.infer<typeof changeInputSchema>
-type Prepared = { input: ChangeInput; snapshot: string; path: WritePath; params: Record<string, string>;
+type Prepared = { input: ChangeInput; snapshot: string; path: WritePath | null; params: Record<string, string>;
   before: unknown; after: unknown; expected: string; previewHash: string; warnings: string[] }
 const selectorPrefixes: Record<string, string> = { A: 'arecs', AAAA: 'aaaarecs', CNAME: 'cnamerecs', MX: 'mxrecs', TXT: 'txtrecs' }
 const semantic = (records: Pick<ZoneRecord, 'type' | 'name' | 'value' | 'ttl'>[]) => fingerprint(records.map(record => ({
@@ -30,7 +34,8 @@ const semantic = (records: Pick<ZoneRecord, 'type' | 'name' | 'value' | 'ttl'>[]
 
 export class HostingChanges {
   private readonly dns: DomainDnsClient
-  constructor(private readonly settings: Settings, request: typeof fetch = fetch) { this.dns = new DomainDnsClient(settings, request) }
+  private readonly tls: TlsClient
+  constructor(private readonly settings: Settings, request: typeof fetch = fetch) { this.dns = new DomainDnsClient(settings, request); this.tls = new TlsClient(settings, request) }
   private authorize(reference: string | number, access: AccessContext, operation?: ChangeInput['operation']) {
     const { serverId, account } = resolveServer(this.settings.accounts, reference)
     if (!access.canWrite) throw new HostingError('WRITE_SCOPE_REQUIRED', 'A separate mcp:write grant or write token is required; read credentials cannot create/apply previews.')
@@ -67,6 +72,31 @@ export class HostingChanges {
   private async prepare(serverId: string, input: ChangeInput): Promise<Omit<Prepared, 'previewHash'>> {
     const params: Record<string, string> = { domain: input.domain, json: 'yes' }
     const warnings = ['Changes affect the selected hosting account. Review the exact preview before applying.']
+    if (input.operation === 'set_free_certificate' || input.operation === 'set_https_redirect') {
+      const state = await this.tls.state(serverId, input.domain)
+      const before = state.publicState
+      warnings.push('Domain-wide setting: affects the parent, all current/future subdomains and provider aliases. Never infer parent-wide consent from a request for one subdomain.')
+      if (input.operation === 'set_free_certificate') {
+        if (input.enabled && !['', 'letsencrypt'].includes(state.acme.provider))
+          throw new HostingError('ACME_PROVIDER_CONFLICT', 'The domain uses another ACME provider. Review its settings in DirectAdmin before switching to production Let’s Encrypt.')
+        if (input.enabled && !before.sslEnabled)
+          throw new HostingError('TLS_DISABLED', 'Enable domain SSL support in DirectAdmin before enabling automatic certificates.')
+        warnings.push(input.enabled
+          ? 'Enables production Let’s Encrypt issuance/renewal. DirectAdmin checks automatically every 24 hours; this is not immediate issuance. Existing DNS validation/provider/wildcard/exclusion settings are preserved. DNS/CAA/challenge failures can prevent issuance. Read get_tls_info before enabling HTTPS.'
+          : 'Disables domain ACME issuance/renewal only. Installed certificates, TLS, HTTPS redirects and HSTS are retained. Certificates can expire; disable redirects separately only when explicitly requested.')
+        return { input, snapshot: state.snapshot, path: null, params: {}, before,
+          after: { scope: input.scope, acmeEnabled: input.enabled, provider: input.enabled ? 'letsencrypt' : before.acme.provider,
+            installedCertificates: 'preserved', httpsRedirect: 'unchanged', issuance: 'asynchronous_provider_schedule' },
+          expected: fingerprint({ ...state.acme, enabled: input.enabled, ...(input.enabled ? { provider: 'letsencrypt' } : {}) }), warnings }
+      }
+      if (input.enabled && !before.redirectReady)
+        throw new HostingError('CERTIFICATE_NOT_READY', 'HTTPS redirect requires enabled SSL and currently valid provider certificates covering the domain, www and all subdomain/www hosts, with no provider-reported missing names. Inspect get_tls_info; do not force HTTPS while issuance is pending.')
+      if (!input.enabled && before.hsts) warnings.push('HSTS is enabled: browsers may continue to require HTTPS after this redirect is disabled. HSTS is not changed.')
+      warnings.push('Checks provider metadata only, not the served certificate chain or Cloudflare encryption mode. Review proxy settings and aliases; do not use Flexible mode. No document roots, symlinks, certificates or HSTS are changed.')
+      Object.assign(params, { action: 'private_html', ...(input.enabled ? { force_ssl: 'yes' } : {}) })
+      return { input, snapshot: state.snapshot, path: '/CMD_API_DOMAIN', params, before,
+        after: { scope: input.scope, forceHttps: input.enabled, webHosts: before.webHosts, hsts: 'unchanged' }, expected: String(input.enabled), warnings }
+    }
     if (input.operation === 'create_domain') {
       const domains = (await this.dns.hosting.listDomains(serverId)).domains
       if (domains.includes(input.domain)) throw new HostingError('ALREADY_EXISTS', 'This domain already exists on the selected account.')
@@ -131,6 +161,11 @@ export class HostingChanges {
     } finally { store.close() }
   }
   private async verify(serverId: string, payload: Prepared) {
+    if (payload.input.operation === 'set_free_certificate') return fingerprint((await this.tls.state(serverId, payload.input.domain)).acme) === payload.expected
+    if (payload.input.operation === 'set_https_redirect') {
+      const state = (await this.tls.state(serverId, payload.input.domain)).publicState
+      return String(state.forceHttps) === payload.expected && (!payload.input.enabled || state.redirectReady)
+    }
     if (payload.input.operation === 'create_domain') return (await this.dns.hosting.listDomains(serverId)).domains.includes(payload.expected)
     if (payload.input.operation === 'create_subdomain') return (await this.dns.hosting.listSubdomains(serverId, payload.input.domain)).subdomains.includes(payload.expected)
     return semantic((await this.dns.zone(serverId, payload.input.domain)).records) === payload.expected
@@ -142,7 +177,7 @@ export class HostingChanges {
       if (reconcile && change.status === 'unknown' && await this.verify(serverId, payload)) {
         store.finish(change, 'applied', { serverId, planId: id, operation: payload.input.operation, domain: payload.input.domain,
           status: 'applied', providerStateVerified: true, originalWriteConfirmation: 'unknown',
-          verificationSource: 'observed_during_reconciliation', publicPropagation: 'unverified', appliedAt: new Date().toISOString() })
+          verificationSource: 'observed_during_reconciliation', ...(payload.input.operation === 'set_free_certificate' ? { certificateIssuance: 'not_verified_use_get_tls_info' } : {}), publicPropagation: 'unverified', appliedAt: new Date().toISOString() })
       }
       return { serverId, planId: id, operation: payload.input.operation, status: change.status,
         expiresAt: new Date(change.expires).toISOString(), code: change.code ?? null, result: change.result ?? null }
@@ -161,12 +196,22 @@ export class HostingChanges {
       const fresh = await this.prepare(serverId, payload.input)
       if (fresh.snapshot !== payload.snapshot || fingerprint(fresh.params) !== fingerprint(payload.params))
         throw new HostingError('STALE_PLAN', 'Hosting/DNS state changed after the preview. Prepare and review a new plan.')
-      sent = true
-      await this.dns.transport.postForm(serverId, payload.path, payload.params)
+      if (payload.input.operation === 'set_free_certificate') {
+        // Re-read secrets immediately before PUT; never persist them in plans/receipts.
+        const state = await this.tls.state(serverId, payload.input.domain)
+        if (state.snapshot !== payload.snapshot) throw new HostingError('STALE_PLAN', 'TLS settings changed after the preview.')
+        sent = true
+        await this.dns.transport.putAcmeConfig(serverId, payload.input.domain, { ...state.acme,
+          enabled: payload.input.enabled, ...(payload.input.enabled ? { provider: 'letsencrypt' } : {}) })
+      } else {
+        if (!payload.path) throw new HostingError('INVALID_PLAN', 'This plan has no supported provider route.')
+        sent = true
+        await this.dns.transport.postForm(serverId, payload.path, payload.params)
+      }
       const verified = await this.verify(serverId, payload)
       if (!verified) throw new HostingError('WRITE_OUTCOME_UNKNOWN', 'The write response arrived but the expected provider state could not be verified. Inspect before retrying.')
       const result = { serverId, planId: id, operation: payload.input.operation, domain: payload.input.domain,
-        status: 'applied', providerStateVerified: true, publicPropagation: 'unverified', appliedAt: new Date().toISOString() }
+        status: 'applied', providerStateVerified: true, ...(payload.input.operation === 'set_free_certificate' ? { certificateIssuance: 'not_verified_use_get_tls_info' } : {}), publicPropagation: 'unverified', appliedAt: new Date().toISOString() }
       store.finish(change, 'applied', result)
       return result
     } catch (error) {

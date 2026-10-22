@@ -11,6 +11,7 @@ export const TOOL_REQUIREMENTS = {
   read_web_log: { credentials: true, wordpressLogs: false },
   read_account_log: { credentials: true, wordpressLogs: false },
   get_domain_info: { credentials: true, wordpressLogs: false },
+  get_tls_info: { credentials: true, wordpressLogs: false },
   list_dns_records: { credentials: true, wordpressLogs: false },
   check_dns: { credentials: true, wordpressLogs: false },
   plan_hosting_change: { credentials: true, wordpressLogs: false, write: true },
