@@ -131,10 +131,14 @@ capture service. It requested `authorization_code` + `refresh_token` and an ephe
 `http://127.0.0.1:<port>/callback/<nonce>` URI. The capture intentionally rejected
 registration; no production client, access token or owner login was created. Local
 desktop/server logs independently confirmed the reported two-field rejection.
-No production `.env` or credentials were printed, and the server was not restarted
-or deployed as part of this code fix. Production needs the fixed release and native
-loopback opt-in before reconnecting; local tests do not establish a successful
-desktop connection to production.
+No production `.env` or credentials were printed during that investigation.
+The subsequently authorized 0.10.0 deployment on 2026-10-23 passed workflow checks
+and independent HTTPS verification: native DCR with both grants, login/consent form,
+strict bad-metadata rejection, denial callback issuer/state and invalid refresh
+rejection. The owner's application-level loopback setting is effective. The probe
+created one verification client and issued no access/refresh token. Full desktop
+owner login and actual refresh remain client checks; see project status for the
+release commit/run. Existing private OAuth state and configuration were preserved.
 
 Against an explicitly configured deployment, run:
 
@@ -153,7 +157,6 @@ deployment notes private and excluded from Git.
 
 - https://modelcontextprotocol.io/specification/2025-11-25/basic/authorization
 - https://developers.openai.com/plugins/build/auth
-
 - https://www.rfc-editor.org/rfc/rfc7591.html
 - https://www.rfc-editor.org/rfc/rfc8252.html
 - https://www.rfc-editor.org/rfc/rfc9700.html#section-4.14

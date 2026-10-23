@@ -2,29 +2,33 @@
 
 Updated: 2026-10-23.
 
-- Release 0.10.0 production deployment is authorized and being prepared. The owner
-  reports `MCP_OAUTH_CODEX_LOOPBACK` added in the application environment and an
-  application restart. Verify the active policy through DCR after deployment,
-  without reading private environment contents. Local check: 100/100 tests,
-  types and build pass; production still requires workflow and HTTPS verification.
-- Local desktop OAuth fix (D21): reproduced the native Codex registration against
-  a disposable local capture service and confirmed both rejected metadata fields.
-  Added an explicit Codex loopback enrollment switch and implemented refresh grant
-  rotation/replay/family revocation with exact callback binding and legacy-state
-  compatibility. Production logs confirmed the fixed rejection reasons; no secrets
-  were printed and no production code/config/restart/deployment was changed.
-  `npm run check` passes: types, 100/100 tests and build. Changed Markdown links,
-  setup helper syntax and diff whitespace pass. Actual desktop reconnect remains
-  a post-deployment/configuration check.
-- Candidate 0.10.0 adds opted-in whole-database gzip exports (27 tools), private
-  actor-authenticated HTTP downloads, stdio paths and a local checksum-verifying
-  download helper. Public H57 Swagger export/config contracts were re-read with
-  verified TLS on 2026-10-23. No live config/SQL was read; actual export availability
-  and MIME behavior remain unverified. Native WordPress mapping remains
-  subject to the existing H57 feature denial; explicit database selection avoids
-  it. `npm run check` passes: types, 100/100 tests and build (including OAuth fix). Changed Markdown links,
-  helper syntax and `git diff --check` pass. No deployment or private configuration
-  change. See DATABASE-EXPORTS.md/D19.
+- Production 0.10.0 is deployed from `78b62b2` through successful Deploy MCP run
+  `39958497210`; Check run `39958419598` passed. Workflow tests (100/100), dependency
+  guard, private code backup, single-app restart, HTTPS/authentication verification
+  and authenticated SDK smoke passed. Configuration, private OAuth/change state
+  and hosting-managed dependencies were preserved. The owner configured native
+  loopback in the app environment; no agent-side private configuration edits.
+- Independent HTTPS verification confirmed 0.10.0, unauthenticated MCP rejection,
+  refresh discovery and successful native Codex DCR with both grants. It reached
+  the login/consent form and returned the expected denial callback with `iss` and
+  state. Unsafe callbacks/unsupported grants were rejected; the refresh endpoint
+  rejected a dummy token as `invalid_grant`. One verification client was created;
+  no owner password or real access/refresh token was used/issued. This proves the
+  reported pre-login registration failure is resolved, not a full owner login or
+  real production refresh. The owner should reconnect the desktop client.
+- Desktop OAuth (D21) was developed from an actual native binary DCR capture and
+  independently confirmed fixed rejection labels in desktop/server logs. Refresh
+  rotation, persistence, scope/resource/client isolation, expiry, concurrent replay
+  and family revocation pass local tests. Exact registered callbacks and PKCE stay
+  enforced. Local types, 100/100 tests, build, Markdown links, helper syntax and
+  diff whitespace passed; no production `.env` or credentials were printed.
+- Version 0.10.0 includes opted-in whole-database gzip exports (27 tools), private
+  actor-authenticated downloads, stdio paths and a checksum-verifying local helper.
+  Public H57 Swagger export/config contracts were re-read with TLS verification.
+  Actual provider export/MIME behavior remains unverified; no live SQL/config was
+  fetched. Native WordPress mapping remains subject to the historical H57 feature
+  denial; explicit database selection avoids it. Export opt-ins/storage were not
+  configured by this deployment. See DATABASE-EXPORTS.md/D19.
 - Owner migration requirements (D20) are recorded in WORDPRESS-MIGRATIONS.md and
   tasks/wordpress-migrations.md: exact owner-supplied fresh stage hostname + WP/new
   DB, full live-to-stage clone and full stage-to-live promotion. Every operation
@@ -38,7 +42,7 @@ Updated: 2026-10-23.
   verify execute/SSH/WP-CLI targeting; use fixed typed operations, bounded responses
   and deliberate user-data projection. Migration writes need backup, serialized-data
   dry-run, explicit table/site/network scope and separately reviewed write plans.
-- Production 0.9.0 is deployed from `cccf886` through successful Deploy MCP run
+- Historical production 0.9.0 was deployed from `cccf886` through successful Deploy MCP run
   `39760091947`; Check run `39754158408` also passed. Independent HTTPS health
   and authenticated SDK checks confirm version 0.9.0 and 26 tools. H57 usage,
   database inventory/details and one-fetch error summary passed. Metrics denial,
@@ -130,6 +134,11 @@ Updated: 2026-10-23.
   inspection order and verification gaps; it does not represent review approval.
 
 ## Recent changes
+
+2026-10-23 — owner-authorized 0.10.0 deployment from `78b62b2` via run `39958497210`.
+Workflow and independent native DCR/form/denial verification passed. Owner-managed
+loopback flag is effective. No site migration, database export/import or backup
+removal was performed. Full desktop owner login/real refresh remains a client check.
 
 2026-10-22 — owner-authorized 0.9.0 production deployment through run `39760091947`
 from `cccf886`. Workflow check/package/dependency compatibility/backup/restart/HTTPS/

@@ -24,7 +24,8 @@ storage, actor-authenticated downloads and local checksum-verifying download hel
 Local verification: `npm run check` passes (93/93 tests, types/build); changed
 Markdown links and diff whitespace pass. These one-hour artifacts are not retained
 migration backups. No CLI/migration apply
-tools exist, and no live migration or deployment was performed.
+tools exist. Version 0.10.0 was deployed on 2026-10-23 (see STATUS); no live
+migration, database export/import or backup deletion was performed.
 
 ## Remaining work / next step
 
