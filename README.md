@@ -3,9 +3,9 @@
 MCP integration with read-only defaults and reviewed domain/DNS/TLS changes for **standard SeoHost shared hosting** accounts using
 DirectAdmin.
 
-Version 0.9.0: a standalone TypeScript/Node.js server with HTTP and stdio transports,
+Version 0.10.0: a standalone TypeScript/Node.js server with HTTP and stdio transports,
 Bearer and built-in OAuth authentication, domain/subdomain and WordPress inventory,
-account/database/backup metadata diagnostics, single-read log summaries,
+account/database/backup metadata diagnostics, opt-in private database exports, single-read log summaries,
 bounded reads of web-server logs, account-root `log.txt` and existing WordPress debug logs,
 plus local/public DNS diagnostics and separately authorized domain/DNS changes, free certificate automation, HTTPS enforcement and site redirect rules.
 
@@ -62,6 +62,14 @@ unverified provider permissions and inspect WordPress details/log metadata safel
 read-only troubleshooting tools; CPU/RAM metrics and Softaculous access remain
 provider-dependent. Backup file metadata needs private roots and does not prove
 backup integrity.
+
+[Database exports](docs/DATABASE-EXPORTS.md) save an entire owned database as a
+private gzip file, with actor-authenticated one-hour downloads and a local download
+helper. Enable per account and configure private storage outside web roots. No SQL
+is returned in chat; native WordPress mapping is optional and provider-dependent.
+[Staging/promotion requirements](docs/WORDPRESS-MIGRATIONS.md) record the next
+workflow: fresh confirmation per operation and retained DB/files backups before
+overwrite. Full migrations and WP-CLI operations are not implemented yet.
 
 Domain/subdomain creation and individual DNS record edits use expiring previews,
 separate write authorization and per-account operation allowlists. Existing read

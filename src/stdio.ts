@@ -1,8 +1,12 @@
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { loadSettings } from './config.js'
 import { createMcpServer } from './server.js'
+import { DatabaseExports } from './database-exports.js'
 try {
-  const server = createMcpServer(await loadSettings(process.env, false), fetch, { actor: 'stdio-owner', canWrite: true })
+  const settings = await loadSettings(process.env, false)
+  const stopCleanup = new DatabaseExports(settings).startCleanup()
+  const server = createMcpServer(settings, fetch, { actor: 'stdio-owner', canWrite: true })
+  server.server.onclose = stopCleanup
   await server.connect(new StdioServerTransport())
 } catch {
   console.error('MCP startup failed; check configuration and config file')

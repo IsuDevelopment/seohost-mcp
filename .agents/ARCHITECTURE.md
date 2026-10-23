@@ -41,8 +41,10 @@ and MCP server lets hosting tests run without real accounts.
 - Audit events exclude log contents and secrets. Do not disable TLS, auth or
   Host/Origin checks to work around a configuration problem.
 - OAuth/change SQLite state and env files are private, persistent and separate from releases.
-- WordPress inventory projects safe fields only; never read config/options/SSO
-  endpoints or execute WP-CLI/PHP through MCP. Never enable debugging as part of a read.
+- WordPress inventory projects safe fields only; never expose config/options/SSO
+  or execute WP-CLI/PHP through MCP. D19 permits internal config reads solely for
+  opted-in export mapping, immediately projecting the local database name and
+  discarding credentials. Never enable debugging as part of a read.
 - Configuration diagnostics inspect loaded settings only, not provider authorization.
   A shared tool-requirement catalog is checked against registrations and smoke tests.
   WordPress details require fresh inventory ownership and safe single-segment IDs.
@@ -141,3 +143,51 @@ and regular non-symlink archive candidates. No caller path, recursion, download 
 restore; metadata does not establish integrity or a successful backup. Keep the
 Softaculous/Backuply contract separate: visible plugins and HTTP 200 non-JSON do not
 establish working authenticated inventory. See HOSTING-DIAGNOSTICS.md.
+
+## Private database exports (D19)
+
+An account-specific `databaseExports` flag and an absolute owner-only local storage
+directory gate a separate export tool. It reads hosting data under existing owner
+read authorization and creates a local artifact, so annotations are non-read-only
+but no provider write scope is granted. Existing diagnostics remain metadata-only.
+Fresh native installation/config mapping is optional, loopback-host-only and
+secret-free; always verify fresh owned database inventory/details before exporting.
+Export scope is all database tables, including other installations/multisite sites.
+
+Use one fixed GET with gzip, no redirects/retries, streaming compressed byte/time
+bounds and bounded CRC/trailer decompression validation before publishing. Keep
+SQL out of results/logs and files outside all web roots. Same authenticated actor,
+current account opt-in and one-hour expiry gate `/exports/{id}`; URL possession
+alone grants nothing. Stdio additionally exposes an owner-local path. HTTP/stdio
+entrypoints perform local startup/minute cleanup, never provider polling.
+
+Owner-only canonical files and single-process directory locks bound ten artifacts
+at 100 MiB each; expanded data is capped at 1 GiB. This trusts the operator and
+same-UID filesystem, not hostile tenant isolation. No multiple workers/shared
+filesystem, snapshot/restorability guarantee, imports, CLI or remote DB mapping.
+See [database exports](../docs/DATABASE-EXPORTS.md) for download and retention rules.
+
+## WordPress migration requirements (D20, not implemented)
+
+The accepted [migration contract](../docs/WORDPRESS-MIGRATIONS.md) requires owner
+hostnames, explicit confirmation for every fresh/clone/promotion workflow, exact
+existing-target overwrite review and verified retained source/old-target DB/files
+backup sets before writes. Backup deletion is separately approved; temporary D19
+exports must never substitute for retained migration backups. Require durable owner
+approval receipts and checkpointed multi-account plans before exposing apply.
+This is a future boundary, not authorization for an actual site operation.
+
+## Native desktop OAuth (D21)
+
+Exact configured HTTPS callbacks remain separate from an explicit native Codex
+loopback enrollment opt-in. Only canonical literal IPv4/IPv6 loopback ports and
+`/callback/<bounded nonce>` are accepted by that policy; every enrolled URI is
+then bound exactly to the client/code. The policy does not authenticate the client.
+Owner consent/PKCE/scopes and current callback policy gate issuance.
+
+DCR grant metadata advertises only implemented code/refresh grants. Local OAuth
+persists only hashes, atomically rotates refresh tokens in existing SQLite and
+retains used hashes for family-wide replay invalidation. Refresh cannot widen
+consented scope or change resource/client and has a fixed seven-day expiry. Family
+revocation includes associated access tokens. Old state/code-only clients remain
+valid without automatic refresh enrollment. See [OAuth](../docs/OAUTH.md).

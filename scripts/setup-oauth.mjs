@@ -21,13 +21,16 @@ try {
   if (!/^[a-zA-Z0-9_.@-]{1,100}$/.test(username))
     throw new Error("Invalid username");
   const redirects = (
-    await rl.question("Exact HTTPS OAuth callback URI(s), comma-separated: ")
+    await rl.question("Exact HTTPS OAuth callback URI(s), comma-separated (may be empty for native-only): ")
   )
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
+  const nativeAnswer = (await rl.question("Allow native Codex loopback callbacks? (y/N): ")).trim().toLowerCase();
+  if (!['', 'y', 'yes', 'n', 'no'].includes(nativeAnswer)) throw new Error('Expected yes or no');
+  const allowCodexLoopback = ['y', 'yes'].includes(nativeAnswer);
   if (
-    !redirects.length ||
+    (!redirects.length && !allowCodexLoopback) ||
     redirects.some((value) => {
       const u = new URL(value);
       return (
@@ -62,6 +65,7 @@ try {
     MCP_OWNER_USERNAME: username,
     MCP_OWNER_PASSWORD_HASH: hash,
     MCP_OAUTH_REDIRECT_URIS: redirects.join(","),
+    MCP_OAUTH_CODEX_LOOPBACK: String(allowCodexLoopback),
     MCP_OAUTH_STATE_FILE: "data/oauth.sqlite",
   };
   const replaced = new Set([

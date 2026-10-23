@@ -8,6 +8,7 @@ type ReadPath = '/CMD_API_SHOW_USER_USAGE' | '/CMD_API_SHOW_USER_CONFIG' | '/api
   | `/api/domain-tls/${string}/acme-config` | `/api/domain-tls/${string}/certs`
   | '/api/wordpress/locations' | '/api/filemanager/list' | '/api/filemanager/download'
   | `/api/wordpress/locations/${string}/wordpress`
+  | `/api/wordpress/locations/${string}/config`
 export const MAX_RESPONSE_BYTES = 512 * 1024
 export type WritePath = '/CMD_API_REDIRECT' | '/CMD_API_DOMAIN' | '/CMD_API_SUBDOMAINS' | '/CMD_API_DNS_CONTROL'
 
@@ -52,6 +53,49 @@ export class DirectAdminTransport {
 
   async wordpressInfo(serverId: string, siteId: string) {
     return this.getText(serverId, `/api/wordpress/locations/${encodeURIComponent(siteId)}/wordpress`, {})
+  }
+
+  async wordpressDatabaseName(serverId: string, siteId: string) {
+    // The provider includes credentials. Project immediately; never log or persist raw config.
+    const raw = await this.getText(serverId, `/api/wordpress/locations/${encodeURIComponent(siteId)}/config`, {})
+    try {
+      const config = JSON.parse(raw)
+      if (typeof config.dbName === 'string' && typeof config.dbHost === 'string') {
+        if (!['localhost', '127.0.0.1', '::1', '[::1]', 'localhost:3306', '127.0.0.1:3306', '[::1]:3306'].includes(config.dbHost))
+          throw new HostingError('DATABASE_HOST_UNVERIFIED', 'This installation uses an unverified database host. Automatic mapping to a local account database is refused.')
+        return config.dbName as string
+      }
+    } catch (error) { if (error instanceof HostingError) throw error }
+    throw new HostingError('INVALID_RESPONSE', 'Invalid WordPress database configuration.')
+  }
+
+  async databaseExport(serverId: string, database: string) {
+    const credentials = this.settings.credentials[serverId]
+    if (!credentials) throw new HostingError('CREDENTIALS_MISSING', 'Hosting credentials are missing.')
+    try {
+      const url = new URL(`/api/db-manage/databases/${encodeURIComponent(database)}/export`, this.settings.accounts[serverId]!.baseUrl)
+      url.searchParams.set('gzip', 'true')
+      const response = await this.request(url, {
+        method: 'GET', redirect: 'manual', signal: AbortSignal.timeout(120_000),
+        headers: { Authorization: 'Basic ' + Buffer.from(credentials.username + ':' + credentials.loginKey).toString('base64'),
+          Accept: 'application/x-gzip, application/gzip', 'Accept-Encoding': 'identity' },
+      })
+      if (response.status !== 200) {
+        await response.body?.cancel()
+        throw new HostingError([401, 403].includes(response.status) ? 'ACCESS_DENIED' : 'EXPORT_FAILED',
+          'DirectAdmin did not authorize or complete the database export. No redirects or retries were followed.')
+      }
+      const type = response.headers.get('content-type')?.split(';')[0]?.trim().toLowerCase()
+      if (!['application/x-gzip', 'application/gzip', 'application/octet-stream'].includes(type ?? '')
+        || !['identity', null].includes(response.headers.get('content-encoding'))) {
+        await response.body?.cancel()
+        throw new HostingError('INVALID_RESPONSE', 'Expected a gzip database export, not an error page or JSON response.')
+      }
+      return response
+    } catch (error) {
+      if (error instanceof HostingError) throw error
+      throw new HostingError('EXPORT_FAILED', 'Could not obtain the database export within the timeout.')
+    }
   }
 
   // Internal only: callers enforce write authorization, allowlists and stored plans.
@@ -111,7 +155,7 @@ export class DirectAdminTransport {
       })
       if (!response.ok) {
         await response.body?.cancel()
-        if ([401, 403].includes(response.status)) throw new HostingError('ACCESS_DENIED', 'DirectAdmin rejected this Login Key or its command permissions.')
+        if ([401, 403].includes(response.status)) throw new HostingError('ACCESS_DENIED', 'DirectAdmin denied this operation. Check provider feature availability and effective account access; this status alone does not identify a missing key permission.')
         if (response.status === 404) throw new HostingError('NOT_FOUND', 'The requested hosting resource is not available.')
         throw new HostingError('UPSTREAM_HTTP_ERROR', `DirectAdmin returned HTTP ${response.status}. No redirects or retries were followed.`)
       }

@@ -118,3 +118,14 @@ permissions and HTTP Range support require separate verification per installatio
 References: [DirectAdmin legacy API](https://docs.directadmin.com/developer/api/legacy-api.html),
 [API access](https://docs.directadmin.com/developer/api/),
 [WordPress debugging](https://developer.wordpress.org/advanced-administration/debug/debug-wordpress/).
+
+## Optional database exports
+
+The existing inventory/log readers still never fetch config. The separately opted-in
+`export_database` tool can resolve a selected native installation to an owned local
+database using an internal config read that discards credentials. It exports the
+**entire database**, including shared and multisite tables, as a private gzip file.
+Native inventory denial is not bypassed: choose an explicit owned database instead.
+See [database exports](DATABASE-EXPORTS.md) for opt-ins, bounds and authenticated
+downloads. WP-CLI, user/plugin/multisite inventories and search-replace remain a
+requested follow-up, not implemented operations.

@@ -5,14 +5,18 @@ import { createAuthenticator, type AccessContext } from './auth.js'
 import { loadSettings, type Settings } from './config.js'
 import { createMcpServer, VERSION } from './server.js'
 import { pathToFileURL } from 'node:url'
+import { pipeline } from 'node:stream/promises'
+import { DatabaseExports } from './database-exports.js'
 
 function json(response: ServerResponse, status: number, body: unknown) {
   response.writeHead(status, { 'Content-Type': 'application/json' })
   response.end(JSON.stringify(body))
 }
 
-export function createHttpServer(settings: Settings) {
+export function createHttpServer(settings: Settings, providerRequest: typeof fetch = fetch) {
   const authenticate = createAuthenticator(settings)
+  const exports = new DatabaseExports(settings, providerRequest)
+  const stopExportCleanup = exports.startCleanup()
   const localOAuth = settings.localOAuth ? createLocalOAuth(settings.localOAuth, settings.publicUrl) : undefined
   const httpServer = createServer(async (request, response) => {
     response.setHeader('Cache-Control', 'no-store')
@@ -42,7 +46,8 @@ export function createHttpServer(settings: Settings) {
       if (!settings.oauth && !localOAuth) return json(response, 503, { error: 'OAuth not configured' })
       return json(response, 200, { resource: settings.publicUrl.href, authorization_servers: [settings.oauth?.issuer || settings.publicUrl.origin], scopes_supported: ['mcp:read', ...(Object.values(settings.accounts).some(account => account.writeOperations?.length) ? ['mcp:write'] : [])], bearer_methods_supported: ['header'] })
     }
-    if (path !== '/mcp') return json(response, 404, { error: 'Not found' })
+    const exportId = path?.match(/^\/exports\/([a-f0-9]{48})$/)?.[1]
+    if (path !== '/mcp' && !exportId) return json(response, 404, { error: 'Not found' })
     let authorized: AccessContext | undefined
     try {
       authorized = await authenticate(request) || localOAuth?.authorize(request.headers.authorization?.match(/^Bearer ([^\s]+)$/i)?.[1] || '')
@@ -55,11 +60,26 @@ export function createHttpServer(settings: Settings) {
         : 'Bearer realm="seohost-mcp"')
       return json(response, 401, { error: 'Unauthorized' })
     }
+    if (exportId) {
+      if (request.method !== 'GET') {
+        response.setHeader('Allow', 'GET'); return json(response, 405, { error: 'Method not allowed' })
+      }
+      try {
+        const artifact = await exports.download(exportId, authorized)
+        response.writeHead(200, { 'Content-Type': 'application/gzip', 'Content-Length': artifact.sizeBytes,
+          'Content-Disposition': `attachment; filename="${artifact.filename}"`, 'Referrer-Policy': 'no-referrer' })
+        try { await pipeline(artifact.file.createReadStream(), response) } finally { await artifact.file.close() }
+      } catch {
+        if (!response.headersSent) json(response, 404, { error: 'Export unavailable' })
+        else response.destroy()
+      }
+      return
+    }
     if (request.method !== 'POST') {
       response.setHeader('Allow', 'POST')
       return json(response, 405, { jsonrpc: '2.0', error: { code: -32000, message: 'Stateless endpoint supports POST only' }, id: null })
     }
-    const server = createMcpServer(settings, fetch, authorized)
+    const server = createMcpServer(settings, providerRequest, authorized)
     const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true, maxRequestBodySize: 131072 })
     // SDK handleRequest may finish before the response body is flushed.
     response.once('close', () => { void server.close().catch(() => console.error('MCP cleanup failed')) })
@@ -73,7 +93,7 @@ export function createHttpServer(settings: Settings) {
       await server.close()
     }
   })
-  httpServer.once('close', () => localOAuth?.close())
+  httpServer.once('close', () => { stopExportCleanup(); localOAuth?.close() })
   return httpServer
 }
 

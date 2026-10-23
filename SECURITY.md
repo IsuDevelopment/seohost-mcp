@@ -50,3 +50,22 @@ does not download or restore archives. Log summaries inspect the bounded redacte
 tail once, count lines rather than incidents and retain rare critical examples.
 Neither heuristic classification nor file presence proves security or restorability.
 See [diagnostic contracts](docs/HOSTING-DIAGNOSTICS.md).
+
+Database exports require per-account opt-in and a dedicated canonical owner-only
+local directory outside every web root. They contain sensitive SQL even though
+MCP returns metadata only. WordPress selection may internally read provider config;
+only a loopback database name survives, never config credentials. Fresh account DB
+ownership gates export. Download URLs require the same authenticated actor and
+expire after one hour; disabling account exports revokes access. Compressed and
+decompressed bounds, private file modes, fixed routes, no redirects, ten-artifact
+quota and local cleanup limit exposure. Single-process locks and owner-controlled
+filesystem are required; no hostile same-UID isolation or multi-worker quota claim.
+Operator-managed local copies have independent retention. See
+[database exports](docs/DATABASE-EXPORTS.md).
+
+Native desktop OAuth redirects require an explicit loopback enrollment opt-in;
+registered callbacks are subsequently matched exactly. Loopback shape is not client
+identity. Refresh tokens are hash-only, client/resource/scope-bound, atomically
+rotated and replay-detecting; reuse or explicit family revocation invalidates
+associated access tokens. Existing read grants cannot gain write scope via refresh.
+See [OAuth](docs/OAUTH.md) for bounds and configuration.

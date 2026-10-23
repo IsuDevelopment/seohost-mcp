@@ -19,7 +19,8 @@ const escape = (s: string) =>
         c
       ]!,
   );
-type Client = { redirect_uris: string[]; client_name: string };
+type Client = { redirect_uris: string[]; client_name: string; grant_types?: string[] };
+type RefreshGrant = { client: string; scope: string; resource: string; redirect: string; family: string; expires: number; used: boolean };
 type Grant = {
   scope?: string;
   client: string;
@@ -31,7 +32,8 @@ type Grant = {
 type State = {
   clients: Record<string, Client>;
   codes: Record<string, Grant>;
-  tokens: Record<string, { expires: number; client: string; scope?: string }>;
+  tokens: Record<string, { expires: number; client: string; scope?: string; family?: string }>;
+  refreshTokens?: Record<string, RefreshGrant>;
 };
 export interface LocalOAuthConfig {
   allowWrites?: boolean;
@@ -39,6 +41,13 @@ export interface LocalOAuthConfig {
   passwordHash: string;
   username: string;
   redirects: string[];
+  allowCodexLoopback?: boolean;
+}
+// Codex's native client selects an ephemeral port and random callback path.
+// Explicit opt-in; only literal loopback IPs and the captured native callback shape.
+export function isCodexLoopbackRedirect(value: string) {
+  const match = value.match(/^http:\/\/(127\.0\.0\.1|\[::1\]):([1-9][0-9]{0,4})\/callback\/[A-Za-z0-9_-]{12,128}$/);
+  return Boolean(match && match[0] === value && Number(match[2]) <= 65535);
 }
 export function createLocalOAuth(config: LocalOAuthConfig, resource: URL) {
   mkdirSync(dirname(config.file), { recursive: true, mode: 0o700 });
@@ -87,6 +96,8 @@ export function createLocalOAuth(config: LocalOAuthConfig, resource: URL) {
       if (value.expires < now) delete state.codes[key];
     for (const [key, value] of Object.entries(state.tokens))
       if (value.expires < now) delete state.tokens[key];
+    for (const [key, value] of Object.entries(state.refreshTokens ?? {}))
+      if (value.expires <= now) delete state.refreshTokens![key];
   };
   const send = (res: ServerResponse, code: number, data: unknown) => {
     res.writeHead(code, { "Content-Type": "application/json" });
@@ -101,6 +112,12 @@ export function createLocalOAuth(config: LocalOAuthConfig, resource: URL) {
     return data;
   }
   const issuer = resource.origin;
+  const redirectAllowed = (value: unknown): value is string => typeof value === 'string'
+    && (config.redirects.includes(value) || Boolean(config.allowCodexLoopback && isCodexLoopbackRedirect(value)));
+  const revokeFamily = (family: string) => {
+    for (const [key, token] of Object.entries(state.tokens)) if (token.family === family) delete state.tokens[key];
+    for (const [key, token] of Object.entries(state.refreshTokens ?? {})) if (token.family === family) delete state.refreshTokens![key];
+  };
   const validScope = (scope: string) => {
     const parts = scope.split(/\s+/);
     return parts.includes('mcp:read') && parts.every(value => value === 'mcp:read' || (config.allowWrites && value === 'mcp:write'));
@@ -161,7 +178,7 @@ export function createLocalOAuth(config: LocalOAuthConfig, resource: URL) {
             revocation_endpoint: issuer + "/oauth/revoke",
             authorization_response_iss_parameter_supported: true,
             response_types_supported: ["code"],
-            grant_types_supported: ["authorization_code"],
+            grant_types_supported: ["authorization_code", "refresh_token"],
             token_endpoint_auth_methods_supported: ["none"],
             code_challenge_methods_supported: ["S256"],
             scopes_supported: ["mcp:read", ...(config.allowWrites ? ["mcp:write"] : [])],
@@ -179,12 +196,14 @@ export function createLocalOAuth(config: LocalOAuthConfig, resource: URL) {
           }
           if (!Array.isArray(input.redirect_uris) || !input.redirect_uris.length || input.redirect_uris.length > 5)
             invalid.push("redirect_uris_shape");
-          else if (input.redirect_uris.some((v: unknown) => typeof v !== "string" || !config.redirects.includes(v)))
+          else if (input.redirect_uris.some((v: unknown) => !redirectAllowed(v)))
             invalid.push("redirect_uri_not_allowed");
-          if (input.token_endpoint_auth_method && input.token_endpoint_auth_method !== "none") invalid.push("token_endpoint_auth_method");
-          if (input.grant_types && JSON.stringify(input.grant_types) !== '["authorization_code"]') invalid.push("grant_types");
-          if (input.response_types && JSON.stringify(input.response_types) !== '["code"]') invalid.push("response_types");
-          if (input.scope && (typeof input.scope !== 'string' || !validScope(input.scope))) invalid.push("scope");
+          if (input.token_endpoint_auth_method !== undefined && input.token_endpoint_auth_method !== "none") invalid.push("token_endpoint_auth_method");
+          const grants = input.grant_types === undefined ? ['authorization_code'] : input.grant_types;
+          if (!Array.isArray(grants) || !grants.includes('authorization_code') || grants.length > 2
+            || new Set(grants).size !== grants.length || grants.some((v: unknown) => v !== 'authorization_code' && v !== 'refresh_token')) invalid.push("grant_types");
+          if (input.response_types !== undefined && JSON.stringify(input.response_types) !== '["code"]') invalid.push("response_types");
+          if (input.scope !== undefined && (typeof input.scope !== 'string' || !validScope(input.scope))) invalid.push("scope");
           if (invalid.length) {
             console.error("OAuth registration rejected: " + invalid.join(","));
             send(res, 400, { error: "invalid_client_metadata", error_description: "Rejected fields: " + invalid.join(", ") });
@@ -197,6 +216,7 @@ export function createLocalOAuth(config: LocalOAuthConfig, resource: URL) {
           const id = random(),
             client = {
               redirect_uris: input.redirect_uris,
+              grant_types: ['authorization_code', ...(grants.includes('refresh_token') ? ['refresh_token'] : [])],
               client_name: String(input.client_name || "MCP client").slice(
                 0,
                 100,
@@ -208,7 +228,6 @@ export function createLocalOAuth(config: LocalOAuthConfig, resource: URL) {
             client_id: id,
             ...client,
             token_endpoint_auth_method: "none",
-            grant_types: ["authorization_code"],
             response_types: ["code"],
           });
           return true;
@@ -223,6 +242,7 @@ export function createLocalOAuth(config: LocalOAuthConfig, resource: URL) {
               Object.hasOwn(state.clients, client) &&
               state.clients[client]?.redirect_uris.includes(redirect)
             ) ||
+            !redirectAllowed(redirect) ||
             q.get("response_type") !== "code" ||
             q.get("code_challenge_method") !== "S256" ||
             !/^[A-Za-z0-9_-]{43}$/.test(challenge) ||
@@ -324,8 +344,42 @@ export function createLocalOAuth(config: LocalOAuthConfig, resource: URL) {
           return true;
         }
         if (path === "/oauth/token" && req.method === "POST") {
-          const q = new URLSearchParams(raw),
-            key = hash(q.get("code") || ""),
+          const q = new URLSearchParams(raw);
+          if (['grant_type', 'client_id', 'resource', 'scope', 'refresh_token', 'code', 'redirect_uri', 'code_verifier'].some(key => q.getAll(key).length > 1)) {
+            send(res, 400, { error: 'invalid_request' }); return true;
+          }
+          save();
+          if (q.get('grant_type') === 'refresh_token') {
+            const key = hash(q.get('refresh_token') || ''), grant = state.refreshTokens?.[key];
+            if (!grant || grant.expires <= Date.now() || q.get('client_id') !== grant.client
+              || !state.clients[grant.client]?.grant_types?.includes('refresh_token')
+              || grant.resource !== resource.href || (q.has('resource') && q.get('resource') !== grant.resource)
+              || !redirectAllowed(grant.redirect)) {
+              send(res, 400, { error: 'invalid_grant' }); return true;
+            }
+            // Keep consumed hashes until family expiry to detect replay, across restarts.
+            if (grant.used) {
+              revokeFamily(grant.family); send(res, 400, { error: 'invalid_grant' }); return true;
+            }
+            const scope = q.has('scope') ? q.get('scope')! : grant.scope.split(/\s+/).filter(s => s !== 'mcp:write' || config.allowWrites).join(' ');
+            if (!validScope(scope) || scope.split(/\s+/).some(s => !grant.scope.split(/\s+/).includes(s))) {
+              send(res, 400, { error: 'invalid_scope' }); return true;
+            }
+            if (Object.keys(state.refreshTokens!).length >= 10000
+              || Object.values(state.refreshTokens!).filter(token => token.family === grant.family).length >= 256) {
+              revokeFamily(grant.family); send(res, 400, { error: 'invalid_grant' }); return true;
+            }
+            const refresh = random(), token = random();
+            grant.used = true;
+            state.refreshTokens![hash(refresh)] = { ...grant, scope, used: false };
+            state.tokens[hash(token)] = { client: grant.client, scope, family: grant.family, expires: Date.now() + 3600000 };
+            send(res, 200, { access_token: token, refresh_token: refresh, token_type: 'Bearer', expires_in: 3600, scope });
+            return true;
+          }
+          if (q.get('grant_type') !== 'authorization_code') {
+            send(res, 400, { error: 'unsupported_grant_type' }); return true;
+          }
+          const key = hash(q.get("code") || ""),
             grant = state.codes[key];
           if (
             !grant ||
@@ -333,6 +387,7 @@ export function createLocalOAuth(config: LocalOAuthConfig, resource: URL) {
             q.get("grant_type") !== "authorization_code" ||
             q.get("client_id") !== grant.client ||
             q.get("redirect_uri") !== grant.redirect ||
+            !redirectAllowed(grant.redirect) ||
             q.get("resource") !== grant.resource ||
             !/^[A-Za-z0-9._~-]{43,128}$/.test(q.get("code_verifier") || "") ||
             createHash("sha256")
@@ -342,9 +397,20 @@ export function createLocalOAuth(config: LocalOAuthConfig, resource: URL) {
             send(res, 400, { error: "invalid_grant" });
             return true;
           }
+          const wantsRefresh = state.clients[grant.client]?.grant_types?.includes('refresh_token');
+          if (wantsRefresh && Object.keys(state.refreshTokens ?? {}).length >= 10000) {
+            send(res, 503, { error: 'temporarily_unavailable' }); return true;
+          }
           delete state.codes[key];
           const token = random();
+          const refresh = wantsRefresh ? random() : undefined, family = refresh ? random() : undefined;
+          if (refresh && family) {
+            state.refreshTokens ??= {};
+            state.refreshTokens[hash(refresh)] = { client: grant.client, scope: grant.scope || 'mcp:read',
+              resource: grant.resource, redirect: grant.redirect, family, expires: Date.now() + 7 * 86400000, used: false };
+          }
           state.tokens[hash(token)] = {
+            ...(family ? { family } : {}),
             scope: grant.scope || 'mcp:read',
             client: grant.client,
             expires: Date.now() + 3600000,
@@ -352,6 +418,7 @@ export function createLocalOAuth(config: LocalOAuthConfig, resource: URL) {
           save();
           send(res, 200, {
             access_token: token,
+            ...(refresh ? { refresh_token: refresh } : {}),
             token_type: "Bearer",
             expires_in: 3600,
             scope: grant.scope || 'mcp:read',
@@ -360,7 +427,10 @@ export function createLocalOAuth(config: LocalOAuthConfig, resource: URL) {
         }
         if (path === "/oauth/revoke" && req.method === "POST") {
           const q = new URLSearchParams(raw);
-          delete state.tokens[hash(q.get("token") || "")];
+          const key = hash(q.get('token') || ''), refresh = state.refreshTokens?.[key];
+          const family = refresh?.family ?? state.tokens[key]?.family;
+          if (family) revokeFamily(family);
+          else delete state.tokens[key];
           save();
           send(res, 200, {});
           return true;

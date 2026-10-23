@@ -1,4 +1,5 @@
 import { readFile } from 'node:fs/promises'
+import { isAbsolute } from 'node:path'
 import { z } from 'zod'
 
 const envName = z.string().regex(/^[A-Z][A-Z0-9_]*$/)
@@ -20,6 +21,7 @@ const accountSchema = z.object({
   dnsNameservers: z.array(z.string().max(253).transform(value => value.toLowerCase().replace(/\.$/, ''))
     .refine(value => value.includes('.') && value.split('.').every(label => /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(label)), 'Expected an exact nameserver hostname')).max(10).optional(),
   backupRoots: z.array(relativeHostingPath).max(5).optional(),
+  databaseExports: z.boolean().optional(),
   wordpressLogRoots: z.array(relativeHostingPath).max(20).optional(),
   wordpressLogPaths: z.record(z.string().min(1).max(256), relativeHostingPath.refine(value => value.endsWith('.log'),
     'Explicit WordPress log paths must end in .log')).optional(),
@@ -37,12 +39,15 @@ export interface Settings {
   authToken?: string
   writeAuthToken?: string
   changeStateFile?: string
+  databaseExportDirectory?: string
   oauth?: { issuer: string; audience: string; subjects: string[] }
   localOAuth?: import('./local-oauth.js').LocalOAuthConfig
   allowedOrigins: Set<string>
 }
 
 export async function loadSettings(env: NodeJS.ProcessEnv = process.env, http = true): Promise<Settings> {
+  if (env.MCP_DATABASE_EXPORT_DIRECTORY && !isAbsolute(env.MCP_DATABASE_EXPORT_DIRECTORY))
+    throw new Error('MCP_DATABASE_EXPORT_DIRECTORY must be an absolute private path outside the web root')
   const accounts = fileSchema.parse(JSON.parse(await readFile(env.MCP_CONFIG_FILE || 'config/servers.example.json', 'utf8'))).servers
   validateServerAliases(accounts)
   const credentials: Settings['credentials'] = Object.create(null)
@@ -81,10 +86,12 @@ export async function loadSettings(env: NodeJS.ProcessEnv = process.env, http = 
   if (env.MCP_LOCAL_OAUTH === 'true') {
     const passwordHash = env.MCP_OWNER_PASSWORD_HASH || ''
     const redirects = (env.MCP_OAUTH_REDIRECT_URIS || '').split(',').filter(Boolean)
-    if (!/^[a-f0-9]{32}:[a-f0-9]{128}$/.test(passwordHash) || !env.MCP_OWNER_USERNAME || !redirects.length) throw new Error('Local OAuth requires owner credentials and explicit redirect URIs')
+    if (env.MCP_OAUTH_CODEX_LOOPBACK && !['true', 'false'].includes(env.MCP_OAUTH_CODEX_LOOPBACK)) throw new Error('MCP_OAUTH_CODEX_LOOPBACK must be true or false')
+    const allowCodexLoopback = env.MCP_OAUTH_CODEX_LOOPBACK === 'true'
+    if (!/^[a-f0-9]{32}:[a-f0-9]{128}$/.test(passwordHash) || !env.MCP_OWNER_USERNAME || (!redirects.length && !allowCodexLoopback)) throw new Error('Local OAuth requires owner credentials and explicit redirect URIs or Codex loopback opt-in')
     for (const uri of redirects) { const u = new URL(uri); if (u.protocol !== 'https:' || u.hash || u.username || u.password) throw new Error('Redirect URIs must use HTTPS') }
     if (oauth) throw new Error('Select local or external OAuth')
-    localOAuth = { file: env.MCP_OAUTH_STATE_FILE || 'data/oauth.sqlite', passwordHash, username: env.MCP_OWNER_USERNAME, redirects,
+    localOAuth = { file: env.MCP_OAUTH_STATE_FILE || 'data/oauth.sqlite', passwordHash, username: env.MCP_OWNER_USERNAME, redirects, allowCodexLoopback,
       allowWrites: Object.values(accounts).some(account => account.writeOperations?.length) }
   }
   if (http && !authToken && !writeAuthToken && !oauth && !localOAuth) throw new Error('Configure MCP_AUTH_TOKEN or OAuth before starting HTTP')
@@ -95,7 +102,8 @@ export async function loadSettings(env: NodeJS.ProcessEnv = process.env, http = 
     allowedOrigins.add(url.origin)
   }
   return { host: env.HOST || '127.0.0.1', port, publicUrl, accounts, credentials, authToken, writeAuthToken,
-    changeStateFile: env.MCP_CHANGE_STATE_FILE || 'data/changes.sqlite', oauth, localOAuth, allowedOrigins }
+    changeStateFile: env.MCP_CHANGE_STATE_FILE || 'data/changes.sqlite',
+    databaseExportDirectory: env.MCP_DATABASE_EXPORT_DIRECTORY || undefined, oauth, localOAuth, allowedOrigins }
 }
 
 export function normalizeServerReference(value: string | number): string {

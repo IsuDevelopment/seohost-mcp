@@ -31,7 +31,7 @@ test('capabilities describe configuration without claiming provider permission o
   const settings = await fixture()
   const configured = getServerCapabilities(settings, 'first')
   assert.equal(configured.serverId, 'h101'); assert.equal(configured.providerContacted, false)
-  assert(configured.tools.filter(tool => tool.requiredScope === 'mcp:read').every(tool => tool.configurationReady))
+  assert(configured.tools.filter(tool => tool.requiredScope === 'mcp:read' && tool.name !== 'export_database').every(tool => tool.configurationReady))
   assert.equal(configured.tools.find(tool => tool.name === 'apply_hosting_change')?.configurationReady, false)
   assert.equal(configured.tools.find(tool => tool.name === 'get_wordpress_info')?.providerPermission, 'unverified')
   const missing = getServerCapabilities(settings, 202)

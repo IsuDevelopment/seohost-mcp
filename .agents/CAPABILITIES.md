@@ -2,7 +2,7 @@
 
 This describes implemented behavior, not permission to operate on an arbitrary
 account. Tool registrations and schemas in `src/server.ts` are authoritative.
-All twenty-six MCP tools are available over HTTP and stdio; writes use separate authorization and per-account allowlists.
+All twenty-seven MCP tools are available over HTTP and stdio; writes use separate authorization and per-account allowlists.
 
 Platform scope: standard SeoHost shared hosting accounts via DirectAdmin. VPS
 compatibility is untested; panel presence does not establish endpoint/permission
@@ -20,6 +20,7 @@ equivalence. No root, VM lifecycle or operating-system administration is provide
 | `get_resource_usage` | Latest or bounded historical CPU/RAM/tasks/I/O metadata and limits. | `serverId`; optional `hours`, `points`, `aggregation`. | Account-only; H57 latest returns 403. No fake zeros or permission bypass. |
 | `list_databases` | Account database names, sizes and object/user counts with paging. | `serverId`; optional `offset`, `limit`. | Metadata only, no SQL/credentials or inferred site mapping. |
 | `get_database_info` | Charset/collation and object counts for a fresh owned database. | `serverId`, `database`. | Fresh inventory and exact name validation; no exports/contents/repair. |
+| `export_database` | Entire owned database as a private gzip artifact; metadata/checksum/actor-authenticated download URL, stdio local path. | `serverId`; exactly one `siteId` or `database`. | Account `databaseExports` plus private absolute export directory; read scope; entire DB including shared/multisite tables. 100 MiB compressed/1 GiB expanded, ten files, one-hour expiry. No SQL in chat, imports or WP-CLI. See DATABASE-EXPORTS.md. |
 | `summarize_web_log` | Single-read bounded error classifications/critical excerpts or access statuses/top paths. | `serverId`, `domain`, `logType`; optional `lines`. | Retains rare fatals before frequency ranking. Heuristics/line counts, no full-history/uptime/infection proof or external lookups. |
 | `list_backup_files` | Paged archive candidates in one configured backup root. | `serverId`; optional `rootIndex`, `offset`, `limit`. | Private roots required; canonical regular files only, no bodies/restore or integrity claim. |
 | `list_domains` | Reads the selected account's domains. | Required `serverId`. | Configured account username/Login Key with `CMD_API_SHOW_DOMAINS` access. |
@@ -85,6 +86,7 @@ agent's actual environment access and the authorized task.
 | Run stdio | `npm run start:stdio` | Build and configuration; stdout is MCP transport. |
 | Prepare local env | `npm run setup:local` | Creates a private env with a random token; preserves an existing file. |
 | Configure OAuth / hosting | `npm run setup:oauth -- <env-file>` / `npm run setup:hosting -- <env-file>` | Interactive private configuration; hosting setup also needs a build. Never request credentials in chat. |
+| Download a database | `npm run download:database -- --server <id> --database <name> --output <private.sql.gz>` | Export opt-ins, existing MCP read Bearer token, private non-existing local destination; size/SHA-256 verified. Native site ID selection is optional. |
 | Probe MCP | `npm run smoke` | Running target and Bearer token; discovers tools and calls server info, without testing hosting reads. |
 | Verify hosting reads | `npm run smoke:hosting -- --server <id> --domain <owned-domain>` | Explicit live opt-in; MCP URL/Bearer from env. Verifies domains, subdomains and five-line access/error reads on that account; prints counts/status only and exits nonzero on failure. No WordPress calls or automatic deployment invocation. |
 | Probe OAuth | `node --env-file=<env-file> scripts/smoke-oauth.mjs` | Running target and allowed callback; creates a test client and denies consent; no access token issued. Not a full successful login test. |
@@ -95,7 +97,7 @@ state, authorization and recovery. Ordinary log/list tools never run public look
 
 Not implemented: arbitrary file/shell execution through MCP,
 global machine logs, automatic debug enablement, rotated-history search, multi-user
-ACLs, refresh tokens or automatic production deployment on push.
+ACLs or automatic production deployment on push.
 
 DNS/hosting changes do not register domains, edit external Cloudflare/registrar DNS,
 trigger immediate certificate issuance, delete hosted domains/subdomains or write whole zones/NS/SOA/DS.
@@ -129,3 +131,9 @@ permission evidence. Backup roots default disabled. Softaculous/Backuply were
 investigated using documented read actions; H57 returned non-JSON rather than the
 expected API inventory. No plugin adapter or implicit authentication fallback is
 implemented. Archive metadata works independently, with explicit private roots.
+
+Local OAuth supports optional native Codex loopback enrollment and rotating refresh
+tokens for clients registering both supported grants. Exact callback/code binding,
+PKCE, owner consent, scope non-escalation, seven-day refresh expiry and family-wide
+replay/revocation apply. Existing code-only clients are not upgraded automatically.
+See [OAuth](../docs/OAUTH.md); production requires separate deployment/configuration.

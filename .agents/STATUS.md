@@ -1,7 +1,43 @@
 # Status and handoff
 
-Updated: 2026-10-22.
+Updated: 2026-10-23.
 
+- Release 0.10.0 production deployment is authorized and being prepared. The owner
+  reports `MCP_OAUTH_CODEX_LOOPBACK` added in the application environment and an
+  application restart. Verify the active policy through DCR after deployment,
+  without reading private environment contents. Local check: 100/100 tests,
+  types and build pass; production still requires workflow and HTTPS verification.
+- Local desktop OAuth fix (D21): reproduced the native Codex registration against
+  a disposable local capture service and confirmed both rejected metadata fields.
+  Added an explicit Codex loopback enrollment switch and implemented refresh grant
+  rotation/replay/family revocation with exact callback binding and legacy-state
+  compatibility. Production logs confirmed the fixed rejection reasons; no secrets
+  were printed and no production code/config/restart/deployment was changed.
+  `npm run check` passes: types, 100/100 tests and build. Changed Markdown links,
+  setup helper syntax and diff whitespace pass. Actual desktop reconnect remains
+  a post-deployment/configuration check.
+- Candidate 0.10.0 adds opted-in whole-database gzip exports (27 tools), private
+  actor-authenticated HTTP downloads, stdio paths and a local checksum-verifying
+  download helper. Public H57 Swagger export/config contracts were re-read with
+  verified TLS on 2026-10-23. No live config/SQL was read; actual export availability
+  and MIME behavior remain unverified. Native WordPress mapping remains
+  subject to the existing H57 feature denial; explicit database selection avoids
+  it. `npm run check` passes: types, 100/100 tests and build (including OAuth fix). Changed Markdown links,
+  helper syntax and `git diff --check` pass. No deployment or private configuration
+  change. See DATABASE-EXPORTS.md/D19.
+- Owner migration requirements (D20) are recorded in WORDPRESS-MIGRATIONS.md and
+  tasks/wordpress-migrations.md: exact owner-supplied fresh stage hostname + WP/new
+  DB, full live-to-stage clone and full stage-to-live promotion. Every operation
+  needs fresh user confirmation, explicit existing-target wipe review and verified
+  source/old-target DB/files backups retained until separately approved deletion.
+  D19 temporary download artifacts cannot satisfy migration backup retention.
+  No migration or backup-deletion tools exist yet. Owner reports full key permissions;
+  diagnose provider feature availability/contracts rather than asking for more rights.
+- Requested next CLI scope: plugin inventories per installation/site, multisite
+  site lists, user lists and staging-to-live search-replace. Not implemented. First
+  verify execute/SSH/WP-CLI targeting; use fixed typed operations, bounded responses
+  and deliberate user-data projection. Migration writes need backup, serialized-data
+  dry-run, explicit table/site/network scope and separately reviewed write plans.
 - Production 0.9.0 is deployed from `cccf886` through successful Deploy MCP run
   `39760091947`; Check run `39754158408` also passed. Independent HTTPS health
   and authenticated SDK checks confirm version 0.9.0 and 26 tools. H57 usage,

@@ -7,12 +7,13 @@ module responsibilities or important flows change; keep this map short.
 | --- | --- |
 | `src/http.ts` | HTTP entry point, Host/Origin checks, health/discovery, authenticated actor/write context, per-request MCP transport and cleanup. |
 | `src/stdio.ts` | Local process entry point; stdout reserved for MCP, owner write context still subject to account operation policy. |
-| `src/server.ts` | Version, twenty-six tool registrations, input schemas, MCP results/errors and safe auditing. |
+| `src/server.ts` | Version, twenty-seven tool registrations, input schemas, MCP results/errors and safe auditing. |
 | `src/capabilities.ts` | Shared tool/configuration-requirement catalog and honest configuration-only readiness; smoke tests verify names against the catalog. |
 | `src/config.ts` | Validates env/JSON, origins, aliases, distinct read/write tokens, account write operations and trusted NS; selects private state files and resolves explicit accounts. |
 | `src/directadmin.ts` | Domain/subdomain reads, ownership checks and bounded/redacted web-log results; public raw output stays 64 KiB, internal summaries inspect up to the 512 KiB provider bound. |
 | `src/account-diagnostics.ts` | Safe self-account tally/limits, typed account resource metrics/history and fresh-owned database inventory/details; no SQL or credentials. |
 | `src/log-summary.ts` | One log fetch, all-line error classification with rare fatal preservation; access status/path aggregation without request identities. |
+| `src/database-exports.ts` | Fresh-owned database/site selection, bounded private gzip artifact lifecycle, actor-bound downloads, retention and single-process quota/locks. |
 | `src/backup-inventory.ts` | Opt-in private root, canonical/regular-file checks and paged archive candidate metadata; no contents, recursion or restore. |
 | `src/domain-dns.ts` | Account-owned domain settings, local DNS records/IDs/snapshots and contextual diagnostics. |
 | `src/redirects.ts` | Typed legacy site-redirect inventory, opaque selection, secret-safe URL projection, literal input policy and rule-map snapshots. |
@@ -25,9 +26,10 @@ module responsibilities or important flows change; keep this map short.
 | `src/hosting-error.ts` | Shared safe provider error codes/messages; no raw upstream diagnostics. |
 | `src/wordpress.ts` | Provider-known installations, safe details, pagination, shared log inspection/read policy, metadata, bounds and redaction. |
 | `src/auth.ts` | Distinct read/write Bearer contexts; external RS256/JWKS JWT, subject and scope checks. |
-| `src/local-oauth.ts` | Owner OAuth: registration, scope-specific consent, PKCE, tokens and revocation; private SQLite state. |
+| `src/local-oauth.ts` | Owner OAuth: registration, native callback policy, scope-specific consent, PKCE, rotating token families and revocation; private SQLite state. |
 | `config/servers.example.json`, `.env.example` | Public templates without real accounts or secrets. |
 | `scripts/setup-{local,oauth,hosting}.mjs` | Local setup of private environment files and credentials. |
+| `scripts/download-database.mjs` | Explicit local download via MCP, private non-overwriting output, fixed-origin URL and size/SHA-256 checks. |
 | `scripts/smoke.mjs`, `scripts/smoke-oauth.mjs` | Real MCP client / OAuth probes against the configured environment. |
 | `scripts/smoke-hosting.mjs` | Explicit account/domain live verification of domain/subdomain lists and five-line access/error reads; prints counts/status only. |
 | `.github/workflows/check.yml` | Push/PR: locked installation, type checks, tests and build. |
@@ -44,7 +46,9 @@ module responsibilities or important flows change; keep this map short.
 | `test/tls.test.ts` | Parent-wide scope/write gates, config-secret preservation, certificate coverage/date checks, stale state, PUT uncertainty/reconciliation and MCP projection. |
 | `test/account-log.test.ts` | Fixed-file/account isolation, unsafe/missing/incomplete metadata, suffix bounds, redaction and real SDK reads. |
 | `test/wordpress.test.ts` | Subdomain ownership, installation projection/paging, cross-account IDs, root boundaries, file metadata, suffix ranges, output caps and custom log paths. |
+| `test/database-exports.test.ts` | Ownership/secret projection, storage modes/symlinks, compressed/decompressed limits, partial cleanup, actor/expiry/quota/concurrency and SDK/HTTP/local download helper. |
 | `test/diagnostics.test.ts` | Configuration-only readiness, catalog/registration agreement, safe detail projection, ID encoding, account isolation and metadata inspection without downloads. |
+| `test/oauth-desktop.test.ts` | Captured native DCR shape, loopback opt-in/exact binding, refresh scope/resource/client isolation, persistence, expiry, replay/concurrency and family revocation. |
 | `test/oauth.test.ts` | Separate read/read-write consent, scope non-escalation, CSRF, PKCE, single-use codes, shared SQLite, HTTP context propagation and revocation. |
 | `test/deploy.test.ts` | Dependency graph, archive contents, release/rollback and private file preservation. |
 | `test/smoke-hosting.test.ts` | Real HTTP SDK/subprocess smoke: explicit selection, bounded log requests, payload-free output and nonzero failure status. |
@@ -83,6 +87,7 @@ module responsibilities or important flows change; keep this map short.
 - Site redirect edit → API-listed opaque rule ID → separately authorized delete
   receipt → refreshed inventory → add receipt. No assumed overwrite or atomic edit;
   failure after deletion is partial completion. No destination HTTP requests.
+- Database export → account opt-in/private local directory → exactly one database/site → fresh native site/config mapping when requested (discard credentials, loopback only) → fresh DB ownership/details → bounded gzip stream/validation → private artifact/manifest → same-actor authenticated HTTP download or stdio local path. One-hour expiry; local cleanup every minute, no provider polling.
 - Diagnostic reads → self-account fixed APIs → schema/projection → bounded metadata.
   Database details refresh inventory ownership. Resource denial is not zero usage.
 - Log summary → one ownership/read operation → full bounded redacted tail → counts
@@ -96,6 +101,7 @@ module responsibilities or important flows change; keep this map short.
 
 | State | Default location / lifetime | Owner |
 | --- | --- | --- |
+| Database exports | Explicit absolute private directory, one-hour expiry | `database-exports.ts`; owner-only files, ten artifacts, local startup/periodic cleanup; independent of releases. |
 | Account settings and keys | Ignored config and env, loaded at startup | `config.ts`; never include real values in project memory. |
 | OAuth grants/tokens/consents | Private `data/oauth.sqlite`, persistent local disk | `local-oauth.ts`; old tokens default to read scope. |
 | Change previews/locks/receipts | Private `data/changes.sqlite`, persistent local disk | `change-store.ts`; ten-minute ready plans, up to 200 retained changes, unknown/applying locks survive expiry/restart. |

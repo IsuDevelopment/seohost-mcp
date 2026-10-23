@@ -10,6 +10,7 @@ export const TOOL_REQUIREMENTS = {
   get_resource_usage: { credentials: true, wordpressLogs: false },
   list_databases: { credentials: true, wordpressLogs: false },
   get_database_info: { credentials: true, wordpressLogs: false },
+  export_database: { credentials: true, wordpressLogs: false, databaseExport: true },
   summarize_web_log: { credentials: true, wordpressLogs: false },
   list_backup_files: { credentials: true, wordpressLogs: false, backupMetadata: true },
   list_domains: { credentials: true, wordpressLogs: false },
@@ -40,11 +41,15 @@ export function getServerCapabilities(settings: Settings, reference: string | nu
     if (requirements.credentials && !credentialsConfigured) missingConfiguration.push('hosting_credentials')
     if (requirements.wordpressLogs && !wordpressLogRootsConfigured) missingConfiguration.push('wordpress_log_roots')
     if ('backupMetadata' in requirements && !settings.accounts[serverId]!.backupRoots?.length) missingConfiguration.push('backup_roots')
+    if ('databaseExport' in requirements) {
+      if (!settings.accounts[serverId]!.databaseExports) missingConfiguration.push('account_database_exports')
+      if (!settings.databaseExportDirectory) missingConfiguration.push('database_export_directory')
+    }
     if ('write' in requirements && name !== 'get_hosting_change' && !settings.accounts[serverId]!.writeOperations?.length) missingConfiguration.push('account_write_operations')
     return { name, configurationReady: missingConfiguration.length === 0, missingConfiguration,
       providerPermission: requirements.credentials ? 'unverified' : 'not_applicable',
       requiredScope: 'write' in requirements ? 'mcp:write' : 'mcp:read',
-      readOnly: !['plan_hosting_change', 'apply_hosting_change', 'get_hosting_change'].includes(name) }
+      readOnly: !['plan_hosting_change', 'apply_hosting_change', 'get_hosting_change', 'export_database'].includes(name) }
   })
   return { serverId, credentialsConfigured, wordpressLogRootsConfigured,
     source: 'installation_configuration', providerContacted: false,

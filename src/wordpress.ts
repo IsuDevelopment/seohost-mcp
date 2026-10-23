@@ -64,6 +64,12 @@ export class WordPressClient {
     return location
   }
 
+  // Internal export mapping only. Config secrets never leave the transport adapter.
+  async databaseForExport(serverId: string, siteId: string) {
+    await this.installedLocation(serverId, siteIdSchema.parse(siteId))
+    return this.transport.wordpressDatabaseName(serverId, siteId)
+  }
+
   async getInfo(input: { serverId: string | number; siteId: string }) {
     const { serverId } = resolveServer(this.settings.accounts, input.serverId)
     const siteId = siteIdSchema.parse(input.siteId)
