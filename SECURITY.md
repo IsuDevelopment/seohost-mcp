@@ -100,3 +100,12 @@ cookies scoped to the stage routes. Logout requires same-origin POST and CSRF an
 revokes the server session. Review forms retain single-use five-minute challenges;
 each approval rechecks the owner session. Login is not plan approval, OAuth consent
 or a write grant. Existing plan receipts remain valid after browser logout.
+
+D24 permits the authenticated stage owner page to reveal only a completed
+installation's generated WordPress admin password. This supersedes the browser
+non-disclosure part of D22; no MCP/password-output or database-password access is
+added. Retained files must match the receipt identity and pass bounded owner-only,
+regular-file/no-symlink checks. Ready/unknown/failed plans disclose no password.
+Applied receipts may be opened after their former apply deadline; ready approval
+and reservation still expire normally. Static inline CSS requires its exact CSP
+hash, keeping scripts, external resources and unsafe-inline blocked.

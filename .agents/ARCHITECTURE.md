@@ -218,3 +218,12 @@ Per-plan five-minute challenges and exact approval receipts remain distinct; app
 still requires actor/account/hash/expiry and the durable reservation. Logout revokes
 only browser authentication and requires same-origin POST plus CSRF. Approval checks
 session validity again, preventing stale forms after logout/expiry/config changes.
+
+D24 separates credential delivery from MCP: completed stage receipts carry an owner
+result URL, never passwords. Only the authenticated owner HTML handler calls the
+bounded private-file reader; it returns the installation admin password, never the DB
+password. Applied receipts can be read after the apply deadline, while ready approval
+and apply retain their original expiry checks. Credential retention is unchanged.
+New DB/user names include a sanitized hostname plus random suffix within a conservative
+32-character budget. Existing immutable targets are not renamed. Static page CSS uses
+an exact SHA-256 CSP hash without external resources or script access.

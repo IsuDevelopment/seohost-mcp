@@ -150,3 +150,10 @@ Stage browser login is remembered for eight hours after the first MCP owner logi
 Subsequent plans show a readable preview and still need explicit per-plan approval.
 Sign out revokes this browser session; it does not cancel existing approval receipts.
 No additional MCP tool, OAuth scope or provider permission is introduced (D23).
+
+Fresh-stage database names now include a sanitized/truncated target hostname and
+random suffix, preserving the account prefix within 32 characters (D24). After
+success, `get_wordpress_stage` includes `result.ownerResultUrl`; the owner may log
+in there and expand the generated WP administrator password. No password enters
+MCP output. DB password, failed/unknown-job credentials and general file reads stay
+unavailable. Root-domain WordPress installation is still unsupported.

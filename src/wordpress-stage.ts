@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto'
-import { mkdir, writeFile, lstat } from 'node:fs/promises'
+import { mkdir, writeFile, lstat, open } from 'node:fs/promises'
 import { join } from 'node:path'
+import { constants } from 'node:fs'
 import { z } from 'zod'
 import type { Settings } from './config.js'
 import type { AccessContext } from './auth.js'
@@ -30,6 +31,39 @@ export function stagePreview(change: StoredChange) {
     status: change.status, phase: p.phase, target, source: p.source, overwrite: p.overwrite, backup: p.backup,
     publicAccess: p.publicAccess, code: change.code ?? null, result: change.result ?? null }
 }
+// Conservative shared DB/user budget; provider limits may be stricter. Never rename existing DBs.
+export function stageDatabaseName(username: string, hostname: string) {
+  if (!/^[a-zA-Z0-9_]+$/.test(username)) throw new HostingError('CREDENTIALS_MISSING','A valid account identity is required.')
+  domainSchema.parse(hostname)
+  const budget = 32 - username.length - 1 - 1 - 8
+  if (budget < 1) throw new HostingError('DATABASE_NAME_LIMIT','Account prefix leaves no readable database name within the supported limit.')
+  const slug = hostname.replace(/[^a-z0-9]/g,'_').slice(0,budget).replace(/_+$/,'') || 'w'
+  return username + '_' + slug + '_' + randomBytes(4).toString('hex')
+}
+
+// Browser owner only. Never call from an MCP result or expose database credentials.
+export async function stageAdminPassword(settings: Settings, change: StoredChange) {
+  const p = stagePayload(change), home = settings.accounts[change.serverId]?.wordpressProvisioning?.home
+  if (!home || change.status !== 'applied' || p.phase !== 'completed_locally' || !/^[a-f0-9]{48}$/.test(change.id)
+    || p.adminCredentialReference !== change.id) throw new HostingError('CREDENTIALS_UNAVAILABLE','Completed installation credentials are unavailable.')
+  const dir = join(home,'.seohost-mcp-stage')
+  try {
+    await safeStagePath(home,dir)
+    if ((await lstat(dir)).mode & 0o077) throw new Error()
+    const file = await open(join(dir,change.id+'.json'),constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK)
+    try {
+      const stat = await file.stat()
+      if (!stat.isFile() || stat.nlink !== 1 || stat.uid !== process.getuid?.() || stat.mode & 0o077 || stat.size > 4096) throw new Error()
+      const bytes = Buffer.alloc(4097), {bytesRead} = await file.read(bytes,0,bytes.length,0)
+      if (bytesRead > 4096) throw new Error()
+      const secret = JSON.parse(bytes.subarray(0,bytesRead).toString('utf8'))
+      if (secret.hostname !== p.target.hostname || secret.database !== p.target.database || secret.adminName !== p.target.adminName
+        || typeof secret.adminPassword !== 'string' || !/^[a-zA-Z0-9_-]{43}$/.test(secret.adminPassword)) throw new Error()
+      return secret.adminPassword as string
+    } finally {await file.close()}
+  } catch {throw new HostingError('CREDENTIALS_UNAVAILABLE','Retained installation credentials could not be verified. Contact the operator.')}
+}
+
 export class WordPressStages {
   private readonly provider: StageProvider
   constructor(private readonly settings: Settings, request: typeof fetch = fetch, provider?: StageProvider) { this.provider = provider ?? new LocalStageProvider(settings, request) }
@@ -47,7 +81,7 @@ export class WordPressStages {
     domainSchema.parse(value.label + '.' + value.domain)
     const username = this.settings.credentials[serverId]?.username
     if (!username || !/^[a-zA-Z0-9_]+$/.test(username)) throw new HostingError('CREDENTIALS_MISSING', 'A valid account identity is required.')
-    const database = username + '_stg' + randomBytes(5).toString('hex')
+    const database = stageDatabaseName(username, value.label + '.' + value.domain)
     const checked = await this.provider.preflight(serverId, value, database)
     const target = {...value, ...checked, hostname: value.label + '.' + value.domain, database}
     const payload: StagePayload = {kind:'fresh_wordpress_stage', target, phase:'awaiting_owner_confirmation',
@@ -102,7 +136,7 @@ export class WordPressStages {
       checkpoint('completed_locally')
       store.finish(change,'applied',{hostname:target.hostname,siteUrl:'https://'+target.hostname,adminName:target.adminName,adminEmail:target.adminEmail,
         database:target.database,wordpressVersion:target.version,localInstallationVerified:true,publicDnsTlsHttp:'not_verified',
-        adminCredentialReference:change.id,credentials:'Retained in owner-only .seohost-mcp-stage/<reference>.json under the configured account home. Never publish this file.',
+        adminCredentialReference:change.id,ownerResultUrl:new URL('/wordpress-stage/'+change.id,this.settings.publicUrl).href,credentials:'Retained in owner-only .seohost-mcp-stage/<reference>.json under the configured account home. Never publish this file.',
         backup:'No existing target data; verified absence. No source copied. No backups deleted.',newDatabase:true,overwrite:false})
     } catch(e) {
       const code=e instanceof HostingError?e.code:'STAGE_FAILED'

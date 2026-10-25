@@ -1,12 +1,12 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtemp, mkdir, rm, readFile, symlink, realpath, writeFile } from 'node:fs/promises'
+import { mkdtemp, mkdir, rm, readFile, symlink, realpath, writeFile, chmod } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { scryptSync } from 'node:crypto'
+import { scryptSync, createHash } from 'node:crypto'
 import { DatabaseSync } from 'node:sqlite'
 import { loadSettings } from '../src/config.js'
-import { WordPressStages } from '../src/wordpress-stage.js'
+import { WordPressStages, stageDatabaseName, stageAdminPassword } from '../src/wordpress-stage.js'
 import { LocalStageProvider, safeStagePath, type StageProvider } from '../src/wordpress-stage-provider.js'
 import { ChangeStore } from '../src/change-store.js'
 import { HostingError } from '../src/hosting-error.js'
@@ -257,5 +257,56 @@ test('production-origin login emits Secure host-only scoped cookies and caps ret
  const store=new ChangeStore(f.settings.changeStateFile!)
  for(let i=1;i<100;i++)store.createOwnerSession('test-binding')
  assert.throws(()=>store.createOwnerSession('test-binding'),code('OWNER_LOGIN_LIMIT'));store.close()
+ }finally{await f.shutdown()}
+})
+
+
+test('database names identify the requested hostname with a bounded safe account prefix and collision suffix',()=>{
+ const sub=stageDatabaseName('account','stg.example.com'), root=stageDatabaseName('account','example.com')
+ assert.match(sub,/^account_stg_example_com_[a-f0-9]{8}$/)
+ assert.match(root,/^account_example_com_[a-f0-9]{8}$/)
+ assert.notEqual(sub,stageDatabaseName('account','stg.example.com'))
+ const long=stageDatabaseName('account','very-long-subdomain-name.example.com');assert(long.length<=32);assert.match(long,/^account_very_long_[a-z0-9_]+_[a-f0-9]{8}$/)
+ assert.throws(()=>stageDatabaseName('a'.repeat(24),'example.com'),code('DATABASE_NAME_LIMIT'))
+ assert.throws(()=>stageDatabaseName('bad/name','example.com'),code('CREDENTIALS_MISSING'))
+})
+
+test('completed installation password is browser-owner only, remains accessible after plan expiry and never enters MCP receipts',async()=>{
+ const f=await browserFixture();try{
+ const p=await f.workflow.plan('primary',input,access), signed=await f.login(p.planId)
+ f.approve(p.planId,p.previewHash);await f.workflow.apply('primary',p.planId,p.previewHash,access);const done=await finished(f,p.planId)
+ const secret=JSON.parse(await readFile(join(f.home,'.seohost-mcp-stage',p.planId+'.json'),'utf8'))
+ const db=new DatabaseSync(f.settings.changeStateFile!);const store=new ChangeStore(f.settings.changeStateFile!)
+ const c=store.get(p.planId,access.actor,'primary');c.expires=0;store.checkpoint(c);store.close()
+ const anonymous=await (await fetch(f.url(p.planId))).text();assert(anonymous.includes('MCP owner username'));assert(!anonymous.includes(secret.adminPassword));assert(!anonymous.includes('owner@example.com'))
+ const result=await fetch(f.url(p.planId),{headers:{Cookie:signed.cookie}}), body=await result.text()
+ assert.equal(result.status,200);assert.equal(result.headers.get('cache-control'),'no-store');
+ const css=body.match(/<style>([\s\S]*?)<\/style>/)![1]!, policy=result.headers.get('content-security-policy')!
+ assert(policy.includes("style-src 'sha256-"+createHash('sha256').update(css).digest('base64')+"'"));assert(policy.includes("default-src 'none'"));assert(!policy.includes('unsafe-inline'));assert(body.includes('name="viewport"'));
+ assert(body.includes('Show WordPress administrator password'));assert(body.includes(secret.adminPassword));assert(!body.includes(secret.databasePassword));assert(body.includes(p.target.database))
+ assert(!JSON.stringify(done).includes(secret.adminPassword));assert(!JSON.stringify(done).includes(secret.databasePassword))
+ assert((done.result as {ownerResultUrl:string}).ownerResultUrl.endsWith('/wordpress-stage/'+p.planId))
+ // Re-authentication works for a completed receipt even after the old apply deadline.
+ const again=await f.login(p.planId);assert(again.body.includes(secret.adminPassword))
+ const token=f.csrf(signed.body)
+ assert.equal((await f.post(f.url(p.planId),{csrf:token,phase:'approve',decision:'approve',preview:p.previewHash},signed.cookie+'; stage_owner='+token)).status,400)
+ db.prepare('UPDATE stage_owner_sessions SET expires=0').run();db.close()
+ assert(!(await (await fetch(f.url(p.planId),{headers:{Cookie:again.cookie}})).text()).includes(secret.adminPassword))
+ assert.equal(f.state.calls.filter(c=>c==='subdomain').length,1)
+ }finally{await f.shutdown()}
+})
+
+test('credential display refuses insecure, replaced or mismatched retained files without exposing either secret',async()=>{
+ const f=await browserFixture();try{
+ const p=await f.workflow.plan('primary',input,access), signed=await f.login(p.planId)
+ f.approve(p.planId,p.previewHash);await f.workflow.apply('primary',p.planId,p.previewHash,access);await finished(f,p.planId)
+ const path=join(f.home,'.seohost-mcp-stage',p.planId+'.json'), original=await readFile(path,'utf8'), secret=JSON.parse(original)
+ const check=async()=>{const response=await fetch(f.url(p.planId),{headers:{Cookie:signed.cookie}});const body=await response.text();assert.equal(response.status,400);assert(!body.includes(secret.adminPassword));assert(!body.includes(secret.databasePassword))}
+ await chmod(path,0o644);await check();await chmod(path,0o600)
+ await writeFile(path,JSON.stringify({...secret,hostname:'different.example.com'}));await check()
+ await writeFile(path,'x'.repeat(4097));await check()
+ await rm(path);const other=join(f.home,'other-secret.json');await writeFile(other,original,{mode:0o600});await symlink(other,path);await check()
+ const store=new ChangeStore(f.settings.changeStateFile!);const change=store.get(p.planId,access.actor,'primary');change.status='unknown'
+ await assert.rejects(stageAdminPassword(f.settings,change),code('CREDENTIALS_UNAVAILABLE'));store.close()
  }finally{await f.shutdown()}
 })

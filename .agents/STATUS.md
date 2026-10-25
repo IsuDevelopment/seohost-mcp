@@ -278,3 +278,11 @@ never place key values in documentation or logs.
   login again. No approval button was clicked or hosting mutation executed. Session
   hash persistence, absolute expiry, credential binding, rotation, cookie flags,
   stale forms, CSRF and cross-plan isolation are regression-tested. Deployed successfully as recorded above.
+
+- Candidate 0.13.0 adds hostname-derived bounded fresh DB/user names and an owner-only
+  completed-result password view, plus minimal responsive hash-authorized CSS (D24).
+  Full check passes 120 tests/types/build. Dummy browser login/result/reveal passed;
+  no real password was displayed to the agent and no hosting target was created.
+  Naming, expired applied receipt login, no-MCP-secret output, stale sessions,
+  private-file mode/size/symlink/identity checks and CSP hash have regressions.
+  Real provider acceptance of the new naming and actual install remain unverified.

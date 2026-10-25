@@ -6,7 +6,7 @@ source; accepted decisions explain intent and do not exempt code from criticism.
 
 ## Baseline and evidence
 
-- Review target: 0.12.0, 30 MCP tools; stage diff: `git diff 7ba6257..HEAD -- src test docs .agents`.
+- Review target: 0.13.0, 30 MCP tools; stage diff: `git diff 7ba6257..HEAD -- src test docs .agents`.
   Historical 0.9.0 diagnostics diff: `git diff 210bfa0..HEAD -- src test docs .agents config`.
   Redirects diff: `git diff 1fef5a2..HEAD -- src test docs .agents`.
   TLS + redirects diff: `git diff c25bf96..HEAD -- src test docs .agents`.
@@ -80,3 +80,10 @@ Approvals must recheck the session and exact single-use plan challenge. Logout d
 not revoke existing receipts. 117 tests/types/build pass; dummy real-browser login,
 second-plan reuse and logout were verified without approving or changing hosting.
 Production authenticated session reuse and actual installation remain unverified.
+
+0.13.0: review hostname DB-name truncation/account prefix/random suffix and fresh
+collision refusal. Inspect the HTML-only admin credential reader, file bounds,
+no-symlink/owner/mode/identity checks and exclusion from all MCP receipts. Applied
+receipt access after expiry must not relax ready approval/apply expiry. Check exact
+static CSS CSP hash and absence of external assets. Full 120-test check and dummy
+browser reveal pass; actual hosting installation/name acceptance remain unverified.

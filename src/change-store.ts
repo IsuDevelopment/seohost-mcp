@@ -56,16 +56,16 @@ export class ChangeStore {
       this.db.exec('COMMIT'); return change
     } catch (error) { this.db.exec('ROLLBACK'); throw error }
   }
-  getForOwner(id: string) {
+  getForOwner(id: string, allowApplied = false) {
     const row = this.db.prepare('SELECT value FROM changes WHERE id=?').get(id) as {value:string}|undefined
     if (!row) throw new HostingError('PLAN_NOT_FOUND','Plan unavailable.')
     const c = JSON.parse(row.value) as StoredChange
-    if (c.status !== 'ready' || c.expires <= Date.now() || (c.payload as {kind?:string}).kind !== 'fresh_wordpress_stage')
+    if (!((c.status === 'ready' && c.expires > Date.now()) || (allowApplied && c.status === 'applied')) || (c.payload as {kind?:string}).kind !== 'fresh_wordpress_stage')
       throw new HostingError('PLAN_NOT_READY','Plan expired or no longer awaiting approval.')
     return c
   }
   ownerChallenge(id: string, phase: 'login'|'review') {
-    this.getForOwner(id)
+    this.getForOwner(id, phase === 'login')
     this.db.prepare('DELETE FROM stage_challenges WHERE expires<?').run(Date.now())
     const count = this.db.prepare('SELECT COUNT(*) AS n FROM stage_challenges').get() as {n:number}
     if (count.n >= 100) throw new HostingError('PLAN_LIMIT','Too many pending owner sessions.')
@@ -77,7 +77,7 @@ export class ChangeStore {
     const result = this.db.prepare('DELETE FROM stage_challenges WHERE token=? AND id=? AND phase=? AND expires>?')
       .run(createHash('sha256').update(token).digest('hex'),id,phase,Date.now())
     if (result.changes !== 1) throw new HostingError('OWNER_CONFIRMATION_REQUIRED','Invalid or expired owner session.')
-    return this.getForOwner(id)
+    return this.getForOwner(id, phase === 'login')
   }
   createOwnerSession(binding: string, previous = '') {
     this.db.prepare('DELETE FROM stage_owner_sessions WHERE expires<=?').run(Date.now())

@@ -190,3 +190,29 @@ Release 0.12.0 deployed from `c5fe087` through successful Deploy `40201063221`
 (Check `40201053559`, 117 tests/types/build). Real browser session reuse/logout was
 verified only with dummy local credentials; production owner login and actual
 installation are still awaiting the owner's action. No hosting target was created.
+
+## Readable database names and owner result (0.13.0)
+
+New plans use `<account>_<hostname_slug>_<8_hex_chars>` for the database and its
+user. Dots/hyphens become underscores; long hostnames are truncated to a conservative
+32-character total budget. The account prefix is preserved and an overly long prefix
+is refused. The suffix avoids collisions; fresh provider absence checks still apply.
+This is an application naming policy, not a claim that every provider uses the same
+limit. Cached H57 Swagger specifies strings without name limits; provider acceptance
+remains live-unverified. Existing databases/plans are never renamed. The current
+workflow still provisions only subdomains; root-domain installation is unavailable.
+
+After local completion, `result.ownerResultUrl` points to the same owner page. A valid
+remembered session or fresh MCP owner login is required. Expand **Show WordPress
+administrator password** to save the generated installation password. Later changes
+inside WordPress are not tracked. The database password remains private; passwords
+never appear in MCP responses, logs, plans or SQLite receipts. Before installation
+there is no generated password to display. Failed/unknown jobs do not expose one.
+
+Credential reads verify the configured private directory, file ownership/mode,
+regular-file/no-symlink status, size and exact installation identity. The page sends
+no-store and restrictive CSP. Minimal responsive CSS is authorized by a static SHA-256
+style hash; no external assets/scripts or unsafe-inline permission. Applied receipts
+remain viewable after the apply deadline, until normal receipt housekeeping removes
+them (seven days on subsequent plan creation); retained private files are not deleted.
+The browser login challenge stays five minutes; approval/apply rules are unchanged.
