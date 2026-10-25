@@ -109,3 +109,10 @@ regular-file/no-symlink checks. Ready/unknown/failed plans disclose no password.
 Applied receipts may be opened after their former apply deadline; ready approval
 and reservation still expire normally. Static inline CSS requires its exact CSP
 hash, keeping scripts, external resources and unsafe-inline blocked.
+
+D25 adds independent-domain stage placement with create_domain gating. Legacy
+plans keep nested targets; placement/root remain immutable and actual provider
+roots must match before file operations. A domain container must not preexist and
+newly populated provider templates still stop writes. Separate directories do not
+isolate same-UID sites. Polish/English rendering does not authorize anything;
+language query links retain session/CSRF, exact-Origin checks and no-store/CSP.

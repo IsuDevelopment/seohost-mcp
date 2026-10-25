@@ -13,6 +13,7 @@ import { HostingError } from './hosting-error.js'
 import { LocalStageProvider, safeStagePath, type StageProvider, type StageTarget } from './wordpress-stage-provider.js'
 
 export const stageInput = z.object({ domain: domainSchema,
+  placement: z.enum(['independent_domain','subdomain']).default('independent_domain'),
   label: z.string().regex(/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/),
   adminEmail: z.string().email().max(254).refine(s => !/[\r\n\u0000]/.test(s)),
   adminName: z.string().regex(/^[a-zA-Z][a-zA-Z0-9_]{3,31}$/).default('stageadmin'),
@@ -67,17 +68,17 @@ export async function stageAdminPassword(settings: Settings, change: StoredChang
 export class WordPressStages {
   private readonly provider: StageProvider
   constructor(private readonly settings: Settings, request: typeof fetch = fetch, provider?: StageProvider) { this.provider = provider ?? new LocalStageProvider(settings, request) }
-  private authorize(reference: string | number, access: AccessContext, enabled = true) {
+  private authorize(reference: string | number, access: AccessContext, enabled = true, placement: 'independent_domain'|'subdomain' = 'subdomain') {
     const {serverId, account} = resolveServer(this.settings.accounts, reference)
     if (!access.canWrite) throw new HostingError('WRITE_SCOPE_REQUIRED', 'Fresh-stage plans require write authorization.')
-    if (enabled && (!account.wordpressProvisioning || !['create_subdomain', 'create_wordpress_stage'].every(op => account.writeOperations?.includes(op as 'create_subdomain'))))
+    if (enabled && (!account.wordpressProvisioning || ![placement === 'independent_domain' ? 'create_domain' : 'create_subdomain', 'create_wordpress_stage'].every(op => account.writeOperations?.includes(op as 'create_domain'))))
       throw new HostingError('WRITE_DISABLED', 'Enable local WordPress provisioning and both required operations explicitly.')
     if (enabled && !this.settings.localOAuth) throw new HostingError('OWNER_APPROVAL_UNAVAILABLE', 'Local owner login is required for the separate browser confirmation.')
     return serverId
   }
   store() { return new ChangeStore(this.settings.changeStateFile || 'data/changes.sqlite') }
   async plan(reference: string | number, input: unknown, access: AccessContext) {
-    const serverId = this.authorize(reference, access), value = stageInput.parse(input)
+    const value = stageInput.parse(input), serverId = this.authorize(reference, access,true,value.placement)
     domainSchema.parse(value.label + '.' + value.domain)
     const username = this.settings.credentials[serverId]?.username
     if (!username || !/^[a-zA-Z0-9_]+$/.test(username)) throw new HostingError('CREDENTIALS_MISSING', 'A valid account identity is required.')
@@ -99,10 +100,11 @@ export class WordPressStages {
     try {return stagePreview(store.get(id, access.actor, serverId))} finally {store.close()}
   }
   async apply(reference: string | number, id: string, hash: string, access: AccessContext) {
-    const serverId = this.authorize(reference, access), store = this.store()
+    const serverId = this.authorize(reference, access,false), store = this.store()
     let change: StoredChange
     try {
       change = store.get(id,access.actor,serverId); const payload = stagePayload(change)
+      this.authorize(reference,access,true,payload.target.placement ?? 'subdomain')
       if (payload.previewHash !== hash) throw new HostingError('PREVIEW_MISMATCH','The supplied preview does not match.')
       if (change.status === 'applied' || change.status === 'applying') return stagePreview(change)
       if (!store.isOwnerApproved(change, hash)) throw new HostingError('OWNER_CONFIRMATION_REQUIRED','The owner must confirm this exact unexpired plan in the browser.')
@@ -128,8 +130,8 @@ export class WordPressStages {
       const secrets={databasePassword:randomBytes(32).toString('base64url'),adminPassword:randomBytes(32).toString('base64url')}
       // Retain credentials for recovery outside web roots. Never return them through MCP.
       await writeFile(join(root,change.id+'.json'),JSON.stringify({hostname:target.hostname,database:target.database,adminName:target.adminName,...secrets}),{flag:'wx',mode:0o600})
-      payload.adminCredentialReference=change.id; checkpoint('creating_subdomain'); mutated=true
-      await this.provider.createSubdomain(change.serverId,target)
+      payload.adminCredentialReference=change.id; checkpoint(target.placement === 'independent_domain' ? 'creating_independent_domain' : 'creating_subdomain'); mutated=true
+      await this.provider.createHosting(change.serverId,target)
       checkpoint('verifying_empty_document_root'); await this.provider.verifyRoot(change.serverId,target)
       checkpoint('creating_database'); await this.provider.createDatabase(change.serverId,target,secrets.databasePassword)
       await this.provider.install(change.serverId,target,secrets,checkpoint)

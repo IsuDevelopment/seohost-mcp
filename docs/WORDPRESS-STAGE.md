@@ -8,12 +8,13 @@ This implements only the fresh-target part of [migration requirements](WORDPRESS
 
 | Tool | Inputs | Effect |
 | --- | --- | --- |
-| `plan_wordpress_stage` | Explicit `serverId`, owned parent `domain`, exact `label`, `adminEmail`; optional `adminName` (stageadmin), `title` | Validates absence, local runtime/account and canonical root; pins a stable WordPress version and chooses a new database. Returns an immutable 30-minute plan and owner confirmation link. No target writes. |
+| `plan_wordpress_stage` | Explicit `serverId`, owned parent `domain`, exact `label`, `adminEmail`; optional `placement` (independent_domain), `adminName` (stageadmin), `title` | Validates absence, local runtime/account and canonical root; pins a stable WordPress version and chooses a new database. Returns an immutable 30-minute plan and owner confirmation link. No target writes. |
 | `apply_wordpress_stage` | Same actor/account, `planId`, `previewHash` | Requires a separate owner browser approval. Reserves the shared account lock, starts a background worker and returns immediately. |
 | `get_wordpress_stage` | Same actor/account and `planId` | Reports persistent phase/result, including partial and unknown outcomes. No resume, retry, deletion or automatic reconciliation. Write authorization is required; disabled provisioning does not prevent receipt inspection. |
 
-All three require write authorization. Plans/apply additionally require both
-`create_subdomain` and `create_wordpress_stage` in the account's write operations.
+All three require write authorization. Plans/apply additionally require `create_wordpress_stage` plus the hosting operation
+for the reviewed placement: `create_domain` for the default independent domain,
+`create_subdomain` for explicit nested subdomain placement.
 A preview hash, the agent's assertion of approval or a write token cannot create
 an owner approval receipt. The operator must open the returned `/wordpress-stage/<id>`
 link, log in with the existing **MCP owner** credentials, inspect the exact preview
@@ -40,7 +41,7 @@ configuration and restart **only this MCP application**:
     "phpBinary": "/opt/alt/php83/usr/bin/php",
     "wpCli": "/usr/local/bin/wp"
   },
-  "writeOperations": ["create_subdomain", "create_wordpress_stage"]
+  "writeOperations": ["create_domain", "create_wordpress_stage"]
 }
 ```
 
@@ -63,13 +64,16 @@ Before planning and again before mutation, verify parent domain ownership, absen
 of the requested hostname in domain/subdomain inventories, absence of the exact
 new directory and absence of the newly chosen database. The documented DirectAdmin
 `CMD_API_DOMAIN?action=document_root` map must confirm the default parent root.
-Only a new direct child of that root is supported; every existing directory
-component must be canonical, owned and non-symlink. No caller root override exists.
+New plans default to a separate domain container at
+`<home>/domains/<hostname>/public_html`; explicit `placement=subdomain` uses the
+legacy direct child of the parent root. Every existing directory component must
+be canonical, owned and non-symlink. No caller root override exists.
 Even an existing **empty** target directory is refused. No existing target means
 there is no old-target database/files backup to create; this absence is recorded.
 No source data is copied. Existing data requires a different, unimplemented workflow.
 
-Create one subdomain through the fixed legacy API, re-read its actual document root
+Create one separate domain (or explicit legacy subdomain) through the fixed legacy
+API, re-read its actual document root
 and require that exact empty local directory. If provider templates populate it or
 its mapping differs, stop and report partial completion. Never silently remove a
 provider placeholder, reuse a nonempty directory or redirect the parent root.
@@ -172,7 +176,7 @@ After one successful login, this browser remembers the MCP owner for an absolute
 8 hours. These are existing MCP credentials, not the new WordPress administrator.
 The readable preview lists the website, account, administrator, pinned core,
 dedicated database, protection and pending public DNS/TLS verification. The target
-directory and requesting client are available in an expandable section.
+directory is prominent in the preview; the requesting client is in an expandable section.
 
 Every plan still requires its own explicit approval and conversational confirmation;
 being signed in never approves or applies a plan. Each form has a separate five-minute,
@@ -224,6 +228,36 @@ credentials and a simulated completed result only; real installation remains pen
 
 Patch 0.13.1 uses the owner's pink gradient for primary buttons/brand text and
 matching neutral/focus colors. Static hash-authorized CSS and behavior are unchanged.
-The current adapter plans `<parent public_html>/<label>` and verifies the actual
-subdomain map after creation; a separate `domains/<hostname>/public_html` installation
-mode is not implemented. Never change a reviewed document root implicitly.
+At that release the adapter supported only `<parent public_html>/<label>`. Version
+0.14.0 adds the separate-domain mode described below. Never change a reviewed
+document root implicitly.
+
+## Separate domains and Polish UI (0.14.0)
+
+New plans default to `placement=independent_domain`: the hostname is added as a
+separate DirectAdmin domain, with `<home>/domains/<hostname>/public_html`. Parent
+ownership and absence from both domain/subdomain inventory still gate planning.
+The entire new domain container must be absent, even if an old one is empty. Apply
+uses the documented `POST /CMD_API_DOMAIN` create operation with shared account
+quota/bandwidth, PHP/SSL on and CGI off; it verifies inventory and the exact computed
+document-root map before files/DB installation. This creates local hosting/DNS
+configuration, not domain registration, public DNS repair or a certificate. No
+parent root, certificate or TLS settings are changed. Same hosting UID/account is
+retained: a separate directory does not establish future provider isolation.
+
+`placement=subdomain` remains explicit for the old nested path. Persisted plans
+without placement keep the old behavior and permissions; they are not relocated.
+The selected placement and directory are prominent in owner review and covered by
+the immutable preview hash. A new placement needs a new plan/approval.
+`get_server_capabilities.stagePlacementsConfigured` reports configured modes only.
+H57 already allowed create_domain; this change does not expand private allowlists.
+
+The stage owner UI defaults to Polish; **English** links use `?lang=en`. Switching
+language changes presentation only, keeps authentication, and never approves a plan.
+Dates use the selected locale and Europe/Warsaw. Login, preview, result, logout and
+safe errors are localized. MCP data/docs stay in English. Same-Origin/CSRF/expiry,
+no-store and static style-hash CSP remain enforced. Provider-populated files still
+stop installation; no placeholder is deleted automatically.
+
+Sources: [DirectAdmin domain creation](https://docs.directadmin.com/developer/api/legacy-api.html#user-apis),
+[computed document roots](https://docs.directadmin.com/directadmin/general-usage/directadmin-binary.html#show-documentroots).

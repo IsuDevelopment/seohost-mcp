@@ -16,7 +16,7 @@ equivalence. No root, VM lifecycle or operating-system administration is provide
 | `list_servers` | Configured server IDs, labels, aliases and `credentialsConfigured`. | None. | No hosting request; omits URLs and secrets. Credential presence is not proof of validity. |
 | `resolve_server` | Resolves one reference to canonical ID, label and credential-presence flag. | Required `serverId`. | No hosting request. Unknown/ambiguous references fail; no default selection. |
 | `get_server_capabilities` | Reports tool/configuration readiness from loaded settings without private account details. | Required `serverId`. | No provider request. `configurationReady` does not verify key permissions or endpoint availability; restart after changing configuration. |
-| `plan_wordpress_stage` | Fresh single-site stage preview and separate owner-confirmation URL. | `serverId`, parent `domain`, exact `label`, `adminEmail`; optional adminName/title. | Write scope, local provisioning, create_subdomain/create_wordpress_stage policy, absent host/root/new DB, pinned core. No target writes. |
+| `plan_wordpress_stage` | Fresh single-site stage preview and separate owner-confirmation URL. | `serverId`, parent `domain`, exact `label`, `adminEmail`; optional placement (independent_domain default), adminName/title. | Write scope, local provisioning, create_wordpress_stage plus mode-specific create_domain/create_subdomain policy, absent host/root/new DB, pinned core. No target writes. |
 | `apply_wordpress_stage` | Start approved background installation with durable phases and account lock. | `serverId`, planId, previewHash. | Same actor/account; unexpired separate owner-password browser approval. No implicit consent, overwrite, shell input, retries or parent TLS changes. |
 | `get_wordpress_stage` | Actor-bound stage phase/receipt including partial failures. | `serverId`, planId. | Write scope; does not resume or release unknown locks. Credentials remain in private local storage. |
 | `get_account_usage` | Safe tally, limits and near-limit indicators for disk/bandwidth/inodes/counts. | `serverId`. | Self-account; provider tally can lag. Missing is null, unlimited explicit; no contact/config secrets. |
@@ -157,3 +157,10 @@ success, `get_wordpress_stage` includes `result.ownerResultUrl`; the owner may l
 in there and expand the generated WP administrator password. No password enters
 MCP output. DB password, failed/unknown-job credentials and general file reads stay
 unavailable. Root-domain WordPress installation is still unsupported.
+
+New stage plans default to independent_domain: a separate DA domain and
+`domains/<hostname>/public_html`. Explicit subdomain mode uses the nested path;
+stored plans without placement retain that legacy contract. Always show exact
+placement/directory and request new approval when they change. Configuration
+capabilities expose stagePlacementsConfigured, not live provider support. Owner
+HTML defaults to Polish with an English switch; MCP data/docs stay English.

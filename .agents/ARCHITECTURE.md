@@ -195,7 +195,7 @@ valid without automatic refresh enrollment. See [OAuth](../docs/OAUTH.md).
 ## Fresh stage boundary (D22)
 
 Only the fresh-target subset of D20 is implemented: same local OS/provider account
-and hostname, canonical default parent root, absent subdomain/directory and a new
+and hostname, canonical default parent root, absent target hostname/directory and a new
 dedicated database. No existing-target mutation, clone/promotion/import or cleanup.
 Separate owner-password browser approval binds immutable plan/hash/actor/account/
 expiry; no approval tool accepts an agent assertion. Revalidate absence and mapping
@@ -227,3 +227,12 @@ and apply retain their original expiry checks. Credential retention is unchanged
 New DB/user names include a sanitized hostname plus random suffix within a conservative
 32-character budget. Existing immutable targets are not renamed. Static page CSS uses
 an exact SHA-256 CSP hash without external resources or script access.
+
+D25 makes new stage plans default to an independent DirectAdmin domain/container,
+using create_domain policy instead of create_subdomain. Explicit nested placement
+and legacy stored plans remain compatible. Exact mode/root are hashed into the
+review; apply rechecks mode-specific permissions and the actual document-root map.
+No implicit relocation, parent-root change or future hosting isolation guarantee.
+The same private state and account lock cover both variants. Polish UI defaults,
+English query links and Europe/Warsaw dates are presentation-only; language never
+changes approval semantics or authorization. See WORDPRESS-STAGE.md.

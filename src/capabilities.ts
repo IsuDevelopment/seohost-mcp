@@ -39,11 +39,14 @@ export function getServerCapabilities(settings: Settings, reference: string | nu
   const { serverId } = resolveServer(settings.accounts, reference)
   const credentialsConfigured = Boolean(settings.credentials[serverId])
   const wordpressLogRootsConfigured = Boolean(settings.accounts[serverId]!.wordpressLogRoots?.length)
+  const account = settings.accounts[serverId]!
+  const stagePlacementsConfigured = account.wordpressProvisioning && settings.localOAuth && account.writeOperations?.includes('create_wordpress_stage')
+    ? (['independent_domain','subdomain'] as const).filter(placement => account.writeOperations?.includes(placement === 'independent_domain' ? 'create_domain' : 'create_subdomain')) : []
   const tools = Object.entries(TOOL_REQUIREMENTS).map(([name, requirements]) => {
     const missingConfiguration: string[] = []
     if (requirements.credentials && !credentialsConfigured) missingConfiguration.push('hosting_credentials')
     if (requirements.wordpressLogs && !wordpressLogRootsConfigured) missingConfiguration.push('wordpress_log_roots')
-    if ('stage' in requirements && (!settings.accounts[serverId]!.wordpressProvisioning || !settings.localOAuth || !settings.accounts[serverId]!.writeOperations?.includes('create_wordpress_stage') || !settings.accounts[serverId]!.writeOperations?.includes('create_subdomain'))) missingConfiguration.push('wordpress_provisioning')
+    if ('stage' in requirements && !stagePlacementsConfigured.length) missingConfiguration.push('wordpress_provisioning')
     if ('backupMetadata' in requirements && !settings.accounts[serverId]!.backupRoots?.length) missingConfiguration.push('backup_roots')
     if ('databaseExport' in requirements) {
       if (!settings.accounts[serverId]!.databaseExports) missingConfiguration.push('account_database_exports')
@@ -53,12 +56,13 @@ export function getServerCapabilities(settings: Settings, reference: string | nu
     return { name, configurationReady: missingConfiguration.length === 0, missingConfiguration,
       providerPermission: requirements.credentials ? 'unverified' : 'not_applicable',
       requiredScope: 'write' in requirements ? 'mcp:write' : 'mcp:read',
-      readOnly: !['plan_hosting_change', 'apply_hosting_change', 'get_hosting_change', 'export_database'].includes(name) }
+      readOnly: !['plan_hosting_change', 'apply_hosting_change', 'get_hosting_change', 'export_database', 'plan_wordpress_stage', 'apply_wordpress_stage'].includes(name) }
   })
   return { serverId, credentialsConfigured, wordpressLogRootsConfigured,
     source: 'installation_configuration', providerContacted: false,
     authorizationModel: 'single_owner_all_configured_accounts', hostingWritesEnabled: Boolean(settings.accounts[serverId]!.writeOperations?.length),
     enabledWriteOperations: settings.accounts[serverId]!.writeOperations ?? [],
+    stagePlacementsConfigured,
     backupRootsConfigured: Boolean(settings.accounts[serverId]!.backupRoots?.length),
     dnsWriteAuthorityConfigured: Boolean(settings.accounts[serverId]!.dnsNameservers?.length), tools }
 }

@@ -2,7 +2,18 @@
 
 Updated: 2026-10-25.
 
-- Production 0.13.0 deployed from `4076a87` through successful Deploy `40203604423`;
+- Production 0.13.1 brand patch deployed from `c8e6c91` through Deploy `40204066809`;
+  Check `40204059667` and full local 120-test check passed. Independent HTTPS confirmed
+  0.13.1, exact requested gradient, correct CSP style hash and no-store.
+- Candidate 0.14.0: independent-domain stage default and Polish/English UI (D25).
+  Full 123-test check/types/build passed. Dummy browser verified Polish preview,
+  prominent directory and English switch without re-login/approval. Adapter fixtures
+  verify absent container, fixed create-domain parameters, actual-root mismatch,
+  refusal of provider placeholders and untouched parent files. Legacy plans and
+  mode-specific configuration/readiness are regression-tested. Safe H57 settings
+  probe confirms create_domain already enabled; no private permissions were changed.
+  Actual independent-domain creation/install remain awaiting separate owner approval.
+- Historical production 0.13.0 deployed from `4076a87` through successful Deploy `40203604423`;
   Check `40203593539` passed (120 tests/types/build). Workflow backup/dependency guard/
   restart/HTTPS/authenticated smoke passed; independent SDK confirmed 0.13.0, 30 tools,
   unauthenticated 401 and read-token WRITE_SCOPE_REQUIRED. Configuration preserved.

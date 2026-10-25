@@ -9,11 +9,11 @@ import { DirectAdminTransport, boundedBytes } from './directadmin-http.js'
 import { AccountDiagnostics } from './account-diagnostics.js'
 import { HostingError } from './hosting-error.js'
 
-export type StageInput = { domain: string; label: string; adminEmail: string; adminName: string; title: string }
+export type StageInput = { domain: string; label: string; adminEmail: string; adminName: string; title: string; placement?: 'independent_domain' | 'subdomain' }
 export type StageTarget = StageInput & { hostname: string; root: string; database: string; version: string }
 export interface StageProvider {
   preflight(serverId: string, input: StageInput, database: string): Promise<{root: string; version: string}>
-  createSubdomain(serverId: string, target: StageTarget): Promise<void>
+  createHosting(serverId: string, target: StageTarget): Promise<void>
   verifyRoot(serverId: string, target: StageTarget): Promise<void>
   createDatabase(serverId: string, target: StageTarget, password: string): Promise<void>
   install(serverId: string, target: StageTarget, secret: { databasePassword: string; adminPassword: string }, checkpoint: (phase: string) => void): Promise<void>
@@ -77,11 +77,14 @@ export class LocalStageProvider implements StageProvider {
     const domains = (await this.hosting.listDomains(serverId)).domains
     const hostname = input.label + '.' + input.domain
     if (!domains.includes(input.domain) || domains.includes(hostname) || (await this.hosting.listSubdomains(serverId, input.domain)).subdomains.includes(hostname)) throw denied()
-    const roots = await this.roots(serverId, input.domain), parent = join(config.home, 'domains', input.domain, 'public_html'), root = join(parent, input.label)
+    const roots = await this.roots(serverId, input.domain), parent = join(config.home, 'domains', input.domain, 'public_html')
+    const independent = input.placement === 'independent_domain'
+    const container = join(config.home,'domains',hostname), root = independent ? join(container,'public_html') : join(parent,input.label)
     if (roots.public_html !== parent || roots.subdomains[input.label]) throw denied()
     await safeStagePath(config.home, parent)
+    if (independent) await safeStagePath(config.home,join(config.home,'domains'))
     // Even an existing empty directory is refused: this workflow owns only fresh targets.
-    try { await lstat(root); throw denied() } catch (e) { if ((e as NodeJS.ErrnoException).code !== 'ENOENT') throw e }
+    try { await lstat(independent ? container : root); throw denied() } catch (e) { if ((e as NodeJS.ErrnoException).code !== 'ENOENT') throw e }
     const inventory = await this.diagnostics.databases(serverId, 0, 100)
     if (inventory.total > 100 || inventory.databases.some(d => d.database === database)) throw denied()
     const versionText = await this.wp(serverId, parent, ['--version'])
@@ -93,14 +96,20 @@ export class LocalStageProvider implements StageProvider {
     const version = z.string().regex(/^\d+\.\d+(?:\.\d+)?$/).parse(JSON.parse(bytes).offers?.find((v: {response: string}) => v.response === 'upgrade')?.version)
     return { root, version }
   }
-  async createSubdomain(serverId: string, target: StageTarget) {
-    await this.transport.postForm(serverId, '/CMD_API_SUBDOMAINS', {domain: target.domain, subdomain: target.label, action: 'create', json: 'yes'})
-    if (!(await this.hosting.listSubdomains(serverId, target.domain)).subdomains.includes(target.hostname)) throw denied()
+  async createHosting(serverId: string, target: StageTarget) {
+    if (target.placement === 'independent_domain') {
+      await this.transport.postForm(serverId,'/CMD_API_DOMAIN',{action:'create',domain:target.hostname,uquota:'unlimited',ubandwidth:'unlimited',ssl:'ON',php:'ON',cgi:'OFF'})
+      if (!(await this.hosting.listDomains(serverId)).domains.includes(target.hostname)) throw denied()
+    } else {
+      await this.transport.postForm(serverId,'/CMD_API_SUBDOMAINS',{action:'create',domain:target.domain,subdomain:target.label})
+      if (!(await this.hosting.listSubdomains(serverId,target.domain)).subdomains.includes(target.hostname)) throw denied()
+    }
   }
   async verifyRoot(serverId: string, target: StageTarget) {
-    const config = this.config(serverId), roots = await this.roots(serverId, target.domain)
-    if (roots.subdomains[target.label]?.public_html !== target.root) throw denied()
-    await safeStagePath(config.home, target.root)
+    const config = this.config(serverId), independent = target.placement === 'independent_domain'
+    const roots = await this.roots(serverId,independent ? target.hostname : target.domain)
+    if ((independent ? roots.public_html : roots.subdomains[target.label]?.public_html) !== target.root) throw denied()
+    await safeStagePath(config.home,target.root)
     if ((await readdir(target.root)).length) throw denied()
   }
   async createDatabase(serverId: string, target: StageTarget, password: string) {

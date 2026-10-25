@@ -6,11 +6,11 @@ source; accepted decisions explain intent and do not exempt code from criticism.
 
 ## Baseline and evidence
 
-- Review target: 0.13.1, 30 MCP tools; stage diff: `git diff 7ba6257..HEAD -- src test docs .agents`.
+- Review target: 0.14.0, 30 MCP tools; stage diff: `git diff 7ba6257..HEAD -- src test docs .agents`.
   Historical 0.9.0 diagnostics diff: `git diff 210bfa0..HEAD -- src test docs .agents config`.
   Redirects diff: `git diff 1fef5a2..HEAD -- src test docs .agents`.
   TLS + redirects diff: `git diff c25bf96..HEAD -- src test docs .agents`.
-  Deployed release: 0.13.0, commit `4076a87`, Deploy run `40203604423`; Check `40203593539` (120 tests).
+  Deployed release: 0.13.1, commit `c8e6c91`, Deploy run `40204066809`; Check `40204059667` (120 tests).
 - Focus diff: `git diff c242a28..556b134 -- src test scripts config .env.example`.
   `c242a28` is the last pre-0.6.0 commit. Review current `main` too for later changes.
 - Historical validation for this code: `npm run check`, 57 passing tests, successful
@@ -87,3 +87,10 @@ no-symlink/owner/mode/identity checks and exclusion from all MCP receipts. Appli
 receipt access after expiry must not relax ready approval/apply expiry. Check exact
 static CSS CSP hash and absence of external assets. Full 120-test check and dummy
 browser reveal pass; actual hosting installation/name acceptance remain unverified.
+
+0.14.0 focus: placement defaults and persisted legacy compatibility, mode-specific
+allowlists at plan/apply, absent independent container, actual document-root mapping
+and no parent mutation. Polish/English links must remain presentation-only and keep
+form/session/Origin/CSP protections. Full 123 tests pass; real browser used dummy
+credentials only. Safe H57 config read confirmed existing create_domain permission;
+independent-domain creation/installation has not run live.

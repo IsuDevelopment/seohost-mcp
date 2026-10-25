@@ -10,6 +10,7 @@ import { WordPressStages, stageDatabaseName, stageAdminPassword } from '../src/w
 import { LocalStageProvider, safeStagePath, type StageProvider } from '../src/wordpress-stage-provider.js'
 import { ChangeStore } from '../src/change-store.js'
 import { HostingError } from '../src/hosting-error.js'
+import { getServerCapabilities } from '../src/capabilities.js'
 import { createHttpServer } from '../src/http.js'
 const access={actor:'owner-test',canWrite:true}
 const code=(c:string)=>(e:unknown)=>e instanceof HostingError&&e.code===c
@@ -17,12 +18,12 @@ const input={domain:'example.com',label:'stg',adminEmail:'owner@example.com'}
 async function fixture(){
  const home=await realpath(await mkdtemp(join(tmpdir(),'stage-'))), settings=await loadSettings({},false)
  settings.changeStateFile=join(home,'changes.sqlite');settings.accounts.primary!.wordpressProvisioning={home,phpBinary:'/usr/bin/php',wpCli:'/usr/bin/wp'}
- settings.accounts.primary!.writeOperations=['create_subdomain','create_wordpress_stage'];settings.credentials.primary={username:'test',loginKey:'private-key'}
+ settings.accounts.primary!.writeOperations=['create_domain','create_subdomain','create_wordpress_stage'];settings.credentials.primary={username:'test',loginKey:'private-key'}
  settings.localOAuth={file:join(home,'oauth.sqlite'),username:'owner',passwordHash:'a'.repeat(32)+':'+scryptSync('owner-password','a'.repeat(32),64).toString('hex'),redirects:['https://client.example/callback']}
  const state={calls:[] as string[],unsafe:false,fail:false,root:join(home,'domains/example.com/public_html/stg')}
  const provider:StageProvider={
   async preflight(){state.calls.push('preflight');if(state.unsafe)throw new HostingError('UNSAFE_STAGE_TARGET','Not empty');return{root:state.root,version:'6.9.1'}},
-  async createSubdomain(){state.calls.push('subdomain')},async verifyRoot(){state.calls.push('root');if(state.fail)throw new HostingError('UNSAFE_STAGE_TARGET','Provider root not empty')},
+  async createHosting(){state.calls.push('subdomain')},async verifyRoot(){state.calls.push('root');if(state.fail)throw new HostingError('UNSAFE_STAGE_TARGET','Provider root not empty')},
   async createDatabase(){state.calls.push('database')},async install(_id,_target,_secret,checkpoint){state.calls.push('install');checkpoint('verifying_wordpress')},
  }
  const workflow=new WordPressStages(settings,fetch,provider)
@@ -100,7 +101,7 @@ test('browser owner approval requires password, Origin and single-use cookie-bou
  app.listen(0,'127.0.0.1');await new Promise<void>(r=>app.once('listening',r));const address=app.address() as {port:number};f.settings.publicUrl=new URL(`http://127.0.0.1:${address.port}/mcp`)
  const base=f.settings.publicUrl.origin;f.settings.allowedOrigins.add(base)
  try{
- const p=await f.workflow.plan('primary',input,access), url=base+'/wordpress-stage/'+p.planId
+ const p=await f.workflow.plan('primary',input,access), url=base+'/wordpress-stage/'+p.planId+'?lang=en'
  const page=await fetch(url);assert.equal(page.headers.get('referrer-policy'),'strict-origin');const html=await page.text();assert(!html.includes('owner@example.com'));const csrf=html.match(/name="csrf" value="([a-f0-9]+)"/)![1]!
  let ownerCookie=''
  const post=(values:Record<string,string>,token=csrf,origin=base)=>fetch(url,{method:'POST',headers:{Origin:origin,'Content-Type':'application/x-www-form-urlencoded',Cookie:'stage_owner='+token+(ownerCookie?'; '+ownerCookie:'')},body:new URLSearchParams(values)})
@@ -168,7 +169,7 @@ async function browserFixture(){
  app.listen(0,'127.0.0.1');await new Promise<void>(r=>app.once('listening',r))
  const address=app.address() as {port:number};f.settings.publicUrl=new URL(`http://127.0.0.1:${address.port}/mcp`)
  const base=f.settings.publicUrl.origin;f.settings.allowedOrigins.add(base)
- const url=(id:string)=>base+'/wordpress-stage/'+id
+ const url=(id:string)=>base+'/wordpress-stage/'+id+'?lang=en'
  const csrf=(body:string)=>body.match(/name="csrf" value="([a-f0-9]+)"/)![1]!
  const post=(path:string,values:Record<string,string>,cookies:string,origin=base)=>fetch(path,{method:'POST',headers:{Origin:origin,'Content-Type':'application/x-www-form-urlencoded',Cookie:cookies},body:new URLSearchParams(values)})
  const login=async(id:string)=>{
@@ -204,10 +205,10 @@ test('remembered browser session skips login on a new plan, but cannot approve i
 test('remembered session logout requires Origin and CSRF, and revokes existing review forms without deleting plan approvals',async()=>{
  const f=await browserFixture();try{
  const p=await f.workflow.plan('primary',input,access), signed=await f.login(p.planId)
- const logoutToken=signed.body.match(/action="\/wordpress-stage\/logout"><input type="hidden" name="csrf" value="([a-f0-9]+)"/)![1]!
- assert.equal((await f.post(f.base+'/wordpress-stage/logout',{csrf:logoutToken},signed.cookie,'https://evil.example')).status,403)
- assert.equal((await f.post(f.base+'/wordpress-stage/logout',{csrf:'0'.repeat(64)},signed.cookie)).status,400)
- const out=await f.post(f.base+'/wordpress-stage/logout',{csrf:logoutToken},signed.cookie);assert.equal(out.status,200);assert(out.headers.getSetCookie().some(c=>c.startsWith('stage_login=;')&&c.includes('Max-Age=0')))
+ const logoutToken=signed.body.match(/action="\/wordpress-stage\/logout\?lang=en"><input type="hidden" name="csrf" value="([a-f0-9]+)"/)![1]!
+ assert.equal((await f.post(f.base+'/wordpress-stage/logout?lang=en',{csrf:logoutToken},signed.cookie,'https://evil.example')).status,403)
+ assert.equal((await f.post(f.base+'/wordpress-stage/logout?lang=en',{csrf:'0'.repeat(64)},signed.cookie)).status,400)
+ const out=await f.post(f.base+'/wordpress-stage/logout?lang=en',{csrf:logoutToken},signed.cookie);assert.equal(out.status,200);assert(out.headers.getSetCookie().some(c=>c.startsWith('stage_login=;')&&c.includes('Max-Age=0')))
  assert((await (await fetch(f.url(p.planId),{headers:{Cookie:signed.cookie}})).text()).includes('autocomplete="current-password"'))
  const token=f.csrf(signed.body)
  assert.equal((await f.post(f.url(p.planId),{csrf:token,phase:'approve',decision:'approve',preview:p.previewHash},signed.cookie+'; stage_owner='+token)).status,400)
@@ -308,5 +309,76 @@ test('credential display refuses insecure, replaced or mismatched retained files
  await rm(path);const other=join(f.home,'other-secret.json');await writeFile(other,original,{mode:0o600});await symlink(other,path);await check()
  const store=new ChangeStore(f.settings.changeStateFile!);const change=store.get(p.planId,access.actor,'primary');change.status='unknown'
  await assert.rejects(stageAdminPassword(f.settings,change),code('CREDENTIALS_UNAVAILABLE'));store.close()
+ }finally{await f.shutdown()}
+})
+
+test('independent hosting is the new default and requires create_domain; legacy plans retain their subdomain policy',async()=>{
+ const f=await fixture();try{
+ f.settings.accounts.primary!.writeOperations=['create_subdomain','create_wordpress_stage']
+ assert.deepEqual(getServerCapabilities(f.settings,'primary').stagePlacementsConfigured,['subdomain'])
+ await assert.rejects(f.workflow.plan('primary',input,access),code('WRITE_DISABLED'))
+ assert.equal(f.state.calls.length,0)
+ const nested=await f.workflow.plan('primary',{...input,placement:'subdomain'},access)
+ assert.equal(nested.target.placement,'subdomain')
+ const store=new ChangeStore(f.settings.changeStateFile!), old=store.get(nested.planId,access.actor,'primary')
+ delete (old.payload as {target:{placement?:string}}).target.placement;store.checkpoint(old);store.close()
+ f.approve(nested.planId,nested.previewHash);await f.workflow.apply('primary',nested.planId,nested.previewHash,access);assert.equal((await finished(f,nested.planId)).status,'applied')
+ f.settings.accounts.primary!.writeOperations=['create_domain','create_wordpress_stage']
+ const capabilities=getServerCapabilities(f.settings,'primary');assert.deepEqual(capabilities.stagePlacementsConfigured,['independent_domain']);assert.equal(capabilities.tools.find(t=>t.name==='plan_wordpress_stage')?.configurationReady,true);assert.equal(capabilities.tools.find(t=>t.name==='apply_wordpress_stage')?.readOnly,false)
+ const separate=await f.workflow.plan('primary',{...input,label:'another'},access)
+ assert.equal(separate.target.placement,'independent_domain');f.approve(separate.planId,separate.previewHash)
+ f.settings.accounts.primary!.writeOperations=['create_subdomain','create_wordpress_stage']
+ assert.deepEqual(getServerCapabilities(f.settings,'primary').stagePlacementsConfigured,['subdomain'])
+ await assert.rejects(f.workflow.apply('primary',separate.planId,separate.previewHash,access),code('WRITE_DISABLED'))
+ assert.equal(f.state.calls.filter(c=>c==='subdomain').length,1)
+ }finally{await f.close()}
+})
+
+test('independent adapter creates a separate DA domain and verifies its exact fresh public_html without parent writes',async()=>{
+ const f=await fixture();try{
+ const parent=join(f.home,'domains/example.com/public_html'), container=join(f.home,'domains/stg.example.com'), root=join(container,'public_html')
+ await mkdir(parent,{recursive:true});await writeFile(join(parent,'keep.php'),'parent sentinel')
+ const cli=join(f.home,'version.cjs');await writeFile(cli,"console.log('WP-CLI 2.12.0')")
+ f.settings.accounts.primary!.wordpressProvisioning={home:f.home,phpBinary:process.execPath,wpCli:cli}
+ let created=false, wrongRoot=false;const posts:Array<{path:string;values:Record<string,string>}>=[]
+ const request:typeof fetch=async(url,init)=>{
+  const u=new URL(String(url))
+  if(init?.method==='POST'){
+   posts.push({path:u.pathname,values:Object.fromEntries(new URLSearchParams(String(init.body)))})
+   assert.equal(u.pathname,'/CMD_API_DOMAIN');created=true;await mkdir(root,{recursive:true});return new Response('error=0')
+  }
+  if(u.pathname==='/CMD_API_SHOW_DOMAINS')return new Response(created?'list[]=example.com&list[]=stg.example.com':'list[]=example.com')
+  if(u.pathname==='/CMD_API_SUBDOMAINS')return new Response('')
+  if(u.pathname==='/CMD_API_DOMAIN')return new Response(JSON.stringify({users:{test:{domains:{'example.com':{public_html:parent,subdomains:{}},...(created?{'stg.example.com':{public_html:wrongRoot?parent:root,subdomains:{}}}:{})}}}}))
+  if(u.pathname==='/api/db-show/databases')return new Response('[]')
+  if(u.hostname==='api.wordpress.org')return new Response(JSON.stringify({offers:[{response:'upgrade',version:'6.9.1'}]}))
+  throw Error('Unexpected fixture request '+u.pathname)
+ }
+ const provider=new LocalStageProvider(f.settings,request,{home:f.home,username:'test',hostname:new URL(f.settings.accounts.primary!.baseUrl).hostname})
+ const value={...input,placement:'independent_domain' as const,adminName:'stageadmin',title:'Stage'}
+ // A pre-existing container, even empty, is never taken over.
+ await mkdir(container);await assert.rejects(provider.preflight('primary',value,'test_fresh'),code('UNSAFE_STAGE_TARGET'));await rm(container,{recursive:true})
+ const checked=await provider.preflight('primary',value,'test_fresh');assert.equal(checked.root,root);assert.equal(posts.length,0)
+ const target={...value,...checked,hostname:'stg.example.com',database:'test_fresh'}
+ await provider.createHosting('primary',target);assert.deepEqual(posts,[{path:'/CMD_API_DOMAIN',values:{action:'create',domain:'stg.example.com',uquota:'unlimited',ubandwidth:'unlimited',ssl:'ON',php:'ON',cgi:'OFF'}}])
+ await provider.verifyRoot('primary',target)
+ wrongRoot=true;await assert.rejects(provider.verifyRoot('primary',target),code('UNSAFE_STAGE_TARGET'));wrongRoot=false
+ await writeFile(join(root,'index.html'),'provider placeholder');await assert.rejects(provider.verifyRoot('primary',target),code('UNSAFE_STAGE_TARGET'))
+ assert.equal(await readFile(join(parent,'keep.php'),'utf8'),'parent sentinel');assert.equal(posts.length,1)
+ }finally{await f.close()}
+})
+
+test('owner pages default to Polish; switching to English preserves authentication without approving the plan',async()=>{
+ const f=await browserFixture();try{
+ const p=await f.workflow.plan('primary',input,access), pl=f.url(p.planId).replace('?lang=en','')
+ const page=await fetch(pl), first=await page.text();assert.equal(page.headers.get('content-language'),'pl');assert(first.includes('<html lang="pl">'));assert(first.includes('Login właściciela MCP'));assert(first.includes('>English</a>'))
+ const csrf=f.csrf(first), signed=await f.post(pl,{csrf,phase:'login',username:'owner',password:'owner-password'},'stage_owner='+csrf)
+ const cookie=signed.headers.getSetCookie().find(c=>c.startsWith('stage_login='))!.split(';')[0]!, polish=await signed.text()
+ assert(polish.includes('Zatwierdź tę instalację'));assert(polish.includes('Osobna domena w DirectAdmin'));assert(polish.includes('Katalog strony'))
+ const english=await fetch(f.url(p.planId),{headers:{Cookie:cookie}}), body=await english.text()
+ assert.equal(english.headers.get('content-language'),'en');assert(body.includes('Approve this installation'));assert(body.includes('Independent DirectAdmin domain'));assert(!body.includes('autocomplete="current-password"'))
+ const store=new ChangeStore(f.settings.changeStateFile!);assert(!store.isOwnerApproved(store.get(p.planId,access.actor,'primary'),p.previewHash));store.close()
+ const error=await f.post(pl,{csrf:'0'.repeat(64),phase:'approve'},cookie)
+ assert((await error.text()).includes('Formularz lub sesja'));assert(!f.state.calls.includes('subdomain'))
  }finally{await f.shutdown()}
 })
