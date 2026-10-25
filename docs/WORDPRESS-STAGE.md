@@ -216,3 +216,8 @@ style hash; no external assets/scripts or unsafe-inline permission. Applied rece
 remain viewable after the apply deadline, until normal receipt housekeeping removes
 them (seven days on subsequent plan creation); retained private files are not deleted.
 The browser login challenge stays five minutes; approval/apply rules are unchanged.
+
+Release 0.13.0 deployed from `4076a87` through successful Deploy `40203604423`
+(Check `40203593539`, 120 tests/types/build). Independent SDK confirmed health,
+30 tools and read-token write rejection. Browser verification used dummy local
+credentials and a simulated completed result only; real installation remains pending.

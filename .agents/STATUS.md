@@ -2,7 +2,13 @@
 
 Updated: 2026-10-25.
 
-- Production 0.12.0 deployed from `c5fe087` through Deploy `40201063221`;
+- Production 0.13.0 deployed from `4076a87` through successful Deploy `40203604423`;
+  Check `40203593539` passed (120 tests/types/build). Workflow backup/dependency guard/
+  restart/HTTPS/authenticated smoke passed; independent SDK confirmed 0.13.0, 30 tools,
+  unauthenticated 401 and read-token WRITE_SCOPE_REQUIRED. Configuration preserved.
+  Browser CSS and credential result were verified only with dummy local data; no
+  production password was read and no target installation was executed.
+- Historical production 0.12.0 deployed from `c5fe087` through Deploy `40201063221`;
   Check `40201053559` passed (117 tests/types/build). Code backup, dependency guard,
   single-app restart and workflow HTTPS/authenticated MCP smoke passed. Independent
   HTTPS health confirms 0.12.0. Private configuration/state remain preserved.
@@ -279,7 +285,7 @@ never place key values in documentation or logs.
   hash persistence, absolute expiry, credential binding, rotation, cookie flags,
   stale forms, CSRF and cross-plan isolation are regression-tested. Deployed successfully as recorded above.
 
-- Candidate 0.13.0 adds hostname-derived bounded fresh DB/user names and an owner-only
+- Version 0.13.0 adds hostname-derived bounded fresh DB/user names and an owner-only
   completed-result password view, plus minimal responsive hash-authorized CSS (D24).
   Full check passes 120 tests/types/build. Dummy browser login/result/reveal passed;
   no real password was displayed to the agent and no hosting target was created.
