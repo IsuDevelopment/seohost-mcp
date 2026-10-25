@@ -2,6 +2,9 @@ import { resolveServer, type Settings } from './config.js'
 
 // Configuration requirements only. This catalog never probes provider permissions.
 export const TOOL_REQUIREMENTS = {
+  plan_wordpress_stage: {credentials:true,wordpressLogs:false,write:true,stage:true},
+  apply_wordpress_stage: {credentials:true,wordpressLogs:false,write:true,stage:true},
+  get_wordpress_stage: {credentials:false,wordpressLogs:false,write:true},
   get_server_info: { credentials: false, wordpressLogs: false },
   list_servers: { credentials: false, wordpressLogs: false },
   resolve_server: { credentials: false, wordpressLogs: false },
@@ -40,12 +43,13 @@ export function getServerCapabilities(settings: Settings, reference: string | nu
     const missingConfiguration: string[] = []
     if (requirements.credentials && !credentialsConfigured) missingConfiguration.push('hosting_credentials')
     if (requirements.wordpressLogs && !wordpressLogRootsConfigured) missingConfiguration.push('wordpress_log_roots')
+    if ('stage' in requirements && (!settings.accounts[serverId]!.wordpressProvisioning || !settings.localOAuth || !settings.accounts[serverId]!.writeOperations?.includes('create_wordpress_stage') || !settings.accounts[serverId]!.writeOperations?.includes('create_subdomain'))) missingConfiguration.push('wordpress_provisioning')
     if ('backupMetadata' in requirements && !settings.accounts[serverId]!.backupRoots?.length) missingConfiguration.push('backup_roots')
     if ('databaseExport' in requirements) {
       if (!settings.accounts[serverId]!.databaseExports) missingConfiguration.push('account_database_exports')
       if (!settings.databaseExportDirectory) missingConfiguration.push('database_export_directory')
     }
-    if ('write' in requirements && name !== 'get_hosting_change' && !settings.accounts[serverId]!.writeOperations?.length) missingConfiguration.push('account_write_operations')
+    if ('write' in requirements && !['get_hosting_change','get_wordpress_stage'].includes(name) && !settings.accounts[serverId]!.writeOperations?.length) missingConfiguration.push('account_write_operations')
     return { name, configurationReady: missingConfiguration.length === 0, missingConfiguration,
       providerPermission: requirements.credentials ? 'unverified' : 'not_applicable',
       requiredScope: 'write' in requirements ? 'mcp:write' : 'mcp:read',

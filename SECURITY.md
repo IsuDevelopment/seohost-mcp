@@ -69,3 +69,22 @@ identity. Refresh tokens are hash-only, client/resource/scope-bound, atomically
 rotated and replay-detecting; reuse or explicit family revocation invalidates
 associated access tokens. Existing read grants cannot gain write scope via refresh.
 See [OAuth](docs/OAUTH.md) for bounds and configuration.
+
+## Fresh WordPress stage boundary
+
+The opt-in 0.11.0 workflow adds only fresh local-account installs, with a separate
+owner-password browser approval bound to plan/hash/actor/account/expiry. A write
+grant or agent-provided approval assertion cannot manufacture that receipt. The
+approval page uses Origin/CSRF/session/rate checks and never displays a plan before
+owner login. The shared account lock and pre-write checkpoints survive HTTP
+disconnects; interrupted/uncertain operations are never retried or cleaned up.
+
+Provider hostname, OS account/home, canonical document roots, target absence and
+new DB identity gate fixed shell-free WP-CLI steps. Secrets use stdin, a restricted
+child environment and owner-only retained files outside web roots; no raw stdout,
+provider DB response or passwords reach MCP. No existing directory or database
+is reused, no imports/deletions occur, and parent TLS/DNS policy is untouched.
+Private paths and binaries are operator configuration, never tool inputs. This
+trusts the local same-UID account and Apache-compatible installation deny rules;
+it is not isolation against hostile code running under that UID. Local success
+is not public DNS/TLS/HTTP verification. See [workflow limits](docs/WORDPRESS-STAGE.md).

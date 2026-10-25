@@ -1,7 +1,16 @@
 # Status and handoff
 
-Updated: 2026-10-23.
+Updated: 2026-10-25.
 
+- Candidate 0.11.0 implements fresh WordPress stage planning, separate owner-login
+  approval and checkpointed local-account installation (30 tools). Full check
+  passes 111 tests/types/build; candidate preflight also passed on H57 without
+  creating a subdomain/database/site files. Stable core version lookup and fixed
+  WP-CLI execution work in the app runtime. No real stage/subdomain/database has been created.
+  Softaculous end-user CLI file is accessible, but documented list commands exit
+  255 without JSON under PHP 8.2/8.3/8.5; ionCube is present. No proprietary sources
+  were read and no security settings weakened. WP-CLI 2.12.0 and the documented
+  document-root map/OS-account identity match on H57. See WORDPRESS-STAGE.md/D22.
 - Production 0.10.0 is deployed from `78b62b2` through successful Deploy MCP run
   `39958497210`; Check run `39958419598` passed. Workflow tests (100/100), dependency
   guard, private code backup, single-app restart, HTTPS/authentication verification
@@ -35,12 +44,12 @@ Updated: 2026-10-23.
   needs fresh user confirmation, explicit existing-target wipe review and verified
   source/old-target DB/files backups retained until separately approved deletion.
   D19 temporary download artifacts cannot satisfy migration backup retention.
-  No migration or backup-deletion tools exist yet. Owner reports full key permissions;
+  Fresh-only stage tooling is added by D22; clone/promotion and backup deletion remain pending. Owner reports full key permissions;
   diagnose provider feature availability/contracts rather than asking for more rights.
 - Requested next CLI scope: plugin inventories per installation/site, multisite
   site lists, user lists and staging-to-live search-replace. Not implemented. First
   verify execute/SSH/WP-CLI targeting; use fixed typed operations, bounded responses
-  and deliberate user-data projection. Migration writes need backup, serialized-data
+  and deliberate user-data projection. D22 exposes only fixed new-install CLI steps. Migration writes need backup, serialized-data
   dry-run, explicit table/site/network scope and separately reviewed write plans.
 - Historical production 0.9.0 was deployed from `cccf886` through successful Deploy MCP run
   `39760091947`; Check run `39754158408` also passed. Independent HTTPS health

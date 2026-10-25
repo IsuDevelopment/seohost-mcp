@@ -1,7 +1,7 @@
 import type { Settings } from './config.js'
 import { HostingError } from './hosting-error.js'
 
-type ReadPath = '/CMD_API_SHOW_USER_USAGE' | '/CMD_API_SHOW_USER_CONFIG' | '/api/resource-usage/latest' | '/api/resource-usage/history'
+type ReadPath = '/CMD_API_DOMAIN' | '/CMD_API_SHOW_USER_USAGE' | '/CMD_API_SHOW_USER_CONFIG' | '/api/resource-usage/latest' | '/api/resource-usage/history'
   | '/api/db-show/databases' | `/api/db-show/databases/${string}`
   | '/CMD_API_SHOW_DOMAINS' | '/CMD_SHOW_LOG' | '/CMD_API_SUBDOMAINS'
   | '/CMD_API_REDIRECT' | '/CMD_API_ADDITIONAL_DOMAINS' | '/CMD_API_DNS_CONTROL'
@@ -12,7 +12,7 @@ type ReadPath = '/CMD_API_SHOW_USER_USAGE' | '/CMD_API_SHOW_USER_CONFIG' | '/api
 export const MAX_RESPONSE_BYTES = 512 * 1024
 export type WritePath = '/CMD_API_REDIRECT' | '/CMD_API_DOMAIN' | '/CMD_API_SUBDOMAINS' | '/CMD_API_DNS_CONTROL'
 
-async function boundedBytes(response: Response) {
+export async function boundedBytes(response: Response) {
   if (Number(response.headers.get('content-length')) > MAX_RESPONSE_BYTES) {
     await response.body?.cancel()
     throw new HostingError('RESPONSE_TOO_LARGE', 'Hosting response exceeds the bounded read limit.')
@@ -120,6 +120,24 @@ export class DirectAdminTransport {
     } catch {
       throw new HostingError('WRITE_OUTCOME_UNKNOWN', 'The provider did not confirm the write. Inspect current state; do not retry blindly.')
     }
+  }
+
+  // Fixed fresh database operation. Credentials never leave the provisioning adapter.
+  async createStageDatabase(serverId: string, database: string, password: string) {
+    const credentials = this.settings.credentials[serverId]
+    if (!credentials) throw new HostingError('CREDENTIALS_MISSING', 'Hosting credentials are missing.')
+    try {
+      const response = await this.request(new URL('/api/db-manage/create-db-with-user', this.settings.accounts[serverId]!.baseUrl), {
+        method: 'POST', redirect: 'manual', signal: AbortSignal.timeout(30000),
+        headers: { Authorization: 'Basic ' + Buffer.from(credentials.username + ':' + credentials.loginKey).toString('base64'), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ database, dbuser: database, password, hostPatterns: ['localhost'] }),
+      })
+      if (response.status !== 200) { await response.body?.cancel(); throw new Error() }
+      const value = JSON.parse((await boundedBytes(response)).toString('utf8'))
+      if (JSON.stringify(value.hostPatterns) !== JSON.stringify(['localhost']) || value.database !== database || value.dbuser !== database || value.password !== password
+        || value.unixSocket !== false || !['localhost', '127.0.0.1', 'localhost:3306', '127.0.0.1:3306'].includes(value.address)) throw new Error()
+      return { database, dbuser: database, password, address: value.address as string }
+    } catch { throw new HostingError('WRITE_OUTCOME_UNKNOWN', 'Database creation was not verified. Preserve the operation and inspect before retrying.') }
   }
 
   // Fixed ACME settings route only; no certificate/key files, arbitrary verbs or retries.

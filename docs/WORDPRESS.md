@@ -99,7 +99,8 @@ WordPress tools work, or continue widening Login Key permissions to fix it.
 Softaculous documents its own [API, including WordPress inventory](https://www.softaculous.com/docs/api/api/).
 A future adapter needs separately verified account-level routes, authentication,
 response projection and installation ID handling; existing DA IDs are not presumed
-interchangeable. No Softaculous adapter or automatic authentication fallback is
+interchangeable. The fresh-stage workflow uses a separate [fixed local WP-CLI adapter](WORDPRESS-STAGE.md).
+No Softaculous adapter or automatic authentication fallback is
 implemented. The 0.9.0 investigation found the advertised plugin route, but JSON
 installation/backup list actions returned non-JSON HTTP 200 responses with the
 existing Login Key; this is not an empty inventory. See
@@ -129,3 +130,9 @@ Native inventory denial is not bypassed: choose an explicit owned database inste
 See [database exports](DATABASE-EXPORTS.md) for opt-ins, bounds and authenticated
 downloads. WP-CLI, user/plugin/multisite inventories and search-replace remain a
 requested follow-up, not implemented operations.
+
+## Fresh installation
+
+See [fresh WordPress staging](WORDPRESS-STAGE.md) for owner-confirmed new subdomain/DB
+installation. It does not depend on native DA WordPress inventory, expose a generic
+shell, clone a live site or register the installation with Softaculous.

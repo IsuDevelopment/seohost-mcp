@@ -23,8 +23,8 @@ Candidate 0.10.0 implements whole owned database gzip exports with private tempo
 storage, actor-authenticated downloads and local checksum-verifying download helper.
 Local verification: `npm run check` passes (93/93 tests, types/build); changed
 Markdown links and diff whitespace pass. These one-hour artifacts are not retained
-migration backups. No CLI/migration apply
-tools exist. Version 0.10.0 was deployed on 2026-10-23 (see STATUS); no live
+migration backups. D22 adds only owner-confirmed fresh-stage tools and fixed installation CLI steps.
+Clone/promotion and general CLI tools remain unavailable. Version 0.10.0 was deployed on 2026-10-23 (see STATUS); no live
 migration, database export/import or backup deletion was performed.
 
 ## Remaining work / next step

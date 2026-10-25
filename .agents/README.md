@@ -3,8 +3,8 @@
 Standalone MCP server for SeoHost/DirectAdmin accounts, TypeScript and Node.js >=22.23.2.
 The product targets standard SeoHost shared hosting. VPS compatibility is untested;
 do not infer either full support or endpoint absence from the VPS label.
-Version 0.10.0: HTTP/stdio, Bearer/OAuth, inventory, configuration/site/log diagnostics,
-account/database/backup metadata, opt-in private gzip database exports, log summaries, domain/DNS diagnostics, site redirects, web-log, fixed account-root `log.txt` and explicitly enabled
+Version 0.11.0: HTTP/stdio, Bearer/OAuth, inventory, configuration/site/log diagnostics,
+account/database/backup metadata, owner-confirmed fresh WordPress staging, opt-in private gzip database exports, log summaries, domain/DNS diagnostics, site redirects, web-log, fixed account-root `log.txt` and explicitly enabled
 WordPress debug-log reads. One installation
 owner can read all configured accounts. Planned domain/DNS/TLS writes require separate
 authorization and per-account operation allowlists; see D14/D15/D17 and the
@@ -27,6 +27,7 @@ Operator documentation: [README](../README.md), [logs](../docs/LOGS.md),
 [OAuth](../docs/OAUTH.md), [deployment](../docs/DEPLOYMENT.md),
 [WordPress reads](../docs/WORDPRESS.md),
 [database exports](../docs/DATABASE-EXPORTS.md),
+[fresh stage workflow](../docs/WORDPRESS-STAGE.md),
 [staging/migration requirements](../docs/WORDPRESS-MIGRATIONS.md),
 [diagnostics](../docs/DIAGNOSTICS.md), [hosting diagnostics](../docs/HOSTING-DIAGNOSTICS.md), [domain/DNS workflow](../docs/DOMAIN-DNS.md),
 [certificates/HTTPS](../docs/TLS.md), [site redirects](../docs/REDIRECTS.md),

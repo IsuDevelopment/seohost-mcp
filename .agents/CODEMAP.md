@@ -7,7 +7,10 @@ module responsibilities or important flows change; keep this map short.
 | --- | --- |
 | `src/http.ts` | HTTP entry point, Host/Origin checks, health/discovery, authenticated actor/write context, per-request MCP transport and cleanup. |
 | `src/stdio.ts` | Local process entry point; stdout reserved for MCP, owner write context still subject to account operation policy. |
-| `src/server.ts` | Version, twenty-seven tool registrations, input schemas, MCP results/errors and safe auditing. |
+| `src/server.ts` | Version, thirty tool registrations, input schemas, MCP results/errors and safe auditing. |
+| `src/wordpress-stage.ts` | Fresh-only immutable stage plan, shared account reservation, secret-free background checkpoints/results and no retries. |
+| `src/wordpress-stage-provider.ts` | Local UID/home/host binding, canonical/absent target, document-root and dedicated DB APIs; fixed shell-free WP-CLI, stdin secrets and stage policy. |
+| `src/wordpress-stage-approval.ts` | Separate owner-password browser review/approve/deny with cookie-bound single-use challenges; no hosting writes from the page. |
 | `src/capabilities.ts` | Shared tool/configuration-requirement catalog and honest configuration-only readiness; smoke tests verify names against the catalog. |
 | `src/config.ts` | Validates env/JSON, origins, aliases, distinct read/write tokens, account write operations and trusted NS; selects private state files and resolves explicit accounts. |
 | `src/directadmin.ts` | Domain/subdomain reads, ownership checks and bounded/redacted web-log results; public raw output stays 64 KiB, internal summaries inspect up to the 512 KiB provider bound. |
@@ -41,6 +44,7 @@ module responsibilities or important flows change; keep this map short.
 | `test/server.test.ts` | HTTP auth, Host/Origin, method/body limits, real HTTP SDK and stdio. |
 | `test/directadmin.test.ts` | Account isolation, aliases, domain validation, provider failures, limits, plain/JSON/PHP WordPress credential redaction and SDK. |
 | `test/domain-dns.test.ts`, `test/hosting-changes.test.ts` | Provider projection, contextual DNS/cache/failure handling, scopes/allowlists, stale/actor/expiry checks, exact record selectors, replay/uncertainty and concurrent reservations. |
+| `test/wordpress-stage.test.ts` | Owner approval/CSRF/replay/expiry, write/host/path gates, secret stdin/environment, shared locks and partial failure; real child fixture and HTTP page. |
 | `test/account-diagnostics.test.ts`, `test/log-summary.test.ts` | Tally projection/unknown limits, resource denial/series validation, fresh DB ownership, backup boundaries/pagination and single-read/rare fatal/SDK summaries. |
 | `test/redirects.test.ts` | Typed decoding, secret projection, exact delete/add edits, authorization, stale/full-state checks, uncertainty/replay and SDK discovery. |
 | `test/tls.test.ts` | Parent-wide scope/write gates, config-secret preservation, certificate coverage/date checks, stale state, PUT uncertainty/reconciliation and MCP projection. |
@@ -96,6 +100,11 @@ module responsibilities or important flows change; keep this map short.
   regular archive basenames/IDs; no download or claim of backup integrity.
 - Deploy → check → allowlisted archive → SSH → dependency compatibility → code
   backup → restart → HTTPS + optional Bearer smoke; failure after copying begins → rollback.
+
+- Fresh stage → absent target + pinned core preview → separate owner-login approval →
+  same-actor apply → shared account reservation → revalidation → fixed subdomain/DB/
+  CLI steps + private credential file → local verification; uncertain steps retain lock.
+  No clone/promotion, overwrite, generic shell or implied public DNS/TLS readiness.
 
 ## State boundaries
 

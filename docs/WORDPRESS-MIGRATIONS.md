@@ -1,8 +1,8 @@
 # WordPress staging and promotion contract
 
-Owner requirements accepted on 2026-10-23. **Design/implementation backlog, not an
-available migration capability.** Version 0.10.0 implements only private database
-exports. Do not present domain creation, an export or a URL replacement as a
+Owner requirements accepted on 2026-10-23. **Clone/promotion remain backlog.**
+Version 0.11.0 implements the fresh-target subset through the separately approved
+[WordPress stage workflow](WORDPRESS-STAGE.md); 0.10.0 adds private database exports. Do not present domain creation, an export or a URL replacement as a
 completed migration. The owner reports full API key permissions; investigate
 provider feature availability/contracts when operations fail, rather than asking
 for broader key permissions again.
@@ -40,7 +40,7 @@ requires another preview and user confirmation. A string/hash echoed by an AI
 client does not prove human consent. Before exposing apply, implement and test a
 concrete owner-approval receipt mechanism; until then, migration apply is blocked.
 The conversational agent must always ask for the specific reviewed operation and
-wait for the user's answer. No user has authorized an actual migration yet.
+wait for the user's answer. Development authorization does not approve any concrete installation/migration.
 
 ## Mandatory retained backups
 

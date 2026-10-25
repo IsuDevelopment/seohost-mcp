@@ -3,9 +3,9 @@
 MCP integration with read-only defaults and reviewed domain/DNS/TLS changes for **standard SeoHost shared hosting** accounts using
 DirectAdmin.
 
-Version 0.10.0: a standalone TypeScript/Node.js server with HTTP and stdio transports,
+Version 0.11.0: a standalone TypeScript/Node.js server with HTTP and stdio transports,
 Bearer and built-in OAuth authentication, domain/subdomain and WordPress inventory,
-account/database/backup metadata diagnostics, opt-in private database exports, single-read log summaries,
+account/database/backup metadata diagnostics, opt-in private database exports, owner-confirmed fresh WordPress staging, single-read log summaries,
 bounded reads of web-server logs, account-root `log.txt` and existing WordPress debug logs,
 plus local/public DNS diagnostics and separately authorized domain/DNS changes, free certificate automation, HTTPS enforcement and site redirect rules.
 
@@ -47,7 +47,8 @@ Test the running HTTP server with `npm run smoke`. Available tools:
 `list_backup_files`, `summarize_web_log`, `list_domains`, `list_subdomains`, `list_wordpress_sites`, `get_wordpress_info`,
 `get_wordpress_log_info`, `read_account_log`, `read_web_log`, `read_wordpress_log`,
 `get_domain_info`, `get_tls_info`, `list_redirects`, `list_dns_records`, `check_dns`, `plan_hosting_change`,
-`apply_hosting_change` and `get_hosting_change`.
+`apply_hosting_change`, `get_hosting_change`, `export_database`,
+`plan_wordpress_stage`, `apply_wordpress_stage` and `get_wordpress_stage`.
 See [logs, aliases and key setup](docs/LOGS.md),
 [WordPress inventory and logs](docs/WORDPRESS.md) and
 [configuration and deployment](docs/DEPLOYMENT.md). MIT license.
@@ -69,7 +70,9 @@ helper. Enable per account and configure private storage outside web roots. No S
 is returned in chat; native WordPress mapping is optional and provider-dependent.
 [Staging/promotion requirements](docs/WORDPRESS-MIGRATIONS.md) record the next
 workflow: fresh confirmation per operation and retained DB/files backups before
-overwrite. Full migrations and WP-CLI operations are not implemented yet.
+overwrite. [Fresh WordPress staging](docs/WORDPRESS-STAGE.md) now implements new
+subdomain + separate DB + pinned core via a fixed local WP-CLI adapter and separate
+owner-login approval. Clone/promotion and general CLI operations remain unavailable.
 
 Domain/subdomain creation and individual DNS record edits use expiring previews,
 separate write authorization and per-account operation allowlists. Existing read

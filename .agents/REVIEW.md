@@ -6,10 +6,11 @@ source; accepted decisions explain intent and do not exempt code from criticism.
 
 ## Baseline and evidence
 
-- Review target: 0.9.0, 26 MCP tools; diagnostics diff: `git diff 210bfa0..HEAD -- src test docs .agents config`.
+- Review target: 0.11.0, 30 MCP tools; stage diff: `git diff 7ba6257..HEAD -- src test docs .agents`.
+  Historical 0.9.0 diagnostics diff: `git diff 210bfa0..HEAD -- src test docs .agents config`.
   Redirects diff: `git diff 1fef5a2..HEAD -- src test docs .agents`.
   TLS + redirects diff: `git diff c25bf96..HEAD -- src test docs .agents`.
-  Deployed release: 0.9.0, feature commit `cccf886`, Deploy run `39760091947`.
+  Deployed release before this change: 0.10.0, commit `78b62b2`, Deploy run `39958497210`.
 - Focus diff: `git diff c242a28..556b134 -- src test scripts config .env.example`.
   `c242a28` is the last pre-0.6.0 commit. Review current `main` too for later changes.
 - Historical validation for this code: `npm run check`, 57 passing tests, successful
@@ -28,10 +29,15 @@ source; accepted decisions explain intent and do not exempt code from criticism.
   write operations or backup roots were enabled.
   Passing checks are not independent security certification.
 
+Current candidate validation: 111 tests/types/build pass, including owner browser
+approval, child-process secret handling, shared locks and partial failures. H57
+candidate preflight passed without target writes. No actual installation has run.
+
 ## Inspection order
 
 | Concern | Source and questions |
 | --- | --- |
+| Fresh stage | `wordpress-stage*.ts`, `change-store.ts`, `http.ts`: owner browser approval/CSRF/replay/expiry, same actor/host/UID, fresh target/DB, fixed child env/stdin, private credentials, pre-write checkpoints and no public readiness claim. Check unknown reservations and provider-created nonempty root handling. |
 | Authorization | `auth.ts`, `local-oauth.ts`, `http.ts`, `stdio.ts`, `config.ts`: can a read grant acquire write capability? Are actor identity, consent, account allowlists and transport defaults enforced consistently? |
 | Persistent execution | `hosting-changes.ts`, `change-store.ts`: trace ready → applying → applied/failed/unknown, expiry, concurrent requests, interrupted processes, actor/account binding, replay and reconciliation. Check database write/error paths, not only success cases. |
 | Provider contracts | `directadmin-http.ts`, `hosting-changes.ts`: verify fixed paths/forms, application-level error handling, exact DNS selectors, TTL/TXT/MX normalization, create defaults, post-write verification and uncertain outcomes. Fixtures are not provider confirmation. |

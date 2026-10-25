@@ -2,7 +2,7 @@
 
 This describes implemented behavior, not permission to operate on an arbitrary
 account. Tool registrations and schemas in `src/server.ts` are authoritative.
-All twenty-seven MCP tools are available over HTTP and stdio; writes use separate authorization and per-account allowlists.
+All thirty MCP tools are available over HTTP and stdio; writes use separate authorization and per-account allowlists.
 
 Platform scope: standard SeoHost shared hosting accounts via DirectAdmin. VPS
 compatibility is untested; panel presence does not establish endpoint/permission
@@ -16,6 +16,9 @@ equivalence. No root, VM lifecycle or operating-system administration is provide
 | `list_servers` | Configured server IDs, labels, aliases and `credentialsConfigured`. | None. | No hosting request; omits URLs and secrets. Credential presence is not proof of validity. |
 | `resolve_server` | Resolves one reference to canonical ID, label and credential-presence flag. | Required `serverId`. | No hosting request. Unknown/ambiguous references fail; no default selection. |
 | `get_server_capabilities` | Reports tool/configuration readiness from loaded settings without private account details. | Required `serverId`. | No provider request. `configurationReady` does not verify key permissions or endpoint availability; restart after changing configuration. |
+| `plan_wordpress_stage` | Fresh single-site stage preview and separate owner-confirmation URL. | `serverId`, parent `domain`, exact `label`, `adminEmail`; optional adminName/title. | Write scope, local provisioning, create_subdomain/create_wordpress_stage policy, absent host/root/new DB, pinned core. No target writes. |
+| `apply_wordpress_stage` | Start approved background installation with durable phases and account lock. | `serverId`, planId, previewHash. | Same actor/account; unexpired separate owner-password browser approval. No implicit consent, overwrite, shell input, retries or parent TLS changes. |
+| `get_wordpress_stage` | Actor-bound stage phase/receipt including partial failures. | `serverId`, planId. | Write scope; does not resume or release unknown locks. Credentials remain in private local storage. |
 | `get_account_usage` | Safe tally, limits and near-limit indicators for disk/bandwidth/inodes/counts. | `serverId`. | Self-account; provider tally can lag. Missing is null, unlimited explicit; no contact/config secrets. |
 | `get_resource_usage` | Latest or bounded historical CPU/RAM/tasks/I/O metadata and limits. | `serverId`; optional `hours`, `points`, `aggregation`. | Account-only; H57 latest returns 403. No fake zeros or permission bypass. |
 | `list_databases` | Account database names, sizes and object/user counts with paging. | `serverId`; optional `offset`, `limit`. | Metadata only, no SQL/credentials or inferred site mapping. |
@@ -137,3 +140,8 @@ tokens for clients registering both supported grants. Exact callback/code bindin
 PKCE, owner consent, scope non-escalation, seven-day refresh expiry and family-wide
 replay/revocation apply. Existing code-only clients are not upgraded automatically.
 See [OAuth](../docs/OAUTH.md); production requires separate deployment/configuration.
+
+Fresh staging: [WORDPRESS-STAGE.md](../docs/WORDPRESS-STAGE.md). New single site/DB
+only; local host/UID binding, no clone/promotion or general CLI. Ask for the concrete
+reviewed operation, then direct the owner to its separate login/approval page. Never
+automate owner consent or read private generated passwords into model context.

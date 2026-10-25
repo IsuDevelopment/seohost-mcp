@@ -1,5 +1,6 @@
 import { createServer, type ServerResponse } from 'node:http'
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js'
+import { handleStageApproval } from './wordpress-stage-approval.js'
 import { createLocalOAuth } from './local-oauth.js'
 import { createAuthenticator, type AccessContext } from './auth.js'
 import { loadSettings, type Settings } from './config.js'
@@ -33,6 +34,7 @@ export function createHttpServer(settings: Settings, providerRequest: typeof fet
     if (request.headers.host !== settings.publicUrl.host) return json(response, 403, { error: 'Invalid host' })
     if (request.headers.origin && !settings.allowedOrigins.has(request.headers.origin)) return json(response, 403, { error: 'Invalid origin' })
     try {
+      if (await handleStageApproval(request,response,settings)) return
       if (localOAuth && await localOAuth.handle(request, response)) return
     } catch {
       console.error('OAuth request failed')

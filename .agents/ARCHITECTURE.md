@@ -42,7 +42,7 @@ and MCP server lets hosting tests run without real accounts.
   Host/Origin checks to work around a configuration problem.
 - OAuth/change SQLite state and env files are private, persistent and separate from releases.
 - WordPress inventory projects safe fields only; never expose config/options/SSO
-  or execute WP-CLI/PHP through MCP. D19 permits internal config reads solely for
+  or expose arbitrary WP-CLI/PHP through MCP. D22 permits only the fixed fresh-stage adapter. D19 permits internal config reads solely for
   opted-in export mapping, immediately projecting the local database name and
   discarding credentials. Never enable debugging as part of a read.
 - Configuration diagnostics inspect loaded settings only, not provider authorization.
@@ -191,3 +191,22 @@ retains used hashes for family-wide replay invalidation. Refresh cannot widen
 consented scope or change resource/client and has a fixed seven-day expiry. Family
 revocation includes associated access tokens. Old state/code-only clients remain
 valid without automatic refresh enrollment. See [OAuth](../docs/OAUTH.md).
+
+## Fresh stage boundary (D22)
+
+Only the fresh-target subset of D20 is implemented: same local OS/provider account
+and hostname, canonical default parent root, absent subdomain/directory and a new
+dedicated database. No existing-target mutation, clone/promotion/import or cleanup.
+Separate owner-password browser approval binds immutable plan/hash/actor/account/
+expiry; no approval tool accepts an agent assertion. Revalidate absence and mapping
+before provider writes; inspect the actual new root before touching its files.
+
+Reuse ChangeStore account reservations across generic hosting and stage writes.
+A background worker records each phase before side effects; interruption or any
+uncertain partial write keeps the lock, with no automatic resume/rollback/deletion.
+Fixed shell-free WP-CLI uses stdin secrets and an isolated environment/config;
+passwords are retained owner-only outside web roots, not in MCP plans/results.
+Protect installation with a deny rule, then authenticated frontend/noindex/mail/
+cron stage policy. Local verification is distinct from public DNS/TLS/HTTP readiness.
+No parent-wide TLS consent is inferred from creating one child. This trusts the
+same-UID account, not hostile tenants. See WORDPRESS-STAGE.md for limitations.
