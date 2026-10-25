@@ -2,7 +2,11 @@
 
 Updated: 2026-10-25.
 
-- Candidate 0.11.1 fixes native owner approval/OAuth form POSTs: no-referrer made
+- Production 0.11.1 deployed from `75c40d6` through successful Deploy run
+  `40193850271`; Check `40193837644` passed (112 tests/types/build). Private H57
+  configuration/state preserved. A fresh production MCP plan replaces the expired
+  preview and still awaits explicit owner confirmation; no target resources created.
+- Version 0.11.1 fixes native owner approval/OAuth form POSTs: no-referrer made
   browsers send Origin:null, which the server correctly rejected. strict-origin
   keeps same-origin POST identity while withholding URL paths. Null/cross-site
   checks, CSRF, owner login and session/plan expiry remain enforced. All 112 tests,
@@ -12,7 +16,7 @@ Updated: 2026-10-25.
   Cleanup/export reservations are now separate: exports await active housekeeping;
   real concurrent exports still fail busy. Deterministic regression added and 112
   checks pass. No target mutation performed.
-- Production 0.11.0 is deployed from `ceab05b` through Deploy MCP run `40188810485`;
+- Historical production 0.11.0 was deployed from `ceab05b` through Deploy MCP run `40188810485`;
   Check run `40188798012` passed. Workflow check/package/dependency guard/backup/
   restart/HTTPS/authenticated smoke passed. Independent SDK confirmed 30 tools,
   version/401 boundary and read-token write rejection. The owner separately approved
@@ -161,6 +165,12 @@ Updated: 2026-10-25.
   inspection order and verification gaps; it does not represent review approval.
 
 ## Recent changes
+
+2026-10-25 — 0.11.1 (`75c40d6`, Deploy `40193850271`): fixed browser Origin:null
+caused by no-referrer on stage/OAuth forms; real browser dummy login verified.
+Startup housekeeping/export contention discovered in CI was fixed with a gated
+regression. 112 tests/types/build and workflow pass. No owner credentials read,
+no hosting installation applied. Existing expired preview replaced by a fresh plan.
 
 2026-10-25 — D22 fresh WordPress workflow implemented and deployed (`ceab05b`, run
 `40188810485`), 111 tests/types/build pass. Owner-approved H57 opt-in/config backup

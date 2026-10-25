@@ -159,3 +159,9 @@ the patch; after the patch the same form reaches the exact-plan review. Tests
 assert both form policies and continued null/cross-site Origin rejection.
 Expired plans still require a new preview; owner sessions remain single-use and
 expire after five minutes. Reopen the fresh link if a form has been idle too long.
+
+Patch 0.11.1 deployment `40193850271` from `75c40d6` passed on 2026-10-25
+(Check `40193837644`, 112 tests/types/build). The earlier attempt stopped before
+production changes because CI exposed a startup export-housekeeping race; that
+race is also fixed and regression-tested. The expired preview was replaced with
+a fresh plan; no real installation or owner consent was executed by the agent.

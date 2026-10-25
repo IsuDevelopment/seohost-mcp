@@ -10,7 +10,7 @@ source; accepted decisions explain intent and do not exempt code from criticism.
   Historical 0.9.0 diagnostics diff: `git diff 210bfa0..HEAD -- src test docs .agents config`.
   Redirects diff: `git diff 1fef5a2..HEAD -- src test docs .agents`.
   TLS + redirects diff: `git diff c25bf96..HEAD -- src test docs .agents`.
-  Deployed release: 0.11.0, commit `ceab05b`, Deploy run `40188810485`.
+  Deployed release: 0.11.1, commit `75c40d6`, Deploy run `40193850271`.
 - Focus diff: `git diff c242a28..556b134 -- src test scripts config .env.example`.
   `c242a28` is the last pre-0.6.0 commit. Review current `main` too for later changes.
 - Historical validation for this code: `npm run check`, 57 passing tests, successful
@@ -39,6 +39,9 @@ Patch 0.11.1: real browser testing exposed no-referrer → Origin:null on HTML
 forms. Approval and OAuth pages now send strict-origin; null/cross-site rejection
 and CSRF remain. 112 tests/types/build pass; browser dummy login reaches review.
 No real owner credentials/approval were used or generated during this test.
+CI also exposed startup housekeeping/export contention; exports now await cleanup
+without weakening the concurrent-export reservation. The gated regression and full
+112-test Check/Deploy passed. Fresh production planning remains awaiting approval.
 
 ## Inspection order
 
