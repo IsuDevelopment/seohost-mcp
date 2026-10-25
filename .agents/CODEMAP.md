@@ -44,7 +44,7 @@ module responsibilities or important flows change; keep this map short.
 | `test/server.test.ts` | HTTP auth, Host/Origin, method/body limits, real HTTP SDK and stdio. |
 | `test/directadmin.test.ts` | Account isolation, aliases, domain validation, provider failures, limits, plain/JSON/PHP WordPress credential redaction and SDK. |
 | `test/domain-dns.test.ts`, `test/hosting-changes.test.ts` | Provider projection, contextual DNS/cache/failure handling, scopes/allowlists, stale/actor/expiry checks, exact record selectors, replay/uncertainty and concurrent reservations. |
-| `test/wordpress-stage.test.ts` | Owner approval/CSRF/replay/expiry, write/host/path gates, secret stdin/environment, shared locks and partial failure; real child fixture and HTTP page. |
+| `test/wordpress-stage.test.ts` | Owner approval/CSRF/replay/expiry, write/host/path gates, secret stdin/environment, shared locks and partial failure; real child fixture and HTTP page; browser-compatible referrer policy with null/cross-site Origin rejection. |
 | `test/account-diagnostics.test.ts`, `test/log-summary.test.ts` | Tally projection/unknown limits, resource denial/series validation, fresh DB ownership, backup boundaries/pagination and single-read/rare fatal/SDK summaries. |
 | `test/redirects.test.ts` | Typed decoding, secret projection, exact delete/add edits, authorization, stale/full-state checks, uncertainty/replay and SDK discovery. |
 | `test/tls.test.ts` | Parent-wide scope/write gates, config-secret preservation, certificate coverage/date checks, stale state, PUT uncertainty/reconciliation and MCP projection. |

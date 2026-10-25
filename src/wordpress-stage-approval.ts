@@ -8,7 +8,7 @@ const escape = (s: string) => s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;
 export async function handleStageApproval(req: IncomingMessage, res: ServerResponse, settings: Settings) {
   const match = req.url?.match(/^\/wordpress-stage\/([a-f0-9]{48})$/)
   if (!match) return false
-  res.setHeader('Cache-Control','no-store');res.setHeader('Referrer-Policy','no-referrer')
+  res.setHeader('Cache-Control','no-store');res.setHeader('Referrer-Policy','strict-origin')
   res.setHeader('Content-Security-Policy',"default-src 'none'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'")
   const send = (status: number, body: string) => {res.writeHead(status,{'Content-Type':'text/html; charset=utf-8'});res.end('<!doctype html><html lang="en"><meta charset="utf-8"><title>WordPress stage confirmation</title>'+body+'</html>')}
   if (!settings.localOAuth) {send(503,'<p>Local owner login is not configured.</p>');return true}

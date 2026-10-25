@@ -76,6 +76,7 @@ test(`local OAuth: consent, PKCE, single-use code and revocation (${requestedSco
       base + "/oauth/authorize?" + new URLSearchParams(params),
     );
     assert.equal(page.status, 200);
+    assert.equal(page.headers.get("referrer-policy"), "strict-origin");
     const cookie = page.headers.get("set-cookie")!.split(";")[0]!;
     const ticket = (await page.text()).match(
       /name="ticket" value="([^"]+)"/,

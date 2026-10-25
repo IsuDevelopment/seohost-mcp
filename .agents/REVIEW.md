@@ -6,7 +6,7 @@ source; accepted decisions explain intent and do not exempt code from criticism.
 
 ## Baseline and evidence
 
-- Review target: 0.11.0, 30 MCP tools; stage diff: `git diff 7ba6257..HEAD -- src test docs .agents`.
+- Review target: 0.11.1, 30 MCP tools; stage diff: `git diff 7ba6257..HEAD -- src test docs .agents`.
   Historical 0.9.0 diagnostics diff: `git diff 210bfa0..HEAD -- src test docs .agents config`.
   Redirects diff: `git diff 1fef5a2..HEAD -- src test docs .agents`.
   TLS + redirects diff: `git diff c25bf96..HEAD -- src test docs .agents`.
@@ -34,6 +34,11 @@ approval, child-process secret handling, shared locks and partial failures. H57
 candidate preflight and production stdio MCP planning passed without target writes.
 Production discovery/auth/owner-page checks passed; H57 opt-in was separately owner
 approved. No actual installation has run; provider mutations remain fixture-tested.
+
+Patch 0.11.1: real browser testing exposed no-referrer → Origin:null on HTML
+forms. Approval and OAuth pages now send strict-origin; null/cross-site rejection
+and CSRF remain. 111 tests/types/build pass; browser dummy login reaches review.
+No real owner credentials/approval were used or generated during this test.
 
 ## Inspection order
 

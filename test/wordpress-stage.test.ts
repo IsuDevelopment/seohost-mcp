@@ -101,10 +101,11 @@ test('browser owner approval requires password, Origin and single-use cookie-bou
  const base=f.settings.publicUrl.origin;f.settings.allowedOrigins.add(base)
  try{
  const p=await f.workflow.plan('primary',input,access), url=base+'/wordpress-stage/'+p.planId
- const page=await fetch(url);const html=await page.text();assert(!html.includes('owner@example.com'));const csrf=html.match(/name="csrf" value="([a-f0-9]+)"/)![1]!
+ const page=await fetch(url);assert.equal(page.headers.get('referrer-policy'),'strict-origin');const html=await page.text();assert(!html.includes('owner@example.com'));const csrf=html.match(/name="csrf" value="([a-f0-9]+)"/)![1]!
  const post=(values:Record<string,string>,token=csrf,origin=base)=>fetch(url,{method:'POST',headers:{Origin:origin,'Content-Type':'application/x-www-form-urlencoded',Cookie:'stage_owner='+token},body:new URLSearchParams(values)})
  assert.equal((await post({csrf,phase:'login',username:'owner',password:'owner-password'},csrf,'https://evil.example')).status,403)
- const review=await post({csrf,phase:'login',username:'owner',password:'owner-password'}), body=await review.text();assert.equal(review.status,200);assert(body.includes('owner@example.com'));assert(body.includes('overwrite'))
+ assert.equal((await post({csrf,phase:'login',username:'owner',password:'owner-password'},csrf,'null')).status,403)
+ const review=await post({csrf,phase:'login',username:'owner',password:'owner-password'}), body=await review.text();assert.equal(review.headers.get('referrer-policy'),'strict-origin');assert.equal(review.status,200);assert(body.includes('owner@example.com'));assert(body.includes('overwrite'))
  const token=body.match(/name="csrf" value="([a-f0-9]+)"/)![1]!
  assert.equal((await post({csrf,phase:'approve',decision:'approve',preview:p.previewHash})).status,400)
  assert.equal((await post({csrf:token,phase:'approve',decision:'approve',preview:p.previewHash},token)).status,200)

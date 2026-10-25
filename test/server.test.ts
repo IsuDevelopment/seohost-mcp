@@ -55,7 +55,7 @@ test('real MCP HTTP client initializes, lists tools and calls both infrastructur
     const tools = await client.listTools()
     assert.deepEqual(tools.tools.map(t => t.name).sort(), ['apply_hosting_change', 'apply_wordpress_stage', 'check_dns', 'export_database', 'get_account_usage', 'get_database_info', 'get_domain_info', 'get_hosting_change', 'get_resource_usage', 'get_server_capabilities', 'get_server_info', 'get_tls_info', 'get_wordpress_info', 'get_wordpress_log_info', 'get_wordpress_stage', 'list_backup_files', 'list_databases', 'list_dns_records', 'list_domains', 'list_redirects', 'list_servers', 'list_subdomains', 'list_wordpress_sites', 'plan_hosting_change', 'plan_wordpress_stage', 'read_account_log', 'read_web_log', 'read_wordpress_log', 'resolve_server', 'summarize_web_log'])
     const info = await client.callTool({ name: 'get_server_info', arguments: {} })
-    assert.deepEqual(info.structuredContent, { name: 'seohost-mcp', version: '0.11.0', stage: 'hosting-domain-dns-tls', hostingOperationsEnabled: true, hostingWritesEnabled: false })
+    assert.deepEqual(info.structuredContent, { name: 'seohost-mcp', version: '0.11.1', stage: 'hosting-domain-dns-tls', hostingOperationsEnabled: true, hostingWritesEnabled: false })
     const servers = await client.callTool({ name: 'list_servers', arguments: {} })
     assert.deepEqual(servers.structuredContent, { servers: [{ serverId: 'primary', label: 'Primary hosting', aliases: ['hosting-main'], credentialsConfigured: false }, { serverId: 'secondary', label: 'Secondary hosting', aliases: ['hosting-backup'], credentialsConfigured: false }] })
     assert(!JSON.stringify(servers).includes('LOGIN_KEY'))

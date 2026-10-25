@@ -152,7 +152,7 @@ export function createLocalOAuth(config: LocalOAuthConfig, resource: URL) {
         "Content-Security-Policy",
         "default-src 'none'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'",
       );
-      res.setHeader("Referrer-Policy", "no-referrer");
+      res.setHeader("Referrer-Policy", "strict-origin");
       let raw: string;
       try {
         raw = req.method === "POST" ? await body(req) : "";

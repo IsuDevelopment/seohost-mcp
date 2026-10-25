@@ -146,3 +146,16 @@ installation has run yet; subdomain/DB mutations and full install remain fixture
 tested until a concrete owner-confirmed operation completes. No live clone/promotion
 or Softaculous adapter is claimed. Keep the stdio process alive while polling an
 applied background job; do not restart/redeploy during an active installation.
+
+### Browser form compatibility (0.11.1)
+
+Approval and OAuth pages use `Referrer-Policy: strict-origin`: browsers retain the
+real Origin on same-origin HTML form POSTs, without disclosing URL paths/plan IDs
+in referrers. `no-referrer` made native form submissions send `Origin: null`,
+which correctly failed the server Origin check even with valid credentials. Do
+not fix this by allowing null/wildcard/cross-site origins or weakening CSRF.
+This was reproduced with a real browser and dummy local owner credentials before
+the patch; after the patch the same form reaches the exact-plan review. Tests
+assert both form policies and continued null/cross-site Origin rejection.
+Expired plans still require a new preview; owner sessions remain single-use and
+expire after five minutes. Reopen the fresh link if a form has been idle too long.

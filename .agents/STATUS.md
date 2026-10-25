@@ -2,6 +2,12 @@
 
 Updated: 2026-10-25.
 
+- Candidate 0.11.1 fixes native owner approval/OAuth form POSTs: no-referrer made
+  browsers send Origin:null, which the server correctly rejected. strict-origin
+  keeps same-origin POST identity while withholding URL paths. Null/cross-site
+  checks, CSRF, owner login and session/plan expiry remain enforced. All 111 tests,
+  types/build pass. Real browser reproduced the failure with dummy local credentials
+  and reached exact-plan review after the patch. No target mutation performed.
 - Production 0.11.0 is deployed from `ceab05b` through Deploy MCP run `40188810485`;
   Check run `40188798012` passed. Workflow check/package/dependency guard/backup/
   restart/HTTPS/authenticated smoke passed. Independent SDK confirmed 30 tools,

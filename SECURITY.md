@@ -88,3 +88,7 @@ Private paths and binaries are operator configuration, never tool inputs. This
 trusts the local same-UID account and Apache-compatible installation deny rules;
 it is not isolation against hostile code running under that UID. Local success
 is not public DNS/TLS/HTTP verification. See [workflow limits](docs/WORDPRESS-STAGE.md).
+
+Owner HTML forms use an origin-only `strict-origin` referrer policy, retaining
+same-origin POST identity without leaking plan/query paths. `Origin: null` is
+still rejected; never allow it to compensate for `no-referrer` on login pages.
