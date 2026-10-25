@@ -223,3 +223,24 @@ test('real MCP HTTP export and authenticated binary download enforce actor, host
     assert.equal(gunzipSync(await readFile(output)).toString(), sql)
   } finally { await client.close(); server.closeAllConnections(); await new Promise<void>(resolve => server.close(() => resolve())) }
 })
+
+test('an export waits for in-flight housekeeping instead of returning a false busy error', async t => {
+  const f = await fixture(t)
+  let release!: () => void, started!: () => void
+  const gate = new Promise<void>(resolve => { release = resolve })
+  const cleaning = new Promise<void>(resolve => { started = resolve })
+  const original = f.exports['prune'].bind(f.exports)
+  f.exports['prune'] = async root => { started(); await gate; return original(root) }
+  const cleanup = f.exports.cleanup()
+  await cleaning
+  const contender = new DatabaseExports(f.settings, f.request)
+  // Cleanup already validated this canonical root. Resolve it immediately here
+  // so acquisition runs before setImmediate regardless of filesystem latency.
+  contender['root'] = async () => f.directory
+  const releaseHandle = setImmediate(release)
+  try {
+    const value = await contender.create({ serverId: 'first', database: 'account_wp' }, access)
+    assert.equal(value.database, 'account_wp')
+    assert.equal(value.scope, 'entire_database')
+  } finally { clearImmediate(releaseHandle); release(); await cleanup }
+})

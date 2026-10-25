@@ -37,7 +37,7 @@ approved. No actual installation has run; provider mutations remain fixture-test
 
 Patch 0.11.1: real browser testing exposed no-referrer → Origin:null on HTML
 forms. Approval and OAuth pages now send strict-origin; null/cross-site rejection
-and CSRF remain. 111 tests/types/build pass; browser dummy login reaches review.
+and CSRF remain. 112 tests/types/build pass; browser dummy login reaches review.
 No real owner credentials/approval were used or generated during this test.
 
 ## Inspection order

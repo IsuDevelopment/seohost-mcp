@@ -22,6 +22,7 @@ const manifestSchema = z.object({ serverId: z.string().max(64), actor: z.string(
   expiresAt: z.number().int().positive(), sizeBytes: z.number().int().positive().max(MAX_EXPORT_BYTES),
   sha256: z.string().regex(/^[a-f0-9]{64}$/) }).strict()
 const activeRoots = new Set<string>()
+const cleanupTasks = new Map<string, Promise<void>>()
 const actorHash = (actor: string) => createHash('sha256').update(actor).digest('hex')
 const notFound = () => new HostingError('EXPORT_NOT_FOUND', 'The export is unavailable, expired or belongs to a different caller.')
 
@@ -74,8 +75,11 @@ export class DatabaseExports {
     if (!this.settings.databaseExportDirectory) return
     const root = await this.root()
     if (activeRoots.has(root)) return
-    activeRoots.add(root)
-    try { await this.prune(root) } finally { activeRoots.delete(root) }
+    const existing = cleanupTasks.get(root)
+    if (existing) return existing
+    const task = this.prune(root).then(() => {})
+    cleanupTasks.set(root, task)
+    try { await task } finally { cleanupTasks.delete(root) }
   }
 
   // Local artifact housekeeping only, never provider polling. Unref permits clean shutdown.
@@ -95,6 +99,10 @@ export class DatabaseExports {
     if (input.siteId !== undefined) siteIdSchema.parse(input.siteId)
     if (input.database !== undefined) databaseName.parse(input.database)
     const root = await this.root()
+    // Housekeeping is not a competing export. Wait for it before atomically
+    // taking the export reservation; real concurrent exports still fail busy.
+    try { while (cleanupTasks.has(root)) await cleanupTasks.get(root) }
+    catch { throw new HostingError('EXPORT_FAILED', 'Private export housekeeping did not complete safely.') }
     if (activeRoots.has(root)) throw new HostingError('EXPORT_BUSY', 'Another database export is in progress. Try again after it completes.')
     activeRoots.add(root)
     let directory: string | undefined

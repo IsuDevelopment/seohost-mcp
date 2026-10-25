@@ -119,3 +119,7 @@ module responsibilities or important flows change; keep this map short.
 See [review handoff](REVIEW.md) for the release comparison and critical code paths.
 `dist/` is generated from TypeScript; do not edit it manually. `node_modules/`,
 `data/` and real configuration are installation runtime, not versioned project memory.
+
+Database export startup cleanup is tracked separately from export reservations:
+new exports await housekeeping, while concurrent exports remain rejected.
+`test/database-exports.test.ts` includes a deterministic race regression.

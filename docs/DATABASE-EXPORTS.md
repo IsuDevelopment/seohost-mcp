@@ -144,3 +144,8 @@ serialization-aware dry-run, exact old/new values and table/site/network scope,
 then separately authorized execution and verification. Do not accept `eval`, raw
 SQL, arbitrary `--require`/`--exec` or shell syntax. A changed database URL alone
 does not migrate DNS, TLS, files or every multisite configuration setting.
+
+Housekeeping and export reservations are distinct: a new export waits for an
+already-running local cleanup rather than receiving a false EXPORT_BUSY. Cleanup
+skips active exports; genuinely concurrent exports still fail busy. This ordering
+is covered by a deterministic startup-race regression test (0.11.1).
