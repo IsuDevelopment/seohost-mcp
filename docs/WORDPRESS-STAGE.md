@@ -136,3 +136,13 @@ Sources: [DirectAdmin document-root map](https://docs.directadmin.com/directadmi
 [Softaculous API](https://www.softaculous.com/docs/api/api/),
 [end-user installation listing CLI](https://www.softaculous.com/docs/cli/list-installations-from-cli/),
 [installation CLI](https://www.softaculous.com/docs/cli/install-script-from-cli/).
+
+Production 0.11.0 was deployed on 2026-10-25 from `ceab05b` through successful
+Deploy MCP run `40188810485` (Check `40188798012`). All 111 tests/types/build pass.
+The owner separately approved H57-only opt-in, backed-up private configuration and
+single-app restart. Production discovery/auth checks and actual stdio MCP planning
+passed. The confirmation page loads without anonymous plan disclosure. No real
+installation has run yet; subdomain/DB mutations and full install remain fixture-
+tested until a concrete owner-confirmed operation completes. No live clone/promotion
+or Softaculous adapter is claimed. Keep the stdio process alive while polling an
+applied background job; do not restart/redeploy during an active installation.

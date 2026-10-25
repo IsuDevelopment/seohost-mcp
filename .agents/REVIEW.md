@@ -10,7 +10,7 @@ source; accepted decisions explain intent and do not exempt code from criticism.
   Historical 0.9.0 diagnostics diff: `git diff 210bfa0..HEAD -- src test docs .agents config`.
   Redirects diff: `git diff 1fef5a2..HEAD -- src test docs .agents`.
   TLS + redirects diff: `git diff c25bf96..HEAD -- src test docs .agents`.
-  Deployed release before this change: 0.10.0, commit `78b62b2`, Deploy run `39958497210`.
+  Deployed release: 0.11.0, commit `ceab05b`, Deploy run `40188810485`.
 - Focus diff: `git diff c242a28..556b134 -- src test scripts config .env.example`.
   `c242a28` is the last pre-0.6.0 commit. Review current `main` too for later changes.
 - Historical validation for this code: `npm run check`, 57 passing tests, successful
@@ -31,7 +31,9 @@ source; accepted decisions explain intent and do not exempt code from criticism.
 
 Current candidate validation: 111 tests/types/build pass, including owner browser
 approval, child-process secret handling, shared locks and partial failures. H57
-candidate preflight passed without target writes. No actual installation has run.
+candidate preflight and production stdio MCP planning passed without target writes.
+Production discovery/auth/owner-page checks passed; H57 opt-in was separately owner
+approved. No actual installation has run; provider mutations remain fixture-tested.
 
 ## Inspection order
 

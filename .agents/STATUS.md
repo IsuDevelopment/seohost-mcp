@@ -2,7 +2,15 @@
 
 Updated: 2026-10-25.
 
-- Candidate 0.11.0 implements fresh WordPress stage planning, separate owner-login
+- Production 0.11.0 is deployed from `ceab05b` through Deploy MCP run `40188810485`;
+  Check run `40188798012` passed. Workflow check/package/dependency guard/backup/
+  restart/HTTPS/authenticated smoke passed. Independent SDK confirmed 30 tools,
+  version/401 boundary and read-token write rejection. The owner separately approved
+  enabling local provisioning plus create_wordpress_stage on H57; private account
+  configuration was backed up outside web roots, other accounts/operations preserved,
+  and only MCP restarted. A concrete fresh-target plan is prepared, awaiting separate
+  owner browser/conversational confirmation. No subdomain/database/site files created.
+- Version 0.11.0 implements fresh WordPress stage planning, separate owner-login
   approval and checkpointed local-account installation (30 tools). Full check
   passes 111 tests/types/build; candidate preflight also passed on H57 without
   creating a subdomain/database/site files. Stable core version lookup and fixed
@@ -11,7 +19,7 @@ Updated: 2026-10-25.
   255 without JSON under PHP 8.2/8.3/8.5; ionCube is present. No proprietary sources
   were read and no security settings weakened. WP-CLI 2.12.0 and the documented
   document-root map/OS-account identity match on H57. See WORDPRESS-STAGE.md/D22.
-- Production 0.10.0 is deployed from `78b62b2` through successful Deploy MCP run
+- Historical production 0.10.0 was deployed from `78b62b2` through successful Deploy MCP run
   `39958497210`; Check run `39958419598` passed. Workflow tests (100/100), dependency
   guard, private code backup, single-app restart, HTTPS/authentication verification
   and authenticated SDK smoke passed. Configuration, private OAuth/change state
@@ -143,6 +151,13 @@ Updated: 2026-10-25.
   inspection order and verification gaps; it does not represent review approval.
 
 ## Recent changes
+
+2026-10-25 — D22 fresh WordPress workflow implemented and deployed (`ceab05b`, run
+`40188810485`), 111 tests/types/build pass. Owner-approved H57 opt-in/config backup
+and independent production checks passed. Candidate preflight and actual production
+stdio MCP planning pass; owner confirmation page loads without anonymous disclosure.
+No installation or target mutation yet. Softaculous CLI remains unverified after
+exit-255 list probes; no proprietary source read or security-setting changes.
 
 2026-10-23 — owner-authorized 0.10.0 deployment from `78b62b2` via run `39958497210`.
 Workflow and independent native DCR/form/denial verification passed. Owner-managed
