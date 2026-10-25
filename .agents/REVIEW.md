@@ -10,7 +10,7 @@ source; accepted decisions explain intent and do not exempt code from criticism.
   Historical 0.9.0 diagnostics diff: `git diff 210bfa0..HEAD -- src test docs .agents config`.
   Redirects diff: `git diff 1fef5a2..HEAD -- src test docs .agents`.
   TLS + redirects diff: `git diff c25bf96..HEAD -- src test docs .agents`.
-  Deployed release: 0.13.1, commit `c8e6c91`, Deploy run `40204066809`; Check `40204059667` (120 tests).
+  Deployed release: 0.14.0, commit `cb606e8`, Deploy run `40208957293`; Check `40204918957` (123 tests).
 - Focus diff: `git diff c242a28..556b134 -- src test scripts config .env.example`.
   `c242a28` is the last pre-0.6.0 commit. Review current `main` too for later changes.
 - Historical validation for this code: `npm run check`, 57 passing tests, successful
@@ -94,3 +94,8 @@ and no parent mutation. Polish/English links must remain presentation-only and k
 form/session/Origin/CSP protections. Full 123 tests pass; real browser used dummy
 credentials only. Safe H57 config read confirmed existing create_domain permission;
 independent-domain creation/installation has not run live.
+
+0.14.0 is now deployed. Independent production SDK and public PL/EN/CSP checks
+passed; real H57 preflight confirmed a ready unapproved plan for an independent
+domain/container. No target was created. Post-create root mapping, provider-generated
+placeholders, certificate/DNS readiness and full WordPress install remain live gaps.

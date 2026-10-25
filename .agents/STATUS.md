@@ -2,10 +2,18 @@
 
 Updated: 2026-10-25.
 
-- Production 0.13.1 brand patch deployed from `c8e6c91` through Deploy `40204066809`;
+- Production 0.14.0 deployed from `cb606e8` through successful Deploy `40208957293`;
+  Check `40204918957` passed (123 tests/types/build). Backup/dependency guard/restart/
+  HTTPS and authenticated smoke passed. Independent SDK confirms 0.14.0, 30 tools,
+  both configured placements, unauthenticated 401 and read-token write rejection.
+  Public pages verify Polish default, English switch, correct CSP hash and no-store.
+  Real H57 independent-domain preflight produced a fresh unapproved ready plan with
+  the requested separate domain container/root and readable DB name. No target
+  resources were created; post-create root mapping and actual installation are unverified.
+- Historical production 0.13.1 brand patch deployed from `c8e6c91` through Deploy `40204066809`;
   Check `40204059667` and full local 120-test check passed. Independent HTTPS confirmed
   0.13.1, exact requested gradient, correct CSP style hash and no-store.
-- Candidate 0.14.0: independent-domain stage default and Polish/English UI (D25).
+- Version 0.14.0: independent-domain stage default and Polish/English UI (D25).
   Full 123-test check/types/build passed. Dummy browser verified Polish preview,
   prominent directory and English switch without re-login/approval. Adapter fixtures
   verify absent container, fixed create-domain parameters, actual-root mismatch,

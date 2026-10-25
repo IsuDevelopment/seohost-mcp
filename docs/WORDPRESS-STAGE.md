@@ -261,3 +261,10 @@ stop installation; no placeholder is deleted automatically.
 
 Sources: [DirectAdmin domain creation](https://docs.directadmin.com/developer/api/legacy-api.html#user-apis),
 [computed document roots](https://docs.directadmin.com/directadmin/general-usage/directadmin-binary.html#show-documentroots).
+
+Release 0.14.0 deployed from `cb606e8` through successful Deploy `40208957293`
+(Check `40204918957`, 123 tests/types/build). SDK/public checks verified version,
+30 tools, configured placements, read-token write rejection, Polish/English pages
+and static CSS hash. Real H57 preflight produced an unapproved independent-domain
+plan with the intended separate root and absent target. No domain/DB/WP installation
+was executed; post-create mapping and real provider write acceptance remain unverified.
