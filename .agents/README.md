@@ -3,7 +3,7 @@
 Standalone MCP server for SeoHost/DirectAdmin accounts, TypeScript and Node.js >=22.23.2.
 The product targets standard SeoHost shared hosting. VPS compatibility is untested;
 do not infer either full support or endpoint absence from the VPS label.
-Version 0.11.1: HTTP/stdio, Bearer/OAuth, inventory, configuration/site/log diagnostics,
+Version 0.12.0: HTTP/stdio, Bearer/OAuth, inventory, configuration/site/log diagnostics,
 account/database/backup metadata, owner-confirmed fresh WordPress staging, opt-in private gzip database exports, log summaries, domain/DNS diagnostics, site redirects, web-log, fixed account-root `log.txt` and explicitly enabled
 WordPress debug-log reads. One installation
 owner can read all configured accounts. Planned domain/DNS/TLS writes require separate

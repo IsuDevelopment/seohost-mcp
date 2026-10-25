@@ -21,6 +21,7 @@ export class ChangeStore {
       CREATE UNIQUE INDEX IF NOT EXISTS change_active_lock ON changes(lock_key) WHERE status IN ('applying','unknown');
       CREATE TABLE IF NOT EXISTS stage_approvals (id TEXT PRIMARY KEY, actor TEXT NOT NULL, server_id TEXT NOT NULL, hash TEXT NOT NULL, approved_at INTEGER NOT NULL);
       CREATE TABLE IF NOT EXISTS stage_challenges (token TEXT PRIMARY KEY, id TEXT NOT NULL, phase TEXT NOT NULL, expires INTEGER NOT NULL);
+      CREATE TABLE IF NOT EXISTS stage_owner_sessions (token TEXT PRIMARY KEY, binding TEXT NOT NULL, expires INTEGER NOT NULL);
       CREATE TABLE IF NOT EXISTS stage_login_failures (id INTEGER PRIMARY KEY CHECK(id=1), attempts INTEGER NOT NULL, reset INTEGER NOT NULL);` )
   }
   close() { this.db.close() }
@@ -77,6 +78,24 @@ export class ChangeStore {
       .run(createHash('sha256').update(token).digest('hex'),id,phase,Date.now())
     if (result.changes !== 1) throw new HostingError('OWNER_CONFIRMATION_REQUIRED','Invalid or expired owner session.')
     return this.getForOwner(id)
+  }
+  createOwnerSession(binding: string, previous = '') {
+    this.db.prepare('DELETE FROM stage_owner_sessions WHERE expires<=?').run(Date.now())
+    if (previous) this.revokeOwnerSession(previous)
+    const count = this.db.prepare('SELECT COUNT(*) AS n FROM stage_owner_sessions').get() as {n:number}
+    if (count.n >= 100) throw new HostingError('OWNER_LOGIN_LIMIT','Too many owner browser sessions; sign out or wait for expiry.')
+    const token = randomBytes(32).toString('hex'), expires = Date.now() + 8 * 3600000
+    this.db.prepare('INSERT INTO stage_owner_sessions VALUES(?,?,?)').run(createHash('sha256').update(token).digest('hex'),binding,expires)
+    return {token,expires}
+  }
+  ownerSession(token: string, binding: string) {
+    if (!/^[a-f0-9]{64}$/.test(token)) return undefined
+    const row = this.db.prepare('SELECT expires FROM stage_owner_sessions WHERE token=? AND binding=? AND expires>?')
+      .get(createHash('sha256').update(token).digest('hex'),binding,Date.now()) as {expires:number}|undefined
+    return row
+  }
+  revokeOwnerSession(token: string) {
+    this.db.prepare('DELETE FROM stage_owner_sessions WHERE token=?').run(createHash('sha256').update(token).digest('hex'))
   }
   ownerLoginAttempt() {
     this.db.exec('BEGIN IMMEDIATE')

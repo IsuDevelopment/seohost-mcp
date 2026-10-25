@@ -102,10 +102,12 @@ test('browser owner approval requires password, Origin and single-use cookie-bou
  try{
  const p=await f.workflow.plan('primary',input,access), url=base+'/wordpress-stage/'+p.planId
  const page=await fetch(url);assert.equal(page.headers.get('referrer-policy'),'strict-origin');const html=await page.text();assert(!html.includes('owner@example.com'));const csrf=html.match(/name="csrf" value="([a-f0-9]+)"/)![1]!
- const post=(values:Record<string,string>,token=csrf,origin=base)=>fetch(url,{method:'POST',headers:{Origin:origin,'Content-Type':'application/x-www-form-urlencoded',Cookie:'stage_owner='+token},body:new URLSearchParams(values)})
+ let ownerCookie=''
+ const post=(values:Record<string,string>,token=csrf,origin=base)=>fetch(url,{method:'POST',headers:{Origin:origin,'Content-Type':'application/x-www-form-urlencoded',Cookie:'stage_owner='+token+(ownerCookie?'; '+ownerCookie:'')},body:new URLSearchParams(values)})
  assert.equal((await post({csrf,phase:'login',username:'owner',password:'owner-password'},csrf,'https://evil.example')).status,403)
  assert.equal((await post({csrf,phase:'login',username:'owner',password:'owner-password'},csrf,'null')).status,403)
- const review=await post({csrf,phase:'login',username:'owner',password:'owner-password'}), body=await review.text();assert.equal(review.headers.get('referrer-policy'),'strict-origin');assert.equal(review.status,200);assert(body.includes('owner@example.com'));assert(body.includes('overwrite'))
+ const review=await post({csrf,phase:'login',username:'owner',password:'owner-password'}), body=await review.text();assert.equal(review.headers.get('referrer-policy'),'strict-origin');assert.equal(review.status,200);assert(body.includes('owner@example.com'));assert(body.includes('No existing data overwritten or deleted.'))
+ ownerCookie=review.headers.getSetCookie().find(c=>c.startsWith('stage_login='))!.split(';')[0]!
  const token=body.match(/name="csrf" value="([a-f0-9]+)"/)![1]!
  assert.equal((await post({csrf,phase:'approve',decision:'approve',preview:p.previewHash})).status,400)
  assert.equal((await post({csrf:token,phase:'approve',decision:'approve',preview:p.previewHash},token)).status,200)
@@ -159,4 +161,101 @@ test('owner deny revokes an earlier ready approval and throttling persists acros
  store=new ChangeStore(f.settings.changeStateFile!);assert.throws(()=>store.ownerLoginAttempt(),code('OWNER_LOGIN_LIMIT'));store.close()
  await assert.rejects(f.workflow.apply('primary',p.planId,p.previewHash,access),code('OWNER_CONFIRMATION_REQUIRED'))
  }finally{await f.close()}
+})
+
+async function browserFixture(){
+ const f=await fixture(), app=createHttpServer(f.settings,async()=>{throw Error('No provider I/O')})
+ app.listen(0,'127.0.0.1');await new Promise<void>(r=>app.once('listening',r))
+ const address=app.address() as {port:number};f.settings.publicUrl=new URL(`http://127.0.0.1:${address.port}/mcp`)
+ const base=f.settings.publicUrl.origin;f.settings.allowedOrigins.add(base)
+ const url=(id:string)=>base+'/wordpress-stage/'+id
+ const csrf=(body:string)=>body.match(/name="csrf" value="([a-f0-9]+)"/)![1]!
+ const post=(path:string,values:Record<string,string>,cookies:string,origin=base)=>fetch(path,{method:'POST',headers:{Origin:origin,'Content-Type':'application/x-www-form-urlencoded',Cookie:cookies},body:new URLSearchParams(values)})
+ const login=async(id:string)=>{
+  const page=await fetch(url(id)), token=csrf(await page.text())
+  const response=await post(url(id),{csrf:token,phase:'login',username:'owner',password:'owner-password'},'stage_owner='+token)
+  assert.equal(response.status,200)
+  const remembered=response.headers.getSetCookie().find(c=>c.startsWith('stage_login='))!
+  assert(remembered.includes('HttpOnly'));assert(remembered.includes('SameSite=Strict'));assert(remembered.includes('Path=/wordpress-stage;'));assert(remembered.includes('Max-Age=28800'))
+  return {cookie:remembered.split(';')[0]!,token:remembered.split(';')[0]!.slice('stage_login='.length),body:await response.text()}
+ }
+ return {...f,app,base,url,csrf,post,login,shutdown:async()=>{app.closeAllConnections();await new Promise<void>(r=>app.close(()=>r()));await f.close()}}
+}
+
+test('remembered browser session skips login on a new plan, but cannot approve it implicitly or reuse another plan nonce',async()=>{
+ const f=await browserFixture();try{
+ const a=await f.workflow.plan('primary',input,access), b=await f.workflow.plan('primary',{...input,label:'other'},access)
+ const signed=await f.login(a.planId)
+ assert(signed.body.includes('New WordPress administrator'));assert(signed.body.includes('Approve this installation'))
+ const response=await fetch(f.url(b.planId),{headers:{Cookie:signed.cookie}}), body=await response.text()
+ assert.equal(response.status,200);assert(body.includes('other.example.com'));assert(!body.includes('autocomplete="current-password"'))
+ const nextToken=f.csrf(body), oldToken=f.csrf(signed.body)
+ assert.notEqual(oldToken,nextToken)
+ let store=new ChangeStore(f.settings.changeStateFile!);assert(!store.isOwnerApproved(store.get(b.planId,access.actor,'primary'),b.previewHash));store.close()
+ assert.equal((await f.post(f.url(b.planId),{csrf:oldToken,phase:'approve',decision:'approve',preview:b.previewHash},signed.cookie+'; stage_owner='+oldToken)).status,400)
+ assert.equal((await f.post(f.url(b.planId),{csrf:nextToken,phase:'approve',decision:'approve',preview:b.previewHash},signed.cookie+'; stage_owner='+nextToken)).status,200)
+ store=new ChangeStore(f.settings.changeStateFile!);assert(store.isOwnerApproved(store.get(b.planId,access.actor,'primary'),b.previewHash));assert(!store.isOwnerApproved(store.get(a.planId,access.actor,'primary'),a.previewHash));store.close()
+ const c=await f.workflow.plan('primary',{...input,label:'third'},access)
+ assert(!(await (await fetch(f.url(c.planId),{headers:{Cookie:signed.cookie}})).text()).includes('autocomplete="current-password"'))
+ assert(!f.state.calls.includes('subdomain'))
+ }finally{await f.shutdown()}
+})
+
+test('remembered session logout requires Origin and CSRF, and revokes existing review forms without deleting plan approvals',async()=>{
+ const f=await browserFixture();try{
+ const p=await f.workflow.plan('primary',input,access), signed=await f.login(p.planId)
+ const logoutToken=signed.body.match(/action="\/wordpress-stage\/logout"><input type="hidden" name="csrf" value="([a-f0-9]+)"/)![1]!
+ assert.equal((await f.post(f.base+'/wordpress-stage/logout',{csrf:logoutToken},signed.cookie,'https://evil.example')).status,403)
+ assert.equal((await f.post(f.base+'/wordpress-stage/logout',{csrf:'0'.repeat(64)},signed.cookie)).status,400)
+ const out=await f.post(f.base+'/wordpress-stage/logout',{csrf:logoutToken},signed.cookie);assert.equal(out.status,200);assert(out.headers.getSetCookie().some(c=>c.startsWith('stage_login=;')&&c.includes('Max-Age=0')))
+ assert((await (await fetch(f.url(p.planId),{headers:{Cookie:signed.cookie}})).text()).includes('autocomplete="current-password"'))
+ const token=f.csrf(signed.body)
+ assert.equal((await f.post(f.url(p.planId),{csrf:token,phase:'approve',decision:'approve',preview:p.previewHash},signed.cookie+'; stage_owner='+token)).status,400)
+ const store=new ChangeStore(f.settings.changeStateFile!);assert(!store.isOwnerApproved(store.get(p.planId,access.actor,'primary'),p.previewHash));store.close()
+ assert(!f.state.calls.includes('subdomain'))
+ }finally{await f.shutdown()}
+})
+
+test('owner sessions survive store instances as hashes, expire absolutely and bind owner credentials plus origin',async()=>{
+ const f=await fixture();try{
+ let store=new ChangeStore(f.settings.changeStateFile!), session=store.createOwnerSession('binding-a')
+ const expires=session.expires;assert(expires>Date.now()+7*3600000);assert(expires<=Date.now()+8*3600000)
+ store.close();store=new ChangeStore(f.settings.changeStateFile!)
+ assert.equal(store.ownerSession(session.token,'binding-a')?.expires,expires)
+ assert.equal(store.ownerSession(session.token,'binding-b'),undefined)
+ assert.equal(store.ownerSession('invalid','binding-a'),undefined)
+ const db=new DatabaseSync(f.settings.changeStateFile!);const row=db.prepare('SELECT token,expires FROM stage_owner_sessions').get() as {token:string;expires:number}
+ assert.notEqual(row.token,session.token);assert.equal(row.token.length,64)
+ db.prepare('UPDATE stage_owner_sessions SET expires=0').run();assert.equal(store.ownerSession(session.token,'binding-a'),undefined)
+ session=store.createOwnerSession('binding-a');const rotated=store.createOwnerSession('binding-a',session.token)
+ assert.equal(store.ownerSession(session.token,'binding-a'),undefined);assert(store.ownerSession(rotated.token,'binding-a'))
+ db.close();store.close()
+ }finally{await f.close()}
+})
+
+test('changed owner credentials or expired remembered session cannot approve an already rendered form',async()=>{
+ const f=await browserFixture();try{
+ const p=await f.workflow.plan('primary',input,access), signed=await f.login(p.planId), token=f.csrf(signed.body)
+ const before=f.settings.localOAuth!.passwordHash;f.settings.localOAuth!.passwordHash='b'.repeat(32)+':'+scryptSync('new-password','b'.repeat(32),64).toString('hex')
+ assert((await (await fetch(f.url(p.planId),{headers:{Cookie:signed.cookie}})).text()).includes('autocomplete="current-password"'))
+ assert.equal((await f.post(f.url(p.planId),{csrf:token,phase:'approve',decision:'approve',preview:p.previewHash},signed.cookie+'; stage_owner='+token)).status,400)
+ f.settings.localOAuth!.passwordHash=before
+ const db=new DatabaseSync(f.settings.changeStateFile!);db.prepare('UPDATE stage_owner_sessions SET expires=0').run();db.close()
+ assert.equal((await f.post(f.url(p.planId),{csrf:token,phase:'approve',decision:'approve',preview:p.previewHash},signed.cookie+'; stage_owner='+token)).status,400)
+ const store=new ChangeStore(f.settings.changeStateFile!);assert(!store.isOwnerApproved(store.get(p.planId,access.actor,'primary'),p.previewHash));store.close()
+ }finally{await f.shutdown()}
+})
+
+test('production-origin login emits Secure host-only scoped cookies and caps retained browser sessions',async()=>{
+ const f=await browserFixture();try{
+ f.settings.publicUrl.protocol='https:';f.settings.allowedOrigins.add(f.settings.publicUrl.origin)
+ const p=await f.workflow.plan('primary',input,access), page=await fetch(f.url(p.planId)), token=f.csrf(await page.text())
+ const response=await f.post(f.url(p.planId),{csrf:token,phase:'login',username:'owner',password:'owner-password'},'stage_owner='+token,f.settings.publicUrl.origin)
+ assert.equal(response.status,200)
+ const cookies=response.headers.getSetCookie();assert.equal(cookies.length,2)
+ for(const c of cookies){assert(c.includes('; Secure'));assert(c.includes('; HttpOnly'));assert(c.includes('; SameSite=Strict'));assert(!c.includes('Domain='))}
+ const store=new ChangeStore(f.settings.changeStateFile!)
+ for(let i=1;i<100;i++)store.createOwnerSession('test-binding')
+ assert.throws(()=>store.createOwnerSession('test-binding'),code('OWNER_LOGIN_LIMIT'));store.close()
+ }finally{await f.shutdown()}
 })

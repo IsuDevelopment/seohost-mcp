@@ -265,3 +265,10 @@ MCP smoke verified. No runtime dependency changes.
 HTTP, opt-in log paths and structured credential redaction. SSH secret placement and
 key formatting were corrected. Assess key rotation if it was stored outside Secrets;
 never place key values in documentation or logs.
+
+- Candidate 0.12.0: eight-hour remembered stage owner login, logout and readable
+  per-plan preview (D23). Full check passes 117 tests/types/build. Real browser with
+  dummy local credentials reached a second plan without login; logout then required
+  login again. No approval button was clicked or hosting mutation executed. Session
+  hash persistence, absolute expiry, credential binding, rotation, cookie flags,
+  stale forms, CSRF and cross-plan isolation are regression-tested. Deployment pending.

@@ -10,7 +10,7 @@ module responsibilities or important flows change; keep this map short.
 | `src/server.ts` | Version, thirty tool registrations, input schemas, MCP results/errors and safe auditing. |
 | `src/wordpress-stage.ts` | Fresh-only immutable stage plan, shared account reservation, secret-free background checkpoints/results and no retries. |
 | `src/wordpress-stage-provider.ts` | Local UID/home/host binding, canonical/absent target, document-root and dedicated DB APIs; fixed shell-free WP-CLI, stdin secrets and stage policy. |
-| `src/wordpress-stage-approval.ts` | Separate owner-password browser review/approve/deny with cookie-bound single-use challenges; no hosting writes from the page. |
+| `src/wordpress-stage-approval.ts` | Remembered owner login/logout and readable browser review/approve/deny with per-plan cookie-bound single-use challenges; no hosting writes from the page. |
 | `src/capabilities.ts` | Shared tool/configuration-requirement catalog and honest configuration-only readiness; smoke tests verify names against the catalog. |
 | `src/config.ts` | Validates env/JSON, origins, aliases, distinct read/write tokens, account write operations and trusted NS; selects private state files and resolves explicit accounts. |
 | `src/directadmin.ts` | Domain/subdomain reads, ownership checks and bounded/redacted web-log results; public raw output stays 64 KiB, internal summaries inspect up to the 512 KiB provider bound. |
@@ -23,7 +23,7 @@ module responsibilities or important flows change; keep this map short.
 | `src/tls.ts` | Owned parent-domain ACME/certificate metadata, safe projections, secret-preserving config snapshots and conservative all-web-host redirect readiness. |
 | `src/public-dns.ts` | Fixed-origin public recursive DNS observations, TTL cache, NS/provider hints; no lookups in log/list flows. |
 | `src/hosting-changes.ts` | Validated operation previews/apply/reconciliation, write gates, stale checks, provider verification and no blind retries. |
-| `src/change-store.ts` | Private persistent SQLite previews, actor binding, account reservations and receipts across stateless MCP requests. |
+| `src/change-store.ts` | Private persistent SQLite previews, actor binding, account reservations, hash-only owner browser sessions and receipts across stateless MCP requests. |
 | `src/account-log.ts` | Fixed account-root `log.txt` policy, file metadata checks and bounded/redacted reads independent of WordPress. |
 | `src/directadmin-http.ts` | Shared account-bound GET and fixed form-POST/ACME-PUT transport: credentials, fixed routes, timeout, response caps, redirect refusal and log suffix validation. |
 | `src/hosting-error.ts` | Shared safe provider error codes/messages; no raw upstream diagnostics. |
@@ -44,7 +44,7 @@ module responsibilities or important flows change; keep this map short.
 | `test/server.test.ts` | HTTP auth, Host/Origin, method/body limits, real HTTP SDK and stdio. |
 | `test/directadmin.test.ts` | Account isolation, aliases, domain validation, provider failures, limits, plain/JSON/PHP WordPress credential redaction and SDK. |
 | `test/domain-dns.test.ts`, `test/hosting-changes.test.ts` | Provider projection, contextual DNS/cache/failure handling, scopes/allowlists, stale/actor/expiry checks, exact record selectors, replay/uncertainty and concurrent reservations. |
-| `test/wordpress-stage.test.ts` | Owner approval/CSRF/replay/expiry, write/host/path gates, secret stdin/environment, shared locks and partial failure; real child fixture and HTTP page; browser-compatible referrer policy with null/cross-site Origin rejection. |
+| `test/wordpress-stage.test.ts` | Owner approval/CSRF/replay/expiry, write/host/path gates, secret stdin/environment, shared locks and partial failure; real child fixture and HTTP page; browser-compatible referrer policy with null/cross-site Origin rejection; remembered login persistence/expiry/rotation, cookie flags, logout and stale/cross-plan forms. |
 | `test/account-diagnostics.test.ts`, `test/log-summary.test.ts` | Tally projection/unknown limits, resource denial/series validation, fresh DB ownership, backup boundaries/pagination and single-read/rare fatal/SDK summaries. |
 | `test/redirects.test.ts` | Typed decoding, secret projection, exact delete/add edits, authorization, stale/full-state checks, uncertainty/replay and SDK discovery. |
 | `test/tls.test.ts` | Parent-wide scope/write gates, config-secret preservation, certificate coverage/date checks, stale state, PUT uncertainty/reconciliation and MCP projection. |

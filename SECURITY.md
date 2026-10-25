@@ -92,3 +92,11 @@ is not public DNS/TLS/HTTP verification. See [workflow limits](docs/WORDPRESS-ST
 Owner HTML forms use an origin-only `strict-origin` referrer policy, retaining
 same-origin POST identity without leaking plan/query paths. `Origin: null` is
 still rejected; never allow it to compensate for `no-referrer` on login pages.
+
+Stage owner browser login can be remembered for an absolute eight hours (D23).
+Only a hash of the random cookie token is persisted; origin and current owner
+credentials bind verification. HTTPS uses host-only Secure/HttpOnly/SameSite=Strict
+cookies scoped to the stage routes. Logout requires same-origin POST and CSRF and
+revokes the server session. Review forms retain single-use five-minute challenges;
+each approval rechecks the owner session. Login is not plan approval, OAuth consent
+or a write grant. Existing plan receipts remain valid after browser logout.

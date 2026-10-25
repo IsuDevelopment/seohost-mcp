@@ -210,3 +210,11 @@ Protect installation with a deny rule, then authenticated frontend/noindex/mail/
 cron stage policy. Local verification is distinct from public DNS/TLS/HTTP readiness.
 No parent-wide TLS consent is inferred from creating one child. This trusts the
 same-UID account, not hostile tenants. See WORDPRESS-STAGE.md for limitations.
+
+D23 remembers stage owner authentication for eight absolute hours in a separate
+hash-only SQLite session table, bound to current owner credentials/public origin.
+This session crosses plan pages but grants no MCP/OAuth scopes or automatic consent.
+Per-plan five-minute challenges and exact approval receipts remain distinct; apply
+still requires actor/account/hash/expiry and the durable reservation. Logout revokes
+only browser authentication and requires same-origin POST plus CSRF. Approval checks
+session validity again, preventing stale forms after logout/expiry/config changes.

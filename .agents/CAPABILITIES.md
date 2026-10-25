@@ -145,3 +145,8 @@ Fresh staging: [WORDPRESS-STAGE.md](../docs/WORDPRESS-STAGE.md). New single site
 only; local host/UID binding, no clone/promotion or general CLI. Ask for the concrete
 reviewed operation, then direct the owner to its separate login/approval page. Never
 automate owner consent or read private generated passwords into model context.
+
+Stage browser login is remembered for eight hours after the first MCP owner login.
+Subsequent plans show a readable preview and still need explicit per-plan approval.
+Sign out revokes this browser session; it does not cancel existing approval receipts.
+No additional MCP tool, OAuth scope or provider permission is introduced (D23).

@@ -9,7 +9,7 @@ This implements only the fresh-target part of [migration requirements](WORDPRESS
 | Tool | Inputs | Effect |
 | --- | --- | --- |
 | `plan_wordpress_stage` | Explicit `serverId`, owned parent `domain`, exact `label`, `adminEmail`; optional `adminName` (stageadmin), `title` | Validates absence, local runtime/account and canonical root; pins a stable WordPress version and chooses a new database. Returns an immutable 30-minute plan and owner confirmation link. No target writes. |
-| `apply_wordpress_stage` | Same actor/account, `planId`, `previewHash` | Requires a separate owner-password browser approval. Reserves the shared account lock, starts a background worker and returns immediately. |
+| `apply_wordpress_stage` | Same actor/account, `planId`, `previewHash` | Requires a separate owner browser approval. Reserves the shared account lock, starts a background worker and returns immediately. |
 | `get_wordpress_stage` | Same actor/account and `planId` | Reports persistent phase/result, including partial and unknown outcomes. No resume, retry, deletion or automatic reconciliation. Write authorization is required; disabled provisioning does not prevent receipt inspection. |
 
 All three require write authorization. Plans/apply additionally require both
@@ -157,11 +157,31 @@ not fix this by allowing null/wildcard/cross-site origins or weakening CSRF.
 This was reproduced with a real browser and dummy local owner credentials before
 the patch; after the patch the same form reaches the exact-plan review. Tests
 assert both form policies and continued null/cross-site Origin rejection.
-Expired plans still require a new preview; owner sessions remain single-use and
-expire after five minutes. Reopen the fresh link if a form has been idle too long.
+Expired plans still require a new preview; per-plan form challenges remain single-use
+and expire after five minutes. Reopen the fresh link if a form has been idle too long.
 
 Patch 0.11.1 deployment `40193850271` from `75c40d6` passed on 2026-10-25
 (Check `40193837644`, 112 tests/types/build). The earlier attempt stopped before
 production changes because CI exposed a startup export-housekeeping race; that
 race is also fixed and regression-tested. The expired preview was replaced with
 a fresh plan; no real installation or owner consent was executed by the agent.
+
+## Remembered owner login (0.12.0)
+
+After one successful login, this browser remembers the MCP owner for an absolute
+8 hours. These are existing MCP credentials, not the new WordPress administrator.
+The readable preview lists the website, account, administrator, pinned core,
+dedicated database, protection and pending public DNS/TLS verification. The target
+directory and requesting client are available in an expandable section.
+
+Every plan still requires its own explicit approval and conversational confirmation;
+being signed in never approves or applies a plan. Each form has a separate five-minute,
+single-use cookie-bound challenge. Expiry, logout or changed owner credentials/origin
+prevent an already open form from approving. Logout revokes this browser session;
+it does not revoke previously recorded plan approvals or execute hosting changes.
+
+The random session secret is sent only in a host-only HttpOnly, SameSite=Strict
+cookie scoped to `/wordpress-stage`, with Secure on HTTPS. SQLite stores only its
+SHA-256 hash, expiry and binding to the public origin/current owner credentials.
+Sessions do not slide or become OAuth grants; at most 100 active sessions are stored.
+The owner can sign out on the review/result page or `/wordpress-stage/logout`.

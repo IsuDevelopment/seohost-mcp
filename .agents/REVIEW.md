@@ -6,7 +6,7 @@ source; accepted decisions explain intent and do not exempt code from criticism.
 
 ## Baseline and evidence
 
-- Review target: 0.11.1, 30 MCP tools; stage diff: `git diff 7ba6257..HEAD -- src test docs .agents`.
+- Review target: 0.12.0, 30 MCP tools; stage diff: `git diff 7ba6257..HEAD -- src test docs .agents`.
   Historical 0.9.0 diagnostics diff: `git diff 210bfa0..HEAD -- src test docs .agents config`.
   Redirects diff: `git diff 1fef5a2..HEAD -- src test docs .agents`.
   TLS + redirects diff: `git diff c25bf96..HEAD -- src test docs .agents`.
@@ -72,3 +72,11 @@ observable impact, evidence/reproduction and a suggested focused regression test
 Distinguish a confirmed bug from a provider assumption or a documented limitation
 that still needs risk assessment. State unresolved verification gaps even if no
 bugs are found; passing tests alone do not establish correctness.
+
+0.12.0 review focus: separate remembered authentication from per-plan consent.
+Inspect hash-only session storage, absolute eight-hour expiry, credential/origin
+binding, rotation, session cap, HTTPS cookie flags and CSRF-protected logout.
+Approvals must recheck the session and exact single-use plan challenge. Logout does
+not revoke existing receipts. 117 tests/types/build pass; dummy real-browser login,
+second-plan reuse and logout were verified without approving or changing hosting.
+Production authenticated session reuse and actual installation remain unverified.
