@@ -2,7 +2,13 @@
 
 Updated: 2026-10-25.
 
-- Production 0.11.1 deployed from `75c40d6` through successful Deploy run
+- Production 0.12.0 deployed from `c5fe087` through Deploy `40201063221`;
+  Check `40201053559` passed (117 tests/types/build). Code backup, dependency guard,
+  single-app restart and workflow HTTPS/authenticated MCP smoke passed. Independent
+  HTTPS health confirms 0.12.0. Private configuration/state remain preserved.
+  Remembered owner login and logout were browser-tested locally with dummy credentials;
+  production owner authentication and actual stage installation remain unverified.
+- Historical production 0.11.1 deployed from `75c40d6` through successful Deploy run
   `40193850271`; Check `40193837644` passed (112 tests/types/build). Private H57
   configuration/state preserved. A fresh production MCP plan replaces the expired
   preview and still awaits explicit owner confirmation; no target resources created.
@@ -271,4 +277,4 @@ never place key values in documentation or logs.
   dummy local credentials reached a second plan without login; logout then required
   login again. No approval button was clicked or hosting mutation executed. Session
   hash persistence, absolute expiry, credential binding, rotation, cookie flags,
-  stale forms, CSRF and cross-plan isolation are regression-tested. Deployment pending.
+  stale forms, CSRF and cross-plan isolation are regression-tested. Deployed successfully as recorded above.

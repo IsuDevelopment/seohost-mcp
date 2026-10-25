@@ -185,3 +185,8 @@ cookie scoped to `/wordpress-stage`, with Secure on HTTPS. SQLite stores only it
 SHA-256 hash, expiry and binding to the public origin/current owner credentials.
 Sessions do not slide or become OAuth grants; at most 100 active sessions are stored.
 The owner can sign out on the review/result page or `/wordpress-stage/logout`.
+
+Release 0.12.0 deployed from `c5fe087` through successful Deploy `40201063221`
+(Check `40201053559`, 117 tests/types/build). Real browser session reuse/logout was
+verified only with dummy local credentials; production owner login and actual
+installation are still awaiting the owner's action. No hosting target was created.
