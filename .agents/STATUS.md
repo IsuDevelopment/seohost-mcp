@@ -292,3 +292,9 @@ never place key values in documentation or logs.
   Naming, expired applied receipt login, no-MCP-secret output, stale sessions,
   private-file mode/size/symlink/identity checks and CSP hash have regressions.
   Real provider acceptance of the new naming and actual install remain unverified.
+
+- Patch 0.13.1 applies the owner's brand gradient (120deg, rgb(217,30,127) to
+  rgb(214,31,168)) to stage-page primary buttons and brand text, with matching pink
+  neutral/focus colors. Full 120-test check/types/build passes; dummy browser visual
+  inspection passed. CSP still authorizes only the exact static style hash. No
+  hosting path, plan, credential or authorization behavior changes.

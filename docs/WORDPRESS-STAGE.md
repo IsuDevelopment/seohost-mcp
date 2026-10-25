@@ -221,3 +221,9 @@ Release 0.13.0 deployed from `4076a87` through successful Deploy `40203604423`
 (Check `40203593539`, 120 tests/types/build). Independent SDK confirmed health,
 30 tools and read-token write rejection. Browser verification used dummy local
 credentials and a simulated completed result only; real installation remains pending.
+
+Patch 0.13.1 uses the owner's pink gradient for primary buttons/brand text and
+matching neutral/focus colors. Static hash-authorized CSS and behavior are unchanged.
+The current adapter plans `<parent public_html>/<label>` and verifies the actual
+subdomain map after creation; a separate `domains/<hostname>/public_html` installation
+mode is not implemented. Never change a reviewed document root implicitly.
