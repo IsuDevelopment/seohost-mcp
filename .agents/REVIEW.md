@@ -6,11 +6,11 @@ source; accepted decisions explain intent and do not exempt code from criticism.
 
 ## Baseline and evidence
 
-- Review target: 0.17.0, 32 MCP tools; stage diff: `git diff 7ba6257..HEAD -- src test docs .agents`.
+- Review target: 0.17.1, 32 MCP tools; stage diff: `git diff 7ba6257..HEAD -- src test docs .agents`.
   Historical 0.9.0 diagnostics diff: `git diff 210bfa0..HEAD -- src test docs .agents config`.
   Redirects diff: `git diff 1fef5a2..HEAD -- src test docs .agents`.
   TLS + redirects diff: `git diff c25bf96..HEAD -- src test docs .agents`.
-  Deployed release: 0.15.0, commit `95821d2`, Deploy run `40308153399`; Check `40308094388` (130 tests).
+  Deployed release: 0.17.1, commit `c36262b`, Deploy run `40315925731`; Check `40315903466` (139 tests).
 - Focus diff: `git diff c242a28..556b134 -- src test scripts config .env.example`.
   `c242a28` is the last pre-0.6.0 commit. Review current `main` too for later changes.
 - Historical validation for this code: `npm run check`, 57 passing tests, successful
@@ -107,7 +107,7 @@ confirmed a created independent domain and matching computed root, absent dedica
 DB and eight provider-populated template entries. No WordPress was installed.
 Investigate the unconfirmed write without assuming its cause. Recovery must preserve
 provider files and get explicit owner scope; do not clear locks or bypass MCP apply.
-See [recovery handoff](tasks/fresh-stage-recovery.md).
+See [recovery contract](../docs/WORDPRESS-STAGE.md).
 
 0.15.0 focus: D26 is a narrow explicit exception, not generic unknown retry. Inspect
 original receipt/phase/actor/target binding, fresh domain/root and DB-absence reads,
@@ -136,3 +136,11 @@ Review official MD5/HTTPS anchor, fixed tar arguments/environment, safe archive
 entry/type bounds, candidate checksum requirement, exact current-tree matching,
 private artifact preservation and exclusive missing-file writes. No checksum
 exclusion or correct-file overwrite. 139 tests/types/build pass.
+
+Final live verification (2026-10-26): the approved stage is applied/completed_locally,
+with exact pinned version/URL, indexing disabled and the account reservation released.
+Private template copies/originals remain verified. Core repair restored 39 missing
+files and retained 33 truncated artifacts; candidate and final checksums passed.
+Independent HTTPS sees protected frontend 403/noindex and wp-login 200. No generated
+password was read into model context. Review normal fresh-path reliability separately;
+this success does not prove generic arbitrary-checkpoint resume or hostile-tenant isolation.

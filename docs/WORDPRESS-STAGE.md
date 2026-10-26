@@ -389,3 +389,13 @@ files up to 32 MiB (the live pinned build contains a 13.4 MB JS worker). The sam
 approved job may re-run a pre-write core validator refusal at verifying_created_database;
 all guards, archive/candidate/tree proofs and reservation requirements still apply.
 No prepared or partially modified repair checkpoint is retried automatically.
+
+Release 0.17.1 deployed from `c36262b` through successful Deploy `40315925731`
+(Check `40315903466`, 139 tests/types/build). The same approved recovery completed:
+39 missing pinned files restored, 33 proven truncated artifacts retained privately,
+full candidate/final checksums passed, config/private credentials preserved, and
+WordPress 7.1.3 installed with the reviewed URL and indexing disabled. No domain or
+DB POST was repeated. Reservation released on applied success. Independent public
+HTTPS confirmed frontend 403/noindex,nofollow (expected protection) and wp-login 200.
+Private provider templates/copies/originals are retained; no backup was deleted.
+The owner result page is available for password retrieval in the owner browser.

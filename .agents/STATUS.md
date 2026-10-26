@@ -2,6 +2,29 @@
 
 Updated: 2026-10-26.
 
+## Current verified outcome
+
+- Production 0.17.1 deployed from `c36262b`, Deploy `40315925731`, Check `40315903466`;
+  139 tests/types/build passed. Same dependencies/private config preserved.
+- The owner-approved independent-domain stage finished through MCP: applied,
+  completed_locally, pinned WordPress 7.1.3, correct URL and indexing disabled.
+  Its reservation released normally after success; domain and DB were never recreated.
+- Eight provider template files have verified private copies and retained originals.
+  Core repair restored 39 missing files and privately retained 33 truncated artifacts.
+  Official archive MD5, safe system tar, candidate/final core checksums and complete
+  tree matching passed. Correct core files were not overwritten; config is mode 600.
+- Independent public HTTPS checks passed: frontend 403 with noindex,nofollow (expected
+  staging login protection), wp-login 200. Owner result page returns 200/no-store;
+  only the owner browser can reveal the generated password. No password entered chat.
+- Next reliability work: consolidate normal fresh provisioning around known provider
+  templates and correct long-name extraction. Current recovery checkpoints are narrow;
+  do not describe every future fresh install as fully hands-off or broadly resumable.
+
+## Historical investigation evidence
+
+Earlier pending/unknown statements below describe intermediate release checkpoints
+and are superseded by the successful verified outcome above. Git preserves full history.
+
 - Production 0.16.0 deployed from `5f0ff26` through successful Deploy `40311510800`
   (134 tests in local/workflow checks). Independent SDK confirmed version and 32 tools.
   Local DB credentials/zero-object proof passed. Core download completed but checksum
@@ -45,7 +68,7 @@ Updated: 2026-10-26.
   No WP/database installation ran; no credentials were printed. The account lock
   stays unknown; no retry, resume, delete, relocation or lock override was performed.
   Preserve templates and require explicit reviewed recovery before continuing; see
-  [recovery handoff](tasks/fresh-stage-recovery.md). The original POST failure cause
+  [recovery contract](../docs/WORDPRESS-STAGE.md). The original POST failure cause
   is unknown: do not assume an API error/timeout/parser mismatch without evidence.
 - Production 0.14.0 deployed from `cb606e8` through successful Deploy `40208957293`;
   Check `40204918957` passed (123 tests/types/build). Backup/dependency guard/restart/
