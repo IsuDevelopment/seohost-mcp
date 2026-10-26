@@ -6,7 +6,7 @@ source; accepted decisions explain intent and do not exempt code from criticism.
 
 ## Baseline and evidence
 
-- Review target: 0.16.0, 32 MCP tools; stage diff: `git diff 7ba6257..HEAD -- src test docs .agents`.
+- Review target: 0.17.0, 32 MCP tools; stage diff: `git diff 7ba6257..HEAD -- src test docs .agents`.
   Historical 0.9.0 diagnostics diff: `git diff 210bfa0..HEAD -- src test docs .agents config`.
   Redirects diff: `git diff 1fef5a2..HEAD -- src test docs .agents`.
   TLS + redirects diff: `git diff c25bf96..HEAD -- src test docs .agents`.
@@ -130,3 +130,9 @@ credentials before an atomic same-reservation continuation. No new target, scope
 creation POST or broad resume. Inspect fixed PHP/SQL, secret stdin/environment,
 output bounds, object/user isolation, wrong-phase/refused proof and no replay.
 134 tests/types/build pass; real WP continuation remains pending deployment.
+
+0.17.0: full cached archive contains names missing/truncated in H57 extraction.
+Review official MD5/HTTPS anchor, fixed tar arguments/environment, safe archive
+entry/type bounds, candidate checksum requirement, exact current-tree matching,
+private artifact preservation and exclusive missing-file writes. No checksum
+exclusion or correct-file overwrite. 139 tests/types/build pass.

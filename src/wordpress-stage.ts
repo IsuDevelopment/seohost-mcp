@@ -142,22 +142,23 @@ export class WordPressStages {
   }
   async continueInstall(reference:string|number,id:string,hash:string,access:AccessContext) {
     const serverId=this.authorize(reference,access,true,'independent_domain'),store=this.store()
-    let change:StoredChange
+    let change:StoredChange,preparedCore=false
     try {
       change=store.get(id,access.actor,serverId);const p=stagePayload(change)
       if(!p.recovery||p.previewHash!==hash||!store.isOwnerApproved(change,hash))throw new HostingError('OWNER_CONFIRMATION_REQUIRED','The existing exact recovery approval is required.')
       if(change.status==='applying'||change.status==='applied')return stagePreview(change)
-      if(change.status!=='unknown'||change.code!=='WRITE_OUTCOME_UNKNOWN'||p.phase!=='creating_database'||p.adminCredentialReference!==id||!this.provider.verifyExistingDatabase||!this.provider.verifyTemplateBackup)
+      preparedCore=p.phase==='verifying_core'
+      if(change.status!=='unknown'||!((p.phase==='creating_database'&&change.code==='WRITE_OUTCOME_UNKNOWN')||(preparedCore&&change.code==='WP_CLI_FAILED'))||p.adminCredentialReference!==id||!this.provider.verifyExistingDatabase||!this.provider.verifyTemplateBackup)
         throw new HostingError('INSTALL_CONTINUATION_UNAVAILABLE','This checkpoint cannot continue; do not retry provider creation.')
       const secret=await retainedStageSecrets(this.settings,change)
       await this.provider.verifyTemplateBackup(serverId,p.target,id,p.recovery.snapshot)
-      await this.provider.verifyExistingDatabase(serverId,p.target,secret.databasePassword)
+      await this.provider.verifyExistingDatabase(serverId,p.target,secret.databasePassword,preparedCore)
       change=store.reserveStageInstall(id,access.actor,serverId,hash)
     }finally{store.close()}
-    void this.run(change,true).catch(()=>console.error('WordPress stage continuation stopped; inspect persistent checkpoint'))
+    void this.run(change,true,preparedCore).catch(()=>console.error('WordPress stage continuation stopped; inspect persistent checkpoint'))
     return stagePreview(change)
   }
-  private async run(change: StoredChange,installationOnly=false) {
+  private async run(change: StoredChange,installationOnly=false,preparedCore=false) {
     const store = this.store(), payload = stagePayload(change), {target} = payload
     let mutated = Boolean(payload.recovery)
     const checkpoint = (phase: string) => {payload.phase=phase; store.checkpoint(change)}
@@ -168,7 +169,7 @@ export class WordPressStages {
         secrets=await retainedStageSecrets(this.settings,change)
         if(!payload.recovery||!this.provider.verifyTemplateBackup||!this.provider.verifyExistingDatabase)throw new HostingError('INSTALL_CONTINUATION_UNAVAILABLE','Continuation proof is unavailable.')
         await this.provider.verifyTemplateBackup(change.serverId,target,change.id,payload.recovery.snapshot)
-        await this.provider.verifyExistingDatabase(change.serverId,target,secrets.databasePassword)
+        await this.provider.verifyExistingDatabase(change.serverId,target,secrets.databasePassword,preparedCore)
       }else{
       checkpoint('revalidating_target')
       const fresh = payload.recovery ? {root:target.root} : await this.provider.preflight(change.serverId,target,target.database)
@@ -194,12 +195,12 @@ export class WordPressStages {
       checkpoint('verifying_empty_document_root'); await this.provider.verifyRoot(change.serverId,target)
       checkpoint('creating_database'); await this.provider.createDatabase(change.serverId,target,secrets.databasePassword)
       }
-      await this.provider.install(change.serverId,target,secrets,checkpoint)
+      await this.provider.install(change.serverId,target,secrets,checkpoint,preparedCore,change.id)
       checkpoint('completed_locally')
       store.finish(change,'applied',{hostname:target.hostname,siteUrl:'https://'+target.hostname,adminName:target.adminName,adminEmail:target.adminEmail,
         database:target.database,wordpressVersion:target.version,localInstallationVerified:true,publicDnsTlsHttp:'not_verified',
         adminCredentialReference:change.id,ownerResultUrl:new URL('/wordpress-stage/'+change.id,this.settings.publicUrl).href,credentials:'Retained in owner-only .seohost-mcp-stage/<reference>.json under the configured account home. Never publish this file.',
-        providerTemplateBackupReference:payload.recovery ? change.id : null,
+        providerTemplateBackupReference:payload.recovery ? change.id : null,coreRepairReference:preparedCore ? change.id : null,
         backup:payload.recovery ? 'Provider templates retained with verified private copies and originals; no backups deleted.' : 'No existing target data; verified absence. No source copied. No backups deleted.',newDatabase:true,overwrite:false})
     } catch(e) {
       const code=e instanceof HostingError?e.code:'STAGE_FAILED'

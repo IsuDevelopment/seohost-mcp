@@ -53,3 +53,11 @@ Candidate 0.16.0 / D27 can prove the existing DB credentials and backups, then p
 only the same approved job's remaining install. No new approval scope or create POST.
 134 tests pass. Deploy and invoke continue_wordpress_stage_install for the same
 private runtime plan/hash via a persistent MCP client; never print credential files.
+
+DB continuation passed credential/zero-object proofs and downloaded pinned core.
+It stopped before config at verifying_core. Read-only checks proved archive paths
+are full while extracted names are truncated at 100 archive bytes. Candidate 0.17.0
+repairs this exact fresh download, with official archive MD5, safe system tar,
+candidate/final checksums and no correct-file overwrite; 139 tests pass. Deploy,
+then invoke the same continuation/plan/hash through a persistent client. No new
+approval, resource creation or template movement is needed.

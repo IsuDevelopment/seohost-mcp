@@ -10,6 +10,7 @@ module responsibilities or important flows change; keep this map short.
 | `src/server.ts` | Version, thirty tool registrations, input schemas, MCP results/errors and safe auditing. |
 | `src/wordpress-stage.ts` | Hostname-derived DB names and bounded HTML-only admin credential reader; Placement-specific immutable stage/recovery plans, shared account reservation, secret-free background checkpoints/results and no retries. |
 | `src/wordpress-stage-recovery.ts` | Bounded fixed-template metadata/hash snapshot, verified private copies, retained-backup proof and journaled relocation of originals; no deletion or arbitrary path input. |
+| `src/wordpress-core-repair.ts` | Same-job pinned core extraction repair: official archive MD5, bounded safe system tar, candidate checksums, exact tree comparison, private truncated originals and missing-file exclusive writes. |
 | `src/wordpress-stage-provider.ts` | Local UID/home/host binding, canonical/absent target, separate-domain or nested hosting creation, exact document-root and dedicated DB APIs and fixed read-only local empty-DB credential proof; fixed shell-free WP-CLI, stdin secrets and stage policy. |
 | `src/wordpress-stage-approval.ts` | Polish-default/English-switch owner login/logout and readable browser review/approve/deny with per-plan cookie-bound single-use challenges; completed-result WP admin password view and hash-authorized responsive CSS; no hosting writes from the page. |
 | `src/capabilities.ts` | Shared tool/configuration-requirement catalog and honest configuration-only readiness; smoke tests verify names against the catalog. |
@@ -124,3 +125,7 @@ See [review handoff](REVIEW.md) for the release comparison and critical code pat
 Database export startup cleanup is tracked separately from export reservations:
 new exports await housekeeping, while concurrent exports remain rejected.
 `test/database-exports.test.ts` includes a deterministic race regression.
+
+`test/wordpress-core-repair.test.ts` uses real tar archives to verify GNU long paths,
+no overwrite of valid core, changed-byte refusal, mandatory candidate checksums and
+archive-link refusal. Stage tests cover the same approved checkpoint continuation.

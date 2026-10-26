@@ -256,3 +256,13 @@ executes the remaining WP install, not a new DB/domain operation or file takeove
 The worker rechecks proofs after reservation. The original actor/account/hash/receipt
 remain mandatory; starting-plan expiry is unchanged and does not cancel already
 reserved work. Raw SQL/commands/output/passwords are never MCP arguments/results.
+
+D28 permits the same approved recovery's failed core-verification checkpoint only.
+The original pinned cached tar must match WordPress.org's HTTPS MD5. Fixed local
+system tar lists safe relative wordpress/ entries (regular files/directories only)
+and extracts privately. Candidate checksums are mandatory before touching the target.
+The current tree must match candidate bytes or exact 100-byte-truncated archive-path
+artifacts; unknown/edited files are refused. Such artifacts are renamed privately;
+only missing verified files are written exclusively. The resulting complete tree
+and final WP checksums must pass before configuration/install. Original template
+backups, zero-object DB proof, private credentials and reservation remain unchanged.

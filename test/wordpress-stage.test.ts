@@ -569,3 +569,15 @@ test('fixed local PHP proof uses stdin only and requires empty metadata, exact l
  wrongRoot=true;await assert.rejects(provider.verifyExistingDatabase('primary',target,'fixture-db-secret'),code('UNSAFE_STAGE_TARGET'))
  }finally{await f.close()}
 })
+
+test('the same approved recovery can finish a downloaded checksum checkpoint without recreating resources',async()=>{
+ const f=await fixture();try{
+ const p=await emptyDatabaseCheckpoint(f)
+ f.provider.install=async(_s,_t,_secret,checkpoint,prepared,id)=>{f.state.calls.push('install');if(!prepared){checkpoint('verifying_core');throw new HostingError('WP_CLI_FAILED','Fixture truncated extraction')}assert.equal(id,p.planId);checkpoint('verifying_wordpress')}
+ await f.workflow.continueInstall('primary',p.planId,p.previewHash,access);assert.equal((await finished(f,p.planId)).phase,'verifying_core')
+ let preparedProof=false;f.provider.verifyExistingDatabase=async(_s,_t,_secret,prepared)=>{preparedProof=prepared===true}
+ await f.workflow.continueInstall('primary',p.planId,p.previewHash,access);const done=await finished(f,p.planId)
+ assert.equal(done.status,'applied');assert(preparedProof);assert.equal(done.result?.coreRepairReference,p.planId)
+ assert.equal(f.state.calls.filter(c=>c==='db-created-unknown').length,1);assert.equal(f.state.calls.filter(c=>c==='create-unknown').length,1)
+ }finally{await f.close()}
+})

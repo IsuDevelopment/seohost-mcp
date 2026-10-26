@@ -8,12 +8,13 @@ import { DirectAdminClient } from './directadmin.js'
 import { DirectAdminTransport, boundedBytes } from './directadmin-http.js'
 import { AccountDiagnostics } from './account-diagnostics.js'
 import { snapshotTemplates, preserveTemplates, verifyPreservedTemplates, type TemplateSnapshot } from './wordpress-stage-recovery.js'
+import { assertPreparedCore, repairDownloadedCore } from './wordpress-core-repair.js'
 import { HostingError } from './hosting-error.js'
 
 export type StageInput = { domain: string; label: string; adminEmail: string; adminName: string; title: string; placement?: 'independent_domain' | 'subdomain' }
 export type StageTarget = StageInput & { hostname: string; root: string; database: string; version: string }
 export interface StageProvider {
-  verifyExistingDatabase?(serverId:string,target:StageTarget,password:string):Promise<void>
+  verifyExistingDatabase?(serverId:string,target:StageTarget,password:string,preparedCore?:boolean):Promise<void>
   verifyTemplateBackup?(serverId:string,target:StageTarget,id:string,snapshot:TemplateSnapshot):Promise<void>
   inspectRecovery?(serverId:string,target:StageTarget):Promise<TemplateSnapshot>
   preserveTemplates?(serverId:string,target:StageTarget,id:string,snapshot:TemplateSnapshot,checkpoint:(phase:string)=>void):Promise<string>
@@ -21,7 +22,7 @@ export interface StageProvider {
   createHosting(serverId: string, target: StageTarget): Promise<void>
   verifyRoot(serverId: string, target: StageTarget): Promise<void>
   createDatabase(serverId: string, target: StageTarget, password: string): Promise<void>
-  install(serverId: string, target: StageTarget, secret: { databasePassword: string; adminPassword: string }, checkpoint: (phase: string) => void): Promise<void>
+  install(serverId: string, target: StageTarget, secret: { databasePassword: string; adminPassword: string }, checkpoint: (phase: string) => void,preparedCore?:boolean,planId?:string): Promise<void>
 }
 const denied = () => new HostingError('UNSAFE_STAGE_TARGET', 'Fresh-stage targeting could not be verified. Existing data and symlinks are never reused or overwritten.')
 
@@ -110,13 +111,14 @@ export class LocalStageProvider implements StageProvider {
       if (!(await this.hosting.listSubdomains(serverId,target.domain)).subdomains.includes(target.hostname)) throw denied()
     }
   }
-  async verifyRoot(serverId: string, target: StageTarget) {
+  private async mappedRoot(serverId:string,target:StageTarget,empty:boolean) {
     const config = this.config(serverId), independent = target.placement === 'independent_domain'
     const roots = await this.roots(serverId,independent ? target.hostname : target.domain)
     if ((independent ? roots.public_html : roots.subdomains[target.label]?.public_html) !== target.root) throw denied()
     await safeStagePath(config.home,target.root)
-    if ((await readdir(target.root)).length) throw denied()
+    if (empty && (await readdir(target.root)).length) throw denied()
   }
+  async verifyRoot(serverId:string,target:StageTarget){return this.mappedRoot(serverId,target,true)}
   async inspectRecovery(serverId:string,target:StageTarget) {
     const config=this.config(serverId)
     if(target.placement!=='independent_domain'||target.hostname!==target.label+'.'+target.domain||target.root!==join(config.home,'domains',target.hostname,'public_html'))throw denied()
@@ -135,9 +137,10 @@ export class LocalStageProvider implements StageProvider {
   async verifyTemplateBackup(serverId:string,target:StageTarget,id:string,snapshot:TemplateSnapshot) {
     return verifyPreservedTemplates(this.config(serverId).home,target.root,id,snapshot)
   }
-  async verifyExistingDatabase(serverId:string,target:StageTarget,password:string) {
+  async verifyExistingDatabase(serverId:string,target:StageTarget,password:string,preparedCore=false) {
     const config=this.config(serverId)
-    await this.verifyRoot(serverId,target)
+    await this.mappedRoot(serverId,target,!preparedCore)
+    if(preparedCore)await assertPreparedCore(config.home,target.root)
     const info=await this.diagnostics.databaseInfo(serverId,target.database)
     if([info.tableCount,info.eventCount,info.routineCount,info.triggerCount,info.viewCount].some(n=>n!==0)||info.userCount!==1)throw denied()
     const users=z.array(z.object({dbuser:z.string(),hostPatterns:z.array(z.string()),conflictingHosts:z.boolean()})).parse(JSON.parse(await this.transport.getText(serverId,`/api/db-show/databases/${encodeURIComponent(target.database)}/users`,{})))
@@ -155,11 +158,17 @@ export class LocalStageProvider implements StageProvider {
     await this.transport.createStageDatabase(serverId, target.database, password)
     await this.verifyExistingDatabase(serverId,target,password)
   }
-  async install(serverId: string, target: StageTarget, secret: {databasePassword: string; adminPassword: string}, checkpoint: (phase: string) => void) {
+  async install(serverId: string, target: StageTarget, secret: {databasePassword: string; adminPassword: string}, checkpoint: (phase: string) => void,preparedCore=false,planId?:string) {
+    if(preparedCore){
+      const config=this.config(serverId);await this.mappedRoot(serverId,target,false)
+      if(!planId)throw denied()
+      await repairDownloadedCore(config.home,target.root,target.version,planId,this.request,path=>this.wp(serverId,path,['core','verify-checksums','--version='+target.version,'--locale=en_US']),checkpoint)
+    }else{
     await this.verifyRoot(serverId, target)
     await writeFile(join(target.root, '.htaccess'), 'Require all denied\n', {flag: 'wx', mode: 0o644})
     checkpoint('downloading_core')
     await this.wp(serverId, target.root, ['core', 'download', '--version=' + target.version, '--locale=en_US'])
+    }
     checkpoint('verifying_core')
     await this.wp(serverId, target.root, ['core', 'verify-checksums', '--version=' + target.version, '--locale=en_US'])
     checkpoint('creating_config')

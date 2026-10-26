@@ -179,3 +179,8 @@ Initial ready-plan expiry still applies to starting a job, not cancellation of a
 in-flight job. Wrong phase, changed backup, any database objects, foreign/remote DB
 user or wrong credential stops before reservation/installation. Fixed PHP proof is
 read-only, has no caller PHP/SQL, and sends credentials only through stdin.
+
+D28 also allows continue_wordpress_stage_install at the same job's failed
+verifying_core checkpoint. It proves the original archive/candidate/current tree,
+preserves only byte-proven truncated artifacts and fills missing pinned files;
+checksums are never skipped. No extra tool, scope or owner approval is introduced.

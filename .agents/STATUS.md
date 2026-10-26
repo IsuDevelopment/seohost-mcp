@@ -2,6 +2,15 @@
 
 Updated: 2026-10-26.
 
+- Production 0.16.0 deployed from `5f0ff26` through successful Deploy `40311510800`
+  (134 tests in local/workflow checks). Independent SDK confirmed version and 32 tools.
+  Local DB credentials/zero-object proof passed. Core download completed but checksum
+  verification stopped the job before config/install. Read-only investigation proved
+  full long paths exist in the archive while extracted paths are truncated at 100
+  archive bytes. DB remains empty; template backups/originals are retained and verified.
+- Candidate 0.17.0/D28 fixes that precise pinned-download case under the existing
+  approval and reservation. Full 139 tests/types/build pass, including real tar long
+  names, candidate/final checksums, no valid-file overwrite and unknown-file refusal.
 - Approved recovery apply preserved and privately verified all eight template files
   and originals; empty root matches the plan. It stopped unknown at creating_database.
   Read-only inventory confirms the DB exists with zero tables and one exact

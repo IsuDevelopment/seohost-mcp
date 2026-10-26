@@ -137,3 +137,12 @@ resume. A fixed PHP/mysqli read-only count query uses clean environment, secret 
 a 15-second timeout and 4 KiB output bound; no caller PHP/SQL or raw errors are exposed.
 Documented absolute Unix-socket response descriptions are accepted but never used as
 caller-selected connection or filesystem paths; actual DB proof targets localhost.
+
+D28 is restricted to the already approved job's verifying_core/WP_CLI_FAILED.
+Prepared root requires the exact deny guard and no config, MU plugins or drop-ins.
+A bounded cached pinned archive is copied privately and verified against official
+HTTPS MD5; safe relative regular/directory entries, fixed system tar, candidate
+checksums and whole-tree SHA-256 comparisons gate repair. Correct files are never
+overwritten; only missing official files are created, and exact byte-matching
+100-byte-truncated artifacts are retained privately. Final core checksums remain
+mandatory. Same-UID concurrent hostile mutation is outside the account trust model.

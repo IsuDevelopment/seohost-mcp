@@ -358,3 +358,28 @@ never repeats domain/DB creation, rewrites credentials, relocates files again or
 releases the lock. Wrong phase/hash/actor/receipt, nonempty/foreign DB, changed backup
 or failed credentials prevent starting. A later partial install keeps unknown and
 cannot use this continuation again; no arbitrary resume or generic takeover exists.
+
+## Pinned core extraction repair (0.17.0, D28)
+
+The same approved recovery can also continue only at verifying_core/WP_CLI_FAILED.
+Live H57 evidence: the pinned archive contains full long paths, while the extracted
+files have paths truncated at 100 archive bytes. No configuration or WP tables exist.
+Original templates remain privately verified. This is a correction of the job's own
+incomplete fresh download, not arbitrary existing-site repair or a new consent scope.
+
+Before install, prove the existing template backups, mapped root deny guard, absent
+config/MU plugins/drop-ins and empty local DB credentials. Copy the original pinned
+cache archive privately (64 MiB limit), compare WordPress.org's HTTPS MD5, validate
+up to 10,000 safe relative wordpress/ archive entries with only regular/directory
+types, and extract via fixed /bin/tar outside web roots. Never accept caller URLs or
+archives. The candidate must pass official WP checksums before any target repair.
+Trees are bounded to 10,000 entries, 8 MiB/file and 256 MiB total. Existing files must
+match candidate SHA-256 or the exact truncated path/bytes of a candidate entry.
+Unknown/edited content is refused. Save manifests, rename proven truncated artifacts
+privately and create only missing files exclusively; no existing correct file is
+overwritten or backup deleted. The complete repaired tree and final WP checksums
+must pass before config/install. Partial repair stays unknown with its reservation.
+The same-UID account trust boundary remains; this does not sandbox hostile tenants.
+
+Sources: [WP-CLI download](https://developer.wordpress.org/cli/commands/core/download/),
+[checksum verification](https://developer.wordpress.org/cli/commands/core/verify-checksums/).
