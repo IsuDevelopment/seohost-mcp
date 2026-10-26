@@ -103,14 +103,16 @@ export class DirectAdminTransport {
   async postForm(serverId: string, path: WritePath, params: Record<string, string>) {
     const credentials = this.settings.credentials[serverId]
     if (!credentials) throw new HostingError('CREDENTIALS_MISSING', 'Hosting credentials are missing.')
+    let reason = 'Connection failed or timed out'
     try {
       const response = await this.request(new URL(path, this.settings.accounts[serverId]!.baseUrl), {
-        method: 'POST', redirect: 'manual', signal: AbortSignal.timeout(10_000),
+        method: 'POST', redirect: 'manual', signal: AbortSignal.timeout(path === '/CMD_API_DOMAIN' || path === '/CMD_API_SUBDOMAINS' ? 60_000 : 10_000),
         headers: { Authorization: 'Basic ' + Buffer.from(credentials.username + ':' + credentials.loginKey).toString('base64'),
           'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json, application/x-www-form-urlencoded' },
         body: new URLSearchParams(params).toString(),
       })
-      if (response.status !== 200) { await response.body?.cancel(); throw new Error('Uncertain provider result') }
+      if (response.status !== 200) { reason = `HTTP ${response.status}`; await response.body?.cancel(); throw new Error('Uncertain provider result') }
+      reason = 'Unrecognized or incomplete success response'
       const raw = (await boundedBytes(response)).toString('utf8')
       let result: Record<string, unknown>
       try { result = JSON.parse(raw) } catch { result = Object.fromEntries(new URLSearchParams(raw)) }
@@ -118,7 +120,7 @@ export class DirectAdminTransport {
       // Even explicit errors may follow partial provider changes; require reconciliation.
       throw new Error('Provider did not confirm success')
     } catch {
-      throw new HostingError('WRITE_OUTCOME_UNKNOWN', 'The provider did not confirm the write. Inspect current state; do not retry blindly.')
+      throw new HostingError('WRITE_OUTCOME_UNKNOWN', `The provider did not confirm the write (${reason}). Inspect current state; do not retry blindly.`)
     }
   }
 

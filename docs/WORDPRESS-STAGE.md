@@ -1,8 +1,39 @@
 # Fresh WordPress stage
 
-Version 0.11.0 adds a **fresh single-site** workflow. Cloning, promotion, imports,
+A **fresh single-site** workflow provisions a new protected WordPress installation. Cloning, promotion, imports,
 multisite, existing-target replacement and backup deletion remain unavailable.
 This implements only the fresh-target part of [migration requirements](WORDPRESS-MIGRATIONS.md).
+
+## Normal fresh installation (0.18.0)
+
+One exact owner approval now covers hosting creation, preservation of provider-created
+start files, a dedicated database and verified WordPress installation. The target
+hostname/container must be absent at plan and apply. After a confirmed create, only
+index.html, 400/401/403/404/500/503.shtml, cgi-bin and cgi-bin/.htaccess are eligible:
+256 KiB/file, 2 MiB total, account-owned regular files/directories, no links. Save
+SHA-256-verified private copies and retain relocated originals under the job reference
+before requiring an empty root. Unexpected files stop before database creation.
+Existing plans without this explicit preservation policy retain the empty-root rule.
+
+The normal installer streams the exact pinned WordPress.org tar.gz into private
+storage (HTTPS, no redirects, 64 MiB/180 seconds), verifies its official MD5, validates
+safe archive paths/types and extracts with system tar. Candidate official WP checksums
+must pass before exclusive target writes; final tree equality and WP checksums must
+pass before config/install. This avoids H57's observed WP-CLI long-name truncation.
+Archive/candidate/manifest remain private in `.seohost-mcp-stage/core-repair/<job>/`;
+provider template backups remain in `.seohost-mcp-stage/recovery/<job>/`. No deletion.
+The same validators still support the narrowly gated legacy recovery below.
+
+Creation POSTs allow 60 seconds and are never retried. Unknown results retain the
+account lock; a later inventory observation alone does not prove why a POST failed.
+`get_wordpress_stage.result.detail` gives a safe failure explanation without raw
+provider bodies, child output or passwords. Keep a stdio process alive throughout
+background apply, poll about every 10 seconds, and stop on applied/unknown/failed.
+Public DNS/TLS/HTTP checks remain separate from successful local installation.
+
+The release history below describes the behavior at each earlier version; this
+section defines the current normal flow. Verification uses local fixtures, including
+real tar/child processes; the new flow has not been run against another live target.
 
 ## Tools and approval
 
@@ -14,7 +45,7 @@ This implements only the fresh-target part of [migration requirements](WORDPRESS
 | `apply_wordpress_stage` | Same actor/account, `planId`, `previewHash` | Requires a separate owner browser approval. Reserves the shared account lock, starts a background worker and returns immediately. |
 | `get_wordpress_stage` | Same actor/account and `planId` | Reports persistent phase/result, including partial and unknown outcomes. No automatic retry, deletion or reconciliation; only D26 separately reviewed recovery below. Write authorization is required; disabled provisioning does not prevent receipt inspection. |
 
-All three require write authorization. Plans/apply additionally require `create_wordpress_stage` plus the hosting operation
+All five tools require write authorization. Plans/apply additionally require `create_wordpress_stage` plus the hosting operation
 for the reviewed placement: `create_domain` for the default independent domain,
 `create_subdomain` for explicit nested subdomain placement.
 A preview hash, the agent's assertion of approval or a write token cannot create
@@ -259,8 +290,8 @@ The stage owner UI defaults to Polish; **English** links use `?lang=en`. Switchi
 language changes presentation only, keeps authentication, and never approves a plan.
 Dates use the selected locale and Europe/Warsaw. Login, preview, result, logout and
 safe errors are localized. MCP data/docs stay in English. Same-Origin/CSRF/expiry,
-no-store and static style-hash CSP remain enforced. Provider-populated files still
-stop installation; no placeholder is deleted automatically.
+no-store and static style-hash CSP remain enforced. At 0.14.0 provider-populated files stopped installation. New 0.18.0 plans
+include the bounded preservation policy above; no placeholder is deleted.
 
 Sources: [DirectAdmin domain creation](https://docs.directadmin.com/developer/api/legacy-api.html#user-apis),
 [computed document roots](https://docs.directadmin.com/directadmin/general-usage/directadmin-binary.html#show-documentroots).

@@ -272,3 +272,15 @@ files up to 32 MiB (the live pinned build contains a 13.4 MB JS worker). The sam
 approved job may re-run a pre-write core validator refusal at verifying_created_database;
 all guards, archive/candidate/tree proofs and reservation requirements still apply.
 No prepared or partially modified repair checkpoint is retried automatically.
+
+D29 moves proven provider-template preservation and safe pinned-core extraction into
+new fresh plans. The policy is explicit in the original immutable scope and bilingual
+owner review; absent-host/container checks still run before creation. Only after a
+confirmed create may that job preserve the bounded allowlist in its mapped new root.
+Unknown files stop before DB creation; old plans without the policy still require an
+empty root. Direct official HTTPS archive streaming is bounded to 64 MiB/180 seconds,
+uses no redirects or caller URL, and is privately verified before exclusive public
+writes. Shared extraction/checksum/tree checks also serve legacy core repair. Domain
+creation now waits up to 60 seconds without retries; unknown results keep their lock.
+Repeated callbacks in the same phase do not rewrite SQLite per copied core file;
+actual phase transitions are still durable before their first side effect.

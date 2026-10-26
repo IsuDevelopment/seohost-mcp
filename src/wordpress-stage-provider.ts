@@ -14,6 +14,7 @@ import { HostingError } from './hosting-error.js'
 export type StageInput = { domain: string; label: string; adminEmail: string; adminName: string; title: string; placement?: 'independent_domain' | 'subdomain' }
 export type StageTarget = StageInput & { hostname: string; root: string; database: string; version: string }
 export interface StageProvider {
+  prepareFreshRoot?(serverId:string,target:StageTarget,id:string,checkpoint:(phase:string)=>void):Promise<string|null>
   verifyExistingDatabase?(serverId:string,target:StageTarget,password:string,preparedCore?:boolean):Promise<void>
   verifyTemplateBackup?(serverId:string,target:StageTarget,id:string,snapshot:TemplateSnapshot):Promise<void>
   inspectRecovery?(serverId:string,target:StageTarget):Promise<TemplateSnapshot>
@@ -43,7 +44,7 @@ export class LocalStageProvider implements StageProvider {
   private readonly transport: DirectAdminTransport
   private readonly hosting: DirectAdminClient
   private readonly diagnostics: AccountDiagnostics
-  constructor(private readonly settings: Settings, private readonly request: typeof fetch = fetch, private readonly identity = {home:homedir(),username:userInfo().username,hostname:hostname()}) {
+  constructor(private readonly settings: Settings, private readonly request: typeof fetch = fetch, private readonly identity = {home:homedir(),username:userInfo().username,hostname:hostname()}, private readonly tar = process.platform==='darwin'?'/usr/bin/tar':'/bin/tar') {
     this.transport = new DirectAdminTransport(settings, request); this.hosting = new DirectAdminClient(settings, request); this.diagnostics = new AccountDiagnostics(settings, request)
   }
   private config(serverId: string) {
@@ -119,6 +120,14 @@ export class LocalStageProvider implements StageProvider {
     if (empty && (await readdir(target.root)).length) throw denied()
   }
   async verifyRoot(serverId:string,target:StageTarget){return this.mappedRoot(serverId,target,true)}
+  // Called only after this approved fresh job created the previously absent target.
+  async prepareFreshRoot(serverId:string,target:StageTarget,id:string,checkpoint:(phase:string)=>void) {
+    await this.mappedRoot(serverId,target,false)
+    const config=this.config(serverId),snapshot=await snapshotTemplates(config.home,target.root)
+    if(!snapshot.entries.length)return null
+    checkpoint('backing_up_provider_templates')
+    return preserveTemplates(config.home,target.root,id,snapshot,checkpoint)
+  }
   async inspectRecovery(serverId:string,target:StageTarget) {
     const config=this.config(serverId)
     if(target.placement!=='independent_domain'||target.hostname!==target.label+'.'+target.domain||target.root!==join(config.home,'domains',target.hostname,'public_html'))throw denied()
@@ -162,12 +171,13 @@ export class LocalStageProvider implements StageProvider {
     if(preparedCore){
       const config=this.config(serverId);await this.mappedRoot(serverId,target,false)
       if(!planId)throw denied()
-      await repairDownloadedCore(config.home,target.root,target.version,planId,this.request,path=>this.wp(serverId,path,['core','verify-checksums','--version='+target.version,'--locale=en_US']),checkpoint)
+      await repairDownloadedCore(config.home,target.root,target.version,planId,this.request,path=>this.wp(serverId,path,['core','verify-checksums','--version='+target.version,'--locale=en_US']),checkpoint,this.tar)
     }else{
+    if(!planId)throw denied()
     await this.verifyRoot(serverId, target)
     await writeFile(join(target.root, '.htaccess'), 'Require all denied\n', {flag: 'wx', mode: 0o644})
-    checkpoint('downloading_core')
-    await this.wp(serverId, target.root, ['core', 'download', '--version=' + target.version, '--locale=en_US'])
+    const config=this.config(serverId)
+    await repairDownloadedCore(config.home,target.root,target.version,planId,this.request,path=>this.wp(serverId,path,['core','verify-checksums','--version='+target.version,'--locale=en_US']),checkpoint,this.tar,true)
     }
     checkpoint('verifying_core')
     await this.wp(serverId, target.root, ['core', 'verify-checksums', '--version=' + target.version, '--locale=en_US'])

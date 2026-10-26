@@ -16,8 +16,8 @@ equivalence. No root, VM lifecycle or operating-system administration is provide
 | `list_servers` | Configured server IDs, labels, aliases and `credentialsConfigured`. | None. | No hosting request; omits URLs and secrets. Credential presence is not proof of validity. |
 | `resolve_server` | Resolves one reference to canonical ID, label and credential-presence flag. | Required `serverId`. | No hosting request. Unknown/ambiguous references fail; no default selection. |
 | `get_server_capabilities` | Reports tool/configuration readiness from loaded settings without private account details. | Required `serverId`. | No provider request. `configurationReady` does not verify key permissions or endpoint availability; restart after changing configuration. |
-| `plan_wordpress_stage` | Fresh single-site stage preview and separate owner-confirmation URL. | `serverId`, parent `domain`, exact `label`, `adminEmail`; optional placement (independent_domain default), adminName/title. | Write scope, local provisioning, create_wordpress_stage plus mode-specific create_domain/create_subdomain policy, absent host/root/new DB, pinned core. No target writes. |
-| `continue_wordpress_stage_install` | Perform only the missing install for an already approved recovery stopped at unconfirmed DB creation. | `serverId`, same `planId`, exact `previewHash`. | Original write actor/account/receipt, unknown creating_database only, preserved backup proof, empty mapped root, exact zero-object single-user localhost-only DB and fixed local credential proof. Same reservation; no domain/DB POST or password change. |
+| `plan_wordpress_stage` | Fresh single-site stage preview covering new-target provider-template preservation and separate owner-confirmation URL. | `serverId`, parent `domain`, exact `label`, `adminEmail`; optional placement (independent_domain default), adminName/title. | Write scope, local provisioning, create_wordpress_stage plus mode-specific create_domain/create_subdomain policy, absent host/root/new DB, pinned core. No target writes. |
+| `continue_wordpress_stage_install` | Perform only the missing install for an already approved recovery stopped at unconfirmed DB creation. | `serverId`, same `planId`, exact `previewHash`. | Original write actor/account/receipt, only the exact D27/D28 database/core checkpoint, preserved backup proof, empty mapped root, exact zero-object single-user localhost-only DB and fixed local credential proof. Same reservation; no domain/DB POST or password change. |
 | `plan_wordpress_stage_recovery` | Plan exact reconciliation of an approved unknown independent-domain creation; private template preservation and missing DB/WP steps. | `serverId`, `fromPlanId`. | Same actor/account, original owner receipt, unknown creating_independent_domain/WRITE_OUTCOME_UNKNOWN only, actual domain/root match, DB absent, bounded template snapshot. Keeps old lock; separate owner browser approval required before existing apply tool. |
 | `apply_wordpress_stage` | Start approved background installation with durable phases and account lock. | `serverId`, planId, previewHash. | Same actor/account; unexpired separate owner-password browser approval. No implicit consent, overwrite, shell input, retries or parent TLS changes. |
 | `get_wordpress_stage` | Actor-bound stage phase/receipt including partial failures. | `serverId`, planId. | Write scope; does not resume or release unknown locks. Credentials remain in private local storage. |
@@ -184,3 +184,11 @@ D28 also allows continue_wordpress_stage_install at the same job's failed
 verifying_core checkpoint. It proves the original archive/candidate/current tree,
 preserves only byte-proven truncated artifacts and fills missing pinned files;
 checksums are never skipped. No extra tool, scope or owner approval is introduced.
+
+New 0.18.0 fresh plans include automatic preservation of allowlisted files generated
+by the confirmed create on their previously absent target. Unexpected files still
+stop installation. The normal path downloads the pinned official archive and uses
+safe private system-tar extraction with candidate/final checksums; no broken WP-CLI
+extract/recovery cycle is required. Keep stdio alive during background apply; poll
+about every 10 seconds and stop at terminal states. Failures expose safe result.detail,
+never raw upstream/child output. No generic resume, POST retry or automatic consent.

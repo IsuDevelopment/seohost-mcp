@@ -1,6 +1,8 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { mkdtemp, mkdir, rm, readFile, symlink, realpath, writeFile, chmod } from 'node:fs/promises'
+import { execFile } from 'node:child_process'
+import { promisify } from 'node:util'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { scryptSync, createHash } from 'node:crypto'
@@ -22,6 +24,7 @@ async function fixture(){
  settings.localOAuth={file:join(home,'oauth.sqlite'),username:'owner',passwordHash:'a'.repeat(32)+':'+scryptSync('owner-password','a'.repeat(32),64).toString('hex'),redirects:['https://client.example/callback']}
  const state={calls:[] as string[],unsafe:false,fail:false,root:join(home,'domains/example.com/public_html/stg')}
  const provider:StageProvider={
+  async prepareFreshRoot(){state.calls.push('templates');return null},
   async preflight(){state.calls.push('preflight');if(state.unsafe)throw new HostingError('UNSAFE_STAGE_TARGET','Not empty');return{root:state.root,version:'6.9.1'}},
   async createHosting(){state.calls.push('subdomain')},async verifyRoot(){state.calls.push('root');if(state.fail)throw new HostingError('UNSAFE_STAGE_TARGET','Provider root not empty')},
   async createDatabase(){state.calls.push('database')},async install(_id,_target,_secret,checkpoint){state.calls.push('install');checkpoint('verifying_wordpress')},
@@ -123,15 +126,27 @@ test('real child adapter uses fixed shell-free arguments, secret stdin and clean
  const fake=join(f.home,'fake-cli.cjs');await writeFile(fake,`const fs=require('node:fs'),path=require('node:path');const a=process.argv.slice(2),root=a.find(x=>x.startsWith('--path=')).slice(7);let input='';process.stdin.on('data',x=>input+=x);process.stdin.on('end',()=>{fs.appendFileSync(path.join(__dirname,'trace.jsonl'),JSON.stringify({args:a,input,env:process.env})+'\\n');if(a.includes('download'))fs.mkdirSync(path.join(root,'wp-content'));if(a.includes('create'))fs.writeFileSync(path.join(root,'wp-config.php'),'<?php');if(a.includes('version'))console.log('6.9.1');if(a.includes('get'))console.log(a.includes('siteurl')?'https://stg.example.com':'0')});`)
  f.settings.accounts.primary!.wordpressProvisioning={home:f.home,phpBinary:process.execPath,wpCli:fake}
  await mkdir(f.state.root,{recursive:true})
- const request:typeof fetch=async()=>new Response(JSON.stringify({users:{test:{domains:{'example.com':{public_html:join(f.home,'domains/example.com/public_html'),subdomains:{stg:{public_html:f.state.root}}}}}}}))
+ const source=join(f.home,'source/wordpress');await mkdir(join(source,'wp-content'),{recursive:true})
+ const long='wp-includes/'+ 'x'.repeat(110)+'.php';await mkdir(join(source,'wp-includes'));await writeFile(join(source,long),'verified fixture')
+ const archive=join(f.home,'fixture.tar.gz');await promisify(execFile)(process.platform==='darwin'?'/usr/bin/tar':'/bin/tar',['-czf',archive,'-C',join(f.home,'source'),'wordpress'])
+ const bytes=await readFile(archive),md5=createHash('md5').update(bytes).digest('hex')
+ await mkdir(join(f.home,'.seohost-mcp-stage'),{mode:0o700,recursive:true})
+ const request:typeof fetch=async(url)=>{
+  if(String(url)==='https://wordpress.org/wordpress-6.9.1.tar.gz.md5')return new Response(md5)
+  if(String(url)==='https://wordpress.org/wordpress-6.9.1.tar.gz')return new Response(bytes)
+  return new Response(JSON.stringify({users:{test:{domains:{'example.com':{public_html:join(f.home,'domains/example.com/public_html'),subdomains:{stg:{public_html:f.state.root}}}}}}}))
+ }
  const provider=new LocalStageProvider(f.settings,request,{home:f.home,username:'test',hostname:new URL(f.settings.accounts.primary!.baseUrl).hostname})
  process.env.STAGE_TEST_FORBIDDEN='private-inherited-token'
  const target={...input,adminName:'stageadmin',title:'$(touch unsafe); quoted title',root:f.state.root,hostname:'stg.example.com',database:'test_fresh',version:'6.9.1'}
- await provider.install('primary',target,{databasePassword:'database-secret',adminPassword:'admin-secret'},()=>{})
+ await provider.install('primary',target,{databasePassword:'database-secret',adminPassword:'admin-secret'},()=>{},false,'b'.repeat(48))
  const trace=(await readFile(join(f.home,'trace.jsonl'),'utf8')).trim().split('\n').map(s=>JSON.parse(s))
  assert(trace.some(v=>v.input==='database-secret\n'));assert(trace.some(v=>v.input==='admin-secret\n'))
  for(const line of trace){assert(!JSON.stringify(line.args).includes('-secret'));assert(!JSON.stringify(line.env).includes('private-inherited-token'));assert(!line.args.some((a:string)=>a.startsWith('--force')||a==='--insecure'));assert(line.args.includes('--skip-packages'))}
  assert(trace.some(v=>v.args.includes('--title=$(touch unsafe); quoted title')))
+ assert(!trace.some(v=>v.args.includes('download')))
+ assert.equal(trace.filter(v=>v.args.includes('verify-checksums')).length,2)
+ assert.equal(await readFile(join(f.state.root,long),'utf8'),'verified fixture')
  assert.equal(await readFile(join(f.state.root,'.htaccess'),'utf8'),'Options -Indexes\n')
  await assert.rejects(provider.verifyRoot('primary',target),code('UNSAFE_STAGE_TARGET'))
  }finally{delete process.env.STAGE_TEST_FORBIDDEN;await f.close()}
@@ -364,6 +379,15 @@ test('independent adapter creates a separate DA domain and verifies its exact fr
  await provider.verifyRoot('primary',target)
  wrongRoot=true;await assert.rejects(provider.verifyRoot('primary',target),code('UNSAFE_STAGE_TARGET'));wrongRoot=false
  await writeFile(join(root,'index.html'),'provider placeholder');await assert.rejects(provider.verifyRoot('primary',target),code('UNSAFE_STAGE_TARGET'))
+ await mkdir(join(f.home,'.seohost-mcp-stage'),{mode:0o700,recursive:true})
+ await writeFile(join(root,'foreign.php'),'must retain')
+ await assert.rejects(provider.prepareFreshRoot('primary',target,'c'.repeat(48),()=>{}),code('RECOVERY_TARGET_CHANGED'))
+ assert.equal(await readFile(join(root,'index.html'),'utf8'),'provider placeholder')
+ await rm(join(root,'foreign.php'))
+ assert.equal(await provider.prepareFreshRoot('primary',target,'c'.repeat(48),()=>{}),'c'.repeat(48))
+ await provider.verifyRoot('primary',target)
+ assert.equal(await readFile(join(f.home,'.seohost-mcp-stage/recovery','c'.repeat(48),'originals/index.html'),'utf8'),'provider placeholder')
+ assert.equal(await readFile(join(f.home,'.seohost-mcp-stage/recovery','c'.repeat(48),'verified-copy/index.html'),'utf8'),'provider placeholder')
  assert.equal(await readFile(join(parent,'keep.php'),'utf8'),'parent sentinel');assert.equal(posts.length,1)
  }finally{await f.close()}
 })
@@ -441,7 +465,7 @@ test('provider templates get a verified private copy and originals before the ro
  const f=await fixture();try{
  const {snapshotTemplates,preserveTemplates,verifyPreservedTemplates}=await import('../src/wordpress-stage-recovery.js')
  const root=join(f.home,'templates');await mkdir(root);await mkdir(join(root,'cgi-bin'));await writeFile(join(root,'cgi-bin/.htaccess'),'fixture CGI guard');await writeFile(join(root,'index.html'),'fixture provider page')
- await mkdir(join(f.home,'.seohost-mcp-stage'),{mode:0o700})
+ await mkdir(join(f.home,'.seohost-mcp-stage'),{mode:0o700,recursive:true})
  const snapshot=await snapshotTemplates(f.home,root), id='a'.repeat(48), phases:string[]=[]
  assert.equal(snapshot.entries.length,3)
  await preserveTemplates(f.home,root,id,snapshot,p=>phases.push(p))
@@ -579,5 +603,39 @@ test('the same approved recovery can finish a downloaded checksum checkpoint wit
  await f.workflow.continueInstall('primary',p.planId,p.previewHash,access);const done=await finished(f,p.planId)
  assert.equal(done.status,'applied');assert(preparedProof);assert.equal(done.result?.coreRepairReference,p.planId)
  assert.equal(f.state.calls.filter(c=>c==='db-created-unknown').length,1);assert.equal(f.state.calls.filter(c=>c==='create-unknown').length,1)
+ }finally{await f.close()}
+})
+
+
+test('one fresh approval covers template preservation before DB/install and reports its private backup',async()=>{
+ const f=await fixture();try{
+ f.provider.prepareFreshRoot=async(_server,_target,id,checkpoint)=>{f.state.calls.push('preserve');checkpoint('preserving_provider_templates');return id}
+ const plan=await f.workflow.plan('primary',input,access)
+ assert.equal(plan.providerTemplates,'preserve_new_target_only');assert(plan.backup.includes('verified private copies'))
+ f.approve(plan.planId,plan.previewHash);await f.workflow.apply('primary',plan.planId,plan.previewHash,access)
+ const done=await finished(f,plan.planId);assert.equal(done.status,'applied')
+ assert.deepEqual(f.state.calls,['preflight','preflight','subdomain','preserve','root','database','install'])
+ assert.equal((done.result as {providerTemplateBackupReference:string}).providerTemplateBackupReference,plan.planId)
+ }finally{await f.close()}
+})
+test('unexpected post-create files stop before DB/install, retain reservation and return safe diagnostics',async()=>{
+ const f=await fixture();try{
+ f.provider.prepareFreshRoot=async()=>{throw new HostingError('RECOVERY_TARGET_CHANGED','Template verification refused. No files removed.')}
+ const plan=await f.workflow.plan('primary',input,access);f.approve(plan.planId,plan.previewHash)
+ await f.workflow.apply('primary',plan.planId,plan.previewHash,access);const done=await finished(f,plan.planId)
+ assert.equal(done.status,'unknown');assert.equal(done.code,'RECOVERY_TARGET_CHANGED')
+ assert(!f.state.calls.includes('database'));assert(!f.state.calls.includes('install'))
+ assert.equal((done.result as {detail:string}).detail,'Template verification refused. No files removed.')
+ assert.equal(f.state.calls.filter(c=>c==='subdomain').length,1)
+ }finally{await f.close()}
+})
+
+
+test('unconfirmed domain response exposes only safe status and never retries the write',async()=>{
+ const f=await fixture();try{
+ const {DirectAdminTransport}=await import('../src/directadmin-http.js');let calls=0
+ const transport=new DirectAdminTransport(f.settings,async()=>{calls++;return new Response('private upstream body',{status:503})})
+ await assert.rejects(transport.postForm('primary','/CMD_API_DOMAIN',{action:'create',domain:'stg.example.com'}),(e:unknown)=>e instanceof HostingError&&e.code==='WRITE_OUTCOME_UNKNOWN'&&e.message.includes('HTTP 503')&&!e.message.includes('private upstream'))
+ assert.equal(calls,1)
  }finally{await f.close()}
 })

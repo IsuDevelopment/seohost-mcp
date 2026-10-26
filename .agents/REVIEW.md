@@ -4,9 +4,21 @@ Prepared for Claude or another reviewer; review has not been performed or approv
 Read the context required by [README.md](README.md) first. Verify claims against
 source; accepted decisions explain intent and do not exempt code from criticism.
 
+## Current reliability change (0.18.0, D29)
+
+Focus `git diff 3f2cfaa..HEAD -- src test docs .agents`: explicit initial review of
+new-target template preservation, confirmed-create-only preparation, legacy-plan
+empty-root compatibility, direct bounded pinned archive streaming and shared safe
+extraction/checksums, safe diagnostics and no POST retries. Per-file callbacks persist
+only phase transitions, not thousands of identical SQLite checkpoints. Check that
+unknown writes still retain reservations and never become generic takeover/resume.
+144 tests/types/build pass; deployment is pending. The previous approved live stage
+completed on 0.17.1; the new normal path is fixture-tested, not live-tested on another
+site. Historical pending/no-install statements below are superseded by STATUS.md.
+
 ## Baseline and evidence
 
-- Review target: 0.17.1, 32 MCP tools; stage diff: `git diff 7ba6257..HEAD -- src test docs .agents`.
+- Review target: 0.18.0, 32 MCP tools; stage diff: `git diff 7ba6257..HEAD -- src test docs .agents`.
   Historical 0.9.0 diagnostics diff: `git diff 210bfa0..HEAD -- src test docs .agents config`.
   Redirects diff: `git diff 1fef5a2..HEAD -- src test docs .agents`.
   TLS + redirects diff: `git diff c25bf96..HEAD -- src test docs .agents`.

@@ -24,7 +24,7 @@ async function fixture(unsafe=false){
  const request:typeof fetch=async(url)=>{assert.equal(String(url),'https://wordpress.org/wordpress-6.9.1.tar.gz.md5');return new Response(finalMd5)}
  const verify=async(path:string)=>{assert.equal(await readFile(join(path,long),'utf8'),'official long module fixture')}
  const repair=(check=verify)=>repairDownloadedCore(home,root,'6.9.1','a'.repeat(48),request,check,()=>{},tar)
- return{home,root,long,truncated,repair,close:()=>rm(home,{recursive:true,force:true})}
+ return{home,root,long,truncated,repair,archive,finalMd5,verify,close:()=>rm(home,{recursive:true,force:true})}
 }
 test('verified archive repair restores GNU long paths, retains truncated originals and never overwrites correct core',async()=>{
  const f=await fixture();try{
@@ -58,4 +58,28 @@ test('archive links are refused before extraction or public changes',async()=>{
  await assert.rejects(lstat(join(f.root,'unsafe-link')),{code:'ENOENT'})
  assert.equal(await readFile(join(f.root,f.truncated),'utf8'),'official long module fixture')
  }finally{await f.close()}
+})
+
+
+test('fresh pinned download preserves long paths and never needs a broken extraction or separate recovery',async()=>{
+ const f=await fixture();try{
+ await rm(f.root,{recursive:true});await mkdir(f.root);await writeFile(join(f.root,'.htaccess'),'Require all denied\n')
+ const calls:string[]=[],phases:string[]=[]
+ const request:typeof fetch=async(url,init)=>{calls.push(String(url));assert.equal(init?.redirect,'error');return new Response(String(url).endsWith('.md5')?f.finalMd5:await readFile(f.archive))}
+ const done=await repairDownloadedCore(f.home,f.root,'6.9.1','b'.repeat(48),request,f.verify,p=>phases.push(p),tar,true)
+ assert.equal(done.preservedArtifacts,0);assert(done.restoredFiles>=4)
+ assert.equal(await readFile(join(f.root,f.long),'utf8'),'official long module fixture')
+ assert.equal(calls.length,2);assert(phases.includes('downloading_core'))
+ assert.equal(await readFile(join(f.root,'.htaccess'),'utf8'),'Require all denied\n')
+ }finally{await f.close()}
+})
+test('fresh download with wrong digest or oversized response never populates the public root',async()=>{
+ for(const oversized of [false,true]){
+ const f=await fixture();try{
+ await rm(f.root,{recursive:true});await mkdir(f.root);await writeFile(join(f.root,'.htaccess'),'Require all denied\n')
+ const request:typeof fetch=async(url)=>String(url).endsWith('.md5')?new Response('0'.repeat(32)):new Response(await readFile(f.archive),{headers:oversized?{'content-length':String(65*1024*1024)}:{}})
+ await assert.rejects(repairDownloadedCore(f.home,f.root,'6.9.1','b'.repeat(48),request,f.verify,()=>{},tar,true))
+ await assert.rejects(lstat(join(f.root,'index.php')),{code:'ENOENT'})
+ }finally{await f.close()}
+ }
 })

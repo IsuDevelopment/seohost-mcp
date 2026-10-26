@@ -21,7 +21,7 @@ export const stageInput = z.object({ domain: domainSchema,
   title: z.string().min(1).max(100).refine(s => !/[\u0000-\u001f\u007f]/.test(s)).default('WordPress staging'),
 }).strict()
 export type StagePayload = { kind: 'fresh_wordpress_stage'; target: StageTarget; previewHash: string; phase: string; source: null;
-  overwrite: false; backup: string; publicAccess: string; adminCredentialReference?: string; recovery?: {fromPlanId:string;originalHash:string;snapshot:TemplateSnapshot} }
+  overwrite: false; backup: string; publicAccess: string; providerTemplates?: 'preserve_new_target_only'; providerTemplateBackupReference?: string; adminCredentialReference?: string; recovery?: {fromPlanId:string;originalHash:string;snapshot:TemplateSnapshot} }
 export const stagePayload = (c: StoredChange): StagePayload => {
   const p = c.payload as StagePayload
   if (p.kind !== 'fresh_wordpress_stage') throw new HostingError('PLAN_NOT_FOUND', 'This is not a fresh WordPress stage plan.')
@@ -30,7 +30,7 @@ export const stagePayload = (c: StoredChange): StagePayload => {
 export function stagePreview(change: StoredChange) {
   const p = stagePayload(change), {root: _root, ...target} = p.target
   return { serverId: change.serverId, planId: change.id, previewHash: p.previewHash, expiresAt: new Date(change.expires).toISOString(),
-    status: change.status, phase: p.phase, target, source: p.source, overwrite: p.overwrite, backup: p.backup,
+    status: change.status, phase: p.phase, target, source: p.source, overwrite: p.overwrite, backup: p.backup, providerTemplates:p.providerTemplates??null,
     recovery: p.recovery ? {fromPlanId:p.recovery.fromPlanId,templates:p.recovery.snapshot.entries.map(e=>({path:e.path,kind:e.kind,bytes:e.bytes,sha256:e.sha256})),bytes:p.recovery.snapshot.bytes} : null,
     publicAccess: p.publicAccess, code: change.code ?? null, result: change.result ?? null }
 }
@@ -94,9 +94,9 @@ export class WordPressStages {
     const checked = await this.provider.preflight(serverId, value, database)
     const target = {...value, ...checked, hostname: value.label + '.' + value.domain, database}
     const payload: StagePayload = {kind:'fresh_wordpress_stage', target, phase:'awaiting_owner_confirmation',
-      source:null, overwrite:false, backup:'verified_new_target_absence_no_existing_data_to_back_up',
+      source:null, overwrite:false, backup:'Target must be absent. Preserve only newly generated allowlisted provider templates with verified private copies and retained originals.', providerTemplates:'preserve_new_target_only',
       publicAccess:'Login required for frontend; no indexing, outbound WP mail or WP cron. DNS/TLS require separate verification; no parent TLS settings change.',
-      previewHash:fingerprint({serverId, target, scope:'fresh_single_site_new_database_only'})}
+      previewHash:fingerprint({serverId, target, scope:'fresh_single_site_new_database_preserve_new_provider_templates'})}
     const store = this.store()
     try { const change = store.create({actor:access.actor, serverId, lockKey:serverId, expires:Date.now()+30*60000, payload})
       return {...stagePreview(change), approvalUrl: new URL('/wordpress-stage/' + change.id, this.settings.publicUrl).href,
@@ -161,7 +161,7 @@ export class WordPressStages {
   private async run(change: StoredChange,installationOnly=false,preparedCore=false) {
     const store = this.store(), payload = stagePayload(change), {target} = payload
     let mutated = Boolean(payload.recovery)
-    const checkpoint = (phase: string) => {payload.phase=phase; store.checkpoint(change)}
+    const checkpoint = (phase: string) => {if(payload.phase===phase)return;payload.phase=phase; store.checkpoint(change)}
     try {
       let secrets:{databasePassword:string;adminPassword:string}
       if(installationOnly){
@@ -191,6 +191,11 @@ export class WordPressStages {
       }else{
         checkpoint(target.placement === 'independent_domain' ? 'creating_independent_domain' : 'creating_subdomain');mutated=true
         await this.provider.createHosting(change.serverId,target)
+        if(payload.providerTemplates==='preserve_new_target_only'){
+          if(!this.provider.prepareFreshRoot)throw new HostingError('STAGE_PREPARATION_UNAVAILABLE','Fresh provider-template preparation is unavailable.')
+          const reference=await this.provider.prepareFreshRoot(change.serverId,target,change.id,checkpoint)
+          if(reference){payload.providerTemplateBackupReference=reference;store.checkpoint(change)}
+        }
       }
       checkpoint('verifying_empty_document_root'); await this.provider.verifyRoot(change.serverId,target)
       checkpoint('creating_database'); await this.provider.createDatabase(change.serverId,target,secrets.databasePassword)
@@ -200,12 +205,12 @@ export class WordPressStages {
       store.finish(change,'applied',{hostname:target.hostname,siteUrl:'https://'+target.hostname,adminName:target.adminName,adminEmail:target.adminEmail,
         database:target.database,wordpressVersion:target.version,localInstallationVerified:true,publicDnsTlsHttp:'not_verified',
         adminCredentialReference:change.id,ownerResultUrl:new URL('/wordpress-stage/'+change.id,this.settings.publicUrl).href,credentials:'Retained in owner-only .seohost-mcp-stage/<reference>.json under the configured account home. Never publish this file.',
-        providerTemplateBackupReference:payload.recovery ? change.id : null,coreRepairReference:preparedCore ? change.id : null,
-        backup:payload.recovery ? 'Provider templates retained with verified private copies and originals; no backups deleted.' : 'No existing target data; verified absence. No source copied. No backups deleted.',newDatabase:true,overwrite:false})
+        providerTemplateBackupReference:payload.recovery ? change.id : payload.providerTemplateBackupReference??null,coreArchiveReference:change.id,coreRepairReference:preparedCore ? change.id : null,
+        backup:payload.recovery||payload.providerTemplateBackupReference ? 'Provider templates retained with verified private copies and originals; no backups deleted.' : 'No existing target data; verified absence. No source copied. No backups deleted.',newDatabase:true,overwrite:false})
     } catch(e) {
       const code=e instanceof HostingError?e.code:'STAGE_FAILED'
       store.finish(change,mutated?'unknown':'failed',{phase:payload.phase,partialCompletionPossible:mutated,
-        credentialReference:payload.adminCredentialReference??null,recovery:'Inspect provider inventory, checkpoint and retained private credentials. No automatic retry, rollback or deletion.'},code)
+        credentialReference:payload.adminCredentialReference??null,detail:e instanceof HostingError?e.message:'A provisioning step failed. Raw output is withheld.',recovery:'Inspect provider inventory, checkpoint and retained private credentials. No automatic retry, rollback or deletion.'},code)
     } finally {store.close()}
   }
 }

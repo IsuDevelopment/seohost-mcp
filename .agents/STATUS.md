@@ -16,9 +16,16 @@ Updated: 2026-10-26.
 - Independent public HTTPS checks passed: frontend 403 with noindex,nofollow (expected
   staging login protection), wp-login 200. Owner result page returns 200/no-store;
   only the owner browser can reveal the generated password. No password entered chat.
-- Next reliability work: consolidate normal fresh provisioning around known provider
-  templates and correct long-name extraction. Current recovery checkpoints are narrow;
-  do not describe every future fresh install as fully hands-off or broadly resumable.
+- Candidate 0.18.0/D29 consolidates new fresh provisioning: the first reviewed scope
+  includes verified private preservation of newly generated allowlisted templates;
+  pinned core uses direct bounded official archive download and safe private tar,
+  mandatory candidate/final checksums and exclusive writes. Domain/subdomain POSTs
+  allow 60 seconds; safe failure detail and agent polling instructions are improved.
+  Repeated per-file checkpoints persist only when the phase changes, avoiding
+  thousands of redundant SQLite writes during a full verified-core copy.
+  144 tests/types/build passed; deployment is pending. No new live site operation is authorized
+  or used as a test; existing completed staging stays untouched. Generic resume and
+  uncertain-write retries remain unavailable.
 
 ## Historical investigation evidence
 
