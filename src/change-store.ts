@@ -73,6 +73,17 @@ export class ChangeStore {
       this.db.exec('COMMIT');return change
     }catch(e){this.db.exec('ROLLBACK');throw e}
   }
+  reserveStageInstall(id:string,actor:string,serverId:string,hash:string) {
+    this.db.exec('BEGIN IMMEDIATE')
+    try {
+      const c=this.get(id,actor,serverId),p=c.payload as {kind?:string;phase?:string;previewHash?:string;recovery?:unknown;adminCredentialReference?:string}
+      if(c.status!=='unknown'||c.code!=='WRITE_OUTCOME_UNKNOWN'||p.kind!=='fresh_wordpress_stage'||p.phase!=='creating_database'||!p.recovery||p.adminCredentialReference!==id||p.previewHash!==hash||!this.isOwnerApproved(c,hash))
+        throw new HostingError('INSTALL_CONTINUATION_UNAVAILABLE','Only an already owner-approved recovery stopped at empty database creation can continue.')
+      c.status='applying';delete c.code;delete c.result
+      this.db.prepare("UPDATE changes SET status='applying',value=? WHERE id=?").run(JSON.stringify(c),id)
+      this.db.exec('COMMIT');return c
+    }catch(e){this.db.exec('ROLLBACK');throw e}
+  }
   getForOwner(id: string, allowApplied = false) {
     const row = this.db.prepare('SELECT value FROM changes WHERE id=?').get(id) as {value:string}|undefined
     if (!row) throw new HostingError('PLAN_NOT_FOUND','Plan unavailable.')

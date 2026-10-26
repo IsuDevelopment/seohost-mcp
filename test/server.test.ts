@@ -53,9 +53,9 @@ test('real MCP HTTP client initializes, lists tools and calls both infrastructur
   try {
     await client.connect(new StreamableHTTPClientTransport(url, { requestInit: { headers: { Authorization: `Bearer ${token}` } } }))
     const tools = await client.listTools()
-    assert.deepEqual(tools.tools.map(t => t.name).sort(), ['apply_hosting_change', 'apply_wordpress_stage', 'check_dns', 'export_database', 'get_account_usage', 'get_database_info', 'get_domain_info', 'get_hosting_change', 'get_resource_usage', 'get_server_capabilities', 'get_server_info', 'get_tls_info', 'get_wordpress_info', 'get_wordpress_log_info', 'get_wordpress_stage', 'list_backup_files', 'list_databases', 'list_dns_records', 'list_domains', 'list_redirects', 'list_servers', 'list_subdomains', 'list_wordpress_sites', 'plan_hosting_change', 'plan_wordpress_stage', 'plan_wordpress_stage_recovery', 'read_account_log', 'read_web_log', 'read_wordpress_log', 'resolve_server', 'summarize_web_log'])
+    assert.deepEqual(tools.tools.map(t => t.name).sort(), ['apply_hosting_change', 'apply_wordpress_stage', 'check_dns', 'continue_wordpress_stage_install', 'export_database', 'get_account_usage', 'get_database_info', 'get_domain_info', 'get_hosting_change', 'get_resource_usage', 'get_server_capabilities', 'get_server_info', 'get_tls_info', 'get_wordpress_info', 'get_wordpress_log_info', 'get_wordpress_stage', 'list_backup_files', 'list_databases', 'list_dns_records', 'list_domains', 'list_redirects', 'list_servers', 'list_subdomains', 'list_wordpress_sites', 'plan_hosting_change', 'plan_wordpress_stage', 'plan_wordpress_stage_recovery', 'read_account_log', 'read_web_log', 'read_wordpress_log', 'resolve_server', 'summarize_web_log'])
     const info = await client.callTool({ name: 'get_server_info', arguments: {} })
-    assert.deepEqual(info.structuredContent, { name: 'seohost-mcp', version: '0.15.0', stage: 'hosting-domain-dns-tls', hostingOperationsEnabled: true, hostingWritesEnabled: false })
+    assert.deepEqual(info.structuredContent, { name: 'seohost-mcp', version: '0.16.0', stage: 'hosting-domain-dns-tls', hostingOperationsEnabled: true, hostingWritesEnabled: false })
     const servers = await client.callTool({ name: 'list_servers', arguments: {} })
     assert.deepEqual(servers.structuredContent, { servers: [{ serverId: 'primary', label: 'Primary hosting', aliases: ['hosting-main'], credentialsConfigured: false }, { serverId: 'secondary', label: 'Secondary hosting', aliases: ['hosting-backup'], credentialsConfigured: false }] })
     assert(!JSON.stringify(servers).includes('LOGIN_KEY'))
@@ -69,7 +69,7 @@ test('stdio works with no HTTP token and no hosting credentials', async () => {
   const transport = new StdioClientTransport({ command: process.execPath, args, env: { PATH: process.env.PATH || '' }, stderr: 'pipe' })
   try {
     await client.connect(transport)
-    assert.equal((await client.listTools()).tools.length, 31)
+    assert.equal((await client.listTools()).tools.length, 32)
     assert.equal((await client.callTool({ name: 'get_server_info', arguments: {} })).isError, undefined)
   } finally { await client.close() }
 })

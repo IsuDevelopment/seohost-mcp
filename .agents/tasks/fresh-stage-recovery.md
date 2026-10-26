@@ -41,3 +41,15 @@ passed; production snapshot planning verified eight files/one directory and abse
 DB. Obtain exact snapshot browser approval and apply through a persistent MCP
 connection. The original unknown reservation is still held. Do not
 repeat domain creation or override the unknown lock.
+
+## Latest checkpoint
+
+Owner approved the exact recovery snapshot; apply preserved eight files in verified
+private copies and originals, then stopped at creating_database/WRITE_OUTCOME_UNKNOWN.
+DB exists with zero tables and one exact localhost-only user. Backup hashes and empty
+root are independently verified. Old adapter rejects documented Unix SQL sockets;
+H57 server metadata reports a local socket (create response was not captured).
+Candidate 0.16.0 / D27 can prove the existing DB credentials and backups, then perform
+only the same approved job's remaining install. No new approval scope or create POST.
+134 tests pass. Deploy and invoke continue_wordpress_stage_install for the same
+private runtime plan/hash via a persistent MCP client; never print credential files.

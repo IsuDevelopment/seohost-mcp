@@ -6,7 +6,7 @@ source; accepted decisions explain intent and do not exempt code from criticism.
 
 ## Baseline and evidence
 
-- Review target: 0.15.0, 31 MCP tools; stage diff: `git diff 7ba6257..HEAD -- src test docs .agents`.
+- Review target: 0.16.0, 32 MCP tools; stage diff: `git diff 7ba6257..HEAD -- src test docs .agents`.
   Historical 0.9.0 diagnostics diff: `git diff 210bfa0..HEAD -- src test docs .agents config`.
   Redirects diff: `git diff 1fef5a2..HEAD -- src test docs .agents`.
   TLS + redirects diff: `git diff c25bf96..HEAD -- src test docs .agents`.
@@ -121,3 +121,12 @@ verified the exact original checkpoint/owner receipt, existing domain/root, abse
 DB and allowlisted template hashes (eight files/one directory, 81,102 bytes). The
 new snapshot approval is pending. Private backup/relocation and DB/WP execution
 have not run; old unknown reservation remains held until the approved transfer.
+
+0.16.0 review: DB creation did occur (empty DB/exact localhost user verified), and
+all private template copies/originals pass SHA-256. The old adapter rejects the
+Unix-socket format documented and observed in H57 SQL metadata; original response
+was not retained. D27 proves the same approved job's backups/root/empty DB/local
+credentials before an atomic same-reservation continuation. No new target, scope,
+creation POST or broad resume. Inspect fixed PHP/SQL, secret stdin/environment,
+output bounds, object/user isolation, wrong-phase/refused proof and no replay.
+134 tests/types/build pass; real WP continuation remains pending deployment.

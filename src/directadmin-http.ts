@@ -134,8 +134,10 @@ export class DirectAdminTransport {
       })
       if (response.status !== 200) { await response.body?.cancel(); throw new Error() }
       const value = JSON.parse((await boundedBytes(response)).toString('utf8'))
+      const localAddress = value.unixSocket === false ? ['localhost', '127.0.0.1', 'localhost:3306', '127.0.0.1:3306'].includes(value.address)
+        : value.unixSocket === true && typeof value.address === 'string' && /^\/[a-zA-Z0-9_./-]{1,255}$/.test(value.address) && !value.address.split('/').includes('..')
       if (JSON.stringify(value.hostPatterns) !== JSON.stringify(['localhost']) || value.database !== database || value.dbuser !== database || value.password !== password
-        || value.unixSocket !== false || !['localhost', '127.0.0.1', 'localhost:3306', '127.0.0.1:3306'].includes(value.address)) throw new Error()
+        || !localAddress) throw new Error()
       return { database, dbuser: database, password, address: value.address as string }
     } catch { throw new HostingError('WRITE_OUTCOME_UNKNOWN', 'Database creation was not verified. Preserve the operation and inspect before retrying.') }
   }

@@ -246,3 +246,13 @@ allowlisted provider files into owner-only private storage, rechecks the snapsho
 then relocates originals with a journal before missing DB/WP steps. Any failure keeps
 an unknown reservation; later checkpoints cannot use this narrow recovery. Neither
 snapshot nor result exposes credentials. Backup retention is independent of receipts.
+
+D27 reconciles a created empty DB only inside the same already owner-approved recovery
+job. It checks private manifest/copies/originals against the approved snapshot, exact
+mapped empty root, fresh zero-object database metadata and one matching localhost-only
+user; a fixed read-only PHP/mysqli proof validates retained credentials on localhost.
+Only then may a SQLite CAS switch its existing unknown reservation to applying. It
+executes the remaining WP install, not a new DB/domain operation or file takeover.
+The worker rechecks proofs after reservation. The original actor/account/hash/receipt
+remain mandatory; starting-plan expiry is unchanged and does not cancel already
+reserved work. Raw SQL/commands/output/passwords are never MCP arguments/results.

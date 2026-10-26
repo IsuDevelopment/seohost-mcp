@@ -2,6 +2,7 @@ import { resolveServer, type Settings } from './config.js'
 
 // Configuration requirements only. This catalog never probes provider permissions.
 export const TOOL_REQUIREMENTS = {
+  continue_wordpress_stage_install: {credentials:true,wordpressLogs:false,write:true,stage:true,recovery:true},
   plan_wordpress_stage_recovery: {credentials:true,wordpressLogs:false,write:true,stage:true,recovery:true},
   plan_wordpress_stage: {credentials:true,wordpressLogs:false,write:true,stage:true},
   apply_wordpress_stage: {credentials:true,wordpressLogs:false,write:true,stage:true},
@@ -57,7 +58,7 @@ export function getServerCapabilities(settings: Settings, reference: string | nu
     return { name, configurationReady: missingConfiguration.length === 0, missingConfiguration,
       providerPermission: requirements.credentials ? 'unverified' : 'not_applicable',
       requiredScope: 'write' in requirements ? 'mcp:write' : 'mcp:read',
-      readOnly: !['plan_hosting_change', 'apply_hosting_change', 'get_hosting_change', 'export_database', 'plan_wordpress_stage', 'plan_wordpress_stage_recovery', 'apply_wordpress_stage'].includes(name) }
+      readOnly: !['plan_hosting_change', 'apply_hosting_change', 'get_hosting_change', 'export_database', 'plan_wordpress_stage', 'plan_wordpress_stage_recovery', 'continue_wordpress_stage_install', 'apply_wordpress_stage'].includes(name) }
   })
   return { serverId, credentialsConfigured, wordpressLogRootsConfigured,
     source: 'installation_configuration', providerContacted: false,

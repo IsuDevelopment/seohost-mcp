@@ -127,3 +127,13 @@ are read with no-follow/nonblocking and 256 KiB/file, 2 MiB total bounds. Privat
 verified copies precede relocation of originals; nothing is deleted automatically.
 A changed target or any failed recovery retains an unknown lock and cannot use this
 recovery path again. Password files stay private and are never MCP payloads.
+
+D27 permits only the remaining WP installation of the same already approved recovery
+stopped at unconfirmed DB creation. Existing actor/account/hash/browser receipt,
+private backup hashes, canonical empty root, zero tables/views/routines/events/triggers,
+one exact localhost-only user and credential proof gate a CAS on the existing lock.
+There is no new consent scope, lock gap, domain/DB POST, password change or arbitrary
+resume. A fixed PHP/mysqli read-only count query uses clean environment, secret stdin,
+a 15-second timeout and 4 KiB output bound; no caller PHP/SQL or raw errors are exposed.
+Documented absolute Unix-socket response descriptions are accepted but never used as
+caller-selected connection or filesystem paths; actual DB proof targets localhost.

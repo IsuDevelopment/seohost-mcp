@@ -2,6 +2,17 @@
 
 Updated: 2026-10-26.
 
+- Approved recovery apply preserved and privately verified all eight template files
+  and originals; empty root matches the plan. It stopped unknown at creating_database.
+  Read-only inventory confirms the DB exists with zero tables and one exact
+  localhost-only user; both private copy/original SHA-256 sets match. WP has not run.
+  H57 server metadata reports Unix-socket SQL; the old adapter rejected documented
+  socket responses. Original create response unavailable; exact failure not fully known.
+- Candidate 0.16.0 adds documented SQL socket support and D27 verified remaining-install
+  continuation under the same approved job/receipt/lock (32 tools). Full 134 tests/
+  types/build pass, including backup corruption, credential stdin, zero-object/user/
+  root checks, wrong phase/hash/actor, idempotence and no domain/DB creation replay.
+  No new user scope is requested; continuation performs only already approved effects.
 - Production 0.15.0 deployed from `95821d2` through successful Deploy `40308153399`;
   Check `40308094388` passed (130 tests/types/build). Workflow backup/dependency guard/
   restart/HTTPS/authenticated smoke passed. Independent SDK confirms version, 31

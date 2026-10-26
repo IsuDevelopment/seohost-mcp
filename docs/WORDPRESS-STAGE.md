@@ -10,6 +10,7 @@ This implements only the fresh-target part of [migration requirements](WORDPRESS
 | --- | --- | --- |
 | `plan_wordpress_stage` | Explicit `serverId`, owned parent `domain`, exact `label`, `adminEmail`; optional `placement` (independent_domain), `adminName` (stageadmin), `title` | Validates absence, local runtime/account and canonical root; pins a stable WordPress version and chooses a new database. Returns an immutable 30-minute plan and owner confirmation link. No target writes. |
 | `plan_wordpress_stage_recovery` | Explicit `serverId`, original `fromPlanId` | Reconciles an approved unknown independent-domain creation and captures exact provider-template metadata/hashes. Returns a new 30-minute owner review; original reservation remains held. |
+| `continue_wordpress_stage_install` | Same `serverId`, approved recovery `planId`/`previewHash` | Verify retained backups and an existing empty DB, then perform only the remaining install under the same job/receipt/reservation. No creation POST. |
 | `apply_wordpress_stage` | Same actor/account, `planId`, `previewHash` | Requires a separate owner browser approval. Reserves the shared account lock, starts a background worker and returns immediately. |
 | `get_wordpress_stage` | Same actor/account and `planId` | Reports persistent phase/result, including partial and unknown outcomes. No automatic retry, deletion or reconciliation; only D26 separately reviewed recovery below. Write authorization is required; disabled provisioning does not prevent receipt inspection. |
 
@@ -323,3 +324,37 @@ Release 0.15.0 deployed from `95821d2` through successful Deploy `40308153399`
 against the existing unknown checkpoint, matching root and absent DB; template
 hashes were captured. No backup relocation or DB/WP continuation ran yet; the new
 snapshot still awaits its separate browser receipt.
+
+## Verified empty-database install continuation (0.16.0, D27)
+
+Live H57 API metadata confirmed Unix-socket SQL connections. The earlier DB-create
+adapter incorrectly required TCP; it now accepts the documented absolute local Unix
+socket description as well as exact loopback TCP addresses. This response address
+is never used to read a file or choose a connection destination. Existing request
+identity/password/localhost-host checks remain. A successful create is additionally
+verified through the same bounded empty-DB proof used by continuation.
+
+The first approved recovery preserved/verified all eight template files and relocated
+originals; domain/root and backup checks passed. The dedicated DB exists with zero
+tables and one matching localhost-only user, but creation was not confirmed by the
+old adapter. It remains unknown at creating_database; no WP install ran at that point.
+The original create response is unavailable, so its entire failure cause is not proven
+solely by later server metadata.
+
+`continue_wordpress_stage_install` accepts only that checkpoint of an already started
+and owner-approved recovery, with the same actor/account/hash/receipt and private
+credential reference. It does not create another plan or broaden approved effects.
+Original ready-plan expiry still gates initial reservation; it does not cancel a
+started job. Fresh proofs verify private manifest, copies and originals against the
+approved template snapshot; the exact empty mapped root; zero tables/views/routines/
+events/triggers; one exact DB user restricted to localhost without conflicting hosts;
+and retained credential access through fixed local PHP/mysqli. The only SQL is a
+fixed read-only metadata count; no caller SQL/PHP, content reads or raw errors. Secret
+stdin, clean environment, 15-second timeout and 4 KiB child output apply.
+
+After proofs, an atomic CAS changes the same unknown reservation to applying. The
+worker rechecks proofs and runs only the already authorized WordPress install. It
+never repeats domain/DB creation, rewrites credentials, relocates files again or
+releases the lock. Wrong phase/hash/actor/receipt, nonempty/foreign DB, changed backup
+or failed credentials prevent starting. A later partial install keeps unknown and
+cannot use this continuation again; no arbitrary resume or generic takeover exists.

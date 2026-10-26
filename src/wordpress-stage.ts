@@ -140,11 +140,36 @@ export class WordPressStages {
     void this.run(change).catch(() => console.error('WordPress stage worker stopped; inspect persistent checkpoint'))
     return {...stagePreview(change), next:'Poll get_wordpress_stage sparingly. Interrupted/unknown operations keep the account lock; do not retry or delete data.'}
   }
-  private async run(change: StoredChange) {
+  async continueInstall(reference:string|number,id:string,hash:string,access:AccessContext) {
+    const serverId=this.authorize(reference,access,true,'independent_domain'),store=this.store()
+    let change:StoredChange
+    try {
+      change=store.get(id,access.actor,serverId);const p=stagePayload(change)
+      if(!p.recovery||p.previewHash!==hash||!store.isOwnerApproved(change,hash))throw new HostingError('OWNER_CONFIRMATION_REQUIRED','The existing exact recovery approval is required.')
+      if(change.status==='applying'||change.status==='applied')return stagePreview(change)
+      if(change.status!=='unknown'||change.code!=='WRITE_OUTCOME_UNKNOWN'||p.phase!=='creating_database'||p.adminCredentialReference!==id||!this.provider.verifyExistingDatabase||!this.provider.verifyTemplateBackup)
+        throw new HostingError('INSTALL_CONTINUATION_UNAVAILABLE','This checkpoint cannot continue; do not retry provider creation.')
+      const secret=await retainedStageSecrets(this.settings,change)
+      await this.provider.verifyTemplateBackup(serverId,p.target,id,p.recovery.snapshot)
+      await this.provider.verifyExistingDatabase(serverId,p.target,secret.databasePassword)
+      change=store.reserveStageInstall(id,access.actor,serverId,hash)
+    }finally{store.close()}
+    void this.run(change,true).catch(()=>console.error('WordPress stage continuation stopped; inspect persistent checkpoint'))
+    return stagePreview(change)
+  }
+  private async run(change: StoredChange,installationOnly=false) {
     const store = this.store(), payload = stagePayload(change), {target} = payload
     let mutated = Boolean(payload.recovery)
     const checkpoint = (phase: string) => {payload.phase=phase; store.checkpoint(change)}
     try {
+      let secrets:{databasePassword:string;adminPassword:string}
+      if(installationOnly){
+        checkpoint('verifying_created_database')
+        secrets=await retainedStageSecrets(this.settings,change)
+        if(!payload.recovery||!this.provider.verifyTemplateBackup||!this.provider.verifyExistingDatabase)throw new HostingError('INSTALL_CONTINUATION_UNAVAILABLE','Continuation proof is unavailable.')
+        await this.provider.verifyTemplateBackup(change.serverId,target,change.id,payload.recovery.snapshot)
+        await this.provider.verifyExistingDatabase(change.serverId,target,secrets.databasePassword)
+      }else{
       checkpoint('revalidating_target')
       const fresh = payload.recovery ? {root:target.root} : await this.provider.preflight(change.serverId,target,target.database)
       if (fresh.root !== target.root) throw new HostingError('STALE_PLAN','The target changed; prepare and confirm a new plan.')
@@ -153,7 +178,7 @@ export class WordPressStages {
       try {await mkdir(root,{mode:0o700})} catch(e) {if((e as NodeJS.ErrnoException).code!=='EEXIST')throw e}
       await safeStagePath(config.home,root)
       const stat = await lstat(root); if(stat.mode & 0o077)throw new HostingError('PRIVATE_STORAGE_REQUIRED','Provisioning storage must be owner-only.')
-      const secrets=payload.recovery ? await retainedStageSecrets(this.settings,store.get(payload.recovery.fromPlanId,change.actor,change.serverId)) : {databasePassword:randomBytes(32).toString('base64url'),adminPassword:randomBytes(32).toString('base64url')}
+      secrets=payload.recovery ? await retainedStageSecrets(this.settings,store.get(payload.recovery.fromPlanId,change.actor,change.serverId)) : {databasePassword:randomBytes(32).toString('base64url'),adminPassword:randomBytes(32).toString('base64url')}
       // Retain credentials for recovery outside web roots. Never return them through MCP.
       await writeFile(join(root,change.id+'.json'),JSON.stringify({hostname:target.hostname,database:target.database,adminName:target.adminName,...secrets}),{flag:'wx',mode:0o600})
       payload.adminCredentialReference=change.id
@@ -168,6 +193,7 @@ export class WordPressStages {
       }
       checkpoint('verifying_empty_document_root'); await this.provider.verifyRoot(change.serverId,target)
       checkpoint('creating_database'); await this.provider.createDatabase(change.serverId,target,secrets.databasePassword)
+      }
       await this.provider.install(change.serverId,target,secrets,checkpoint)
       checkpoint('completed_locally')
       store.finish(change,'applied',{hostname:target.hostname,siteUrl:'https://'+target.hostname,adminName:target.adminName,adminEmail:target.adminEmail,

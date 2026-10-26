@@ -1,6 +1,6 @@
 import { constants } from 'node:fs'
 import { open, lstat, readdir, mkdir, writeFile, rename } from 'node:fs/promises'
-import { join } from 'node:path'
+import { join, dirname } from 'node:path'
 import { createHash } from 'node:crypto'
 import { safeStagePath } from './wordpress-stage-provider.js'
 import { HostingError } from './hosting-error.js'
@@ -64,4 +64,20 @@ export async function preserveTemplates(home:string,root:string,id:string,expect
  }
  if((await readdir(root)).length)throw denied()
  return id
+}
+
+export async function verifyPreservedTemplates(home:string,root:string,id:string,expected:TemplateSnapshot) {
+ if(!/^[a-f0-9]{48}$/.test(id))throw denied()
+ const backup=join(home,'.seohost-mcp-stage/recovery',id)
+ await safeStagePath(home,backup)
+ for(const dir of [join(home,'.seohost-mcp-stage'),join(home,'.seohost-mcp-stage/recovery'),backup])if((await lstat(dir)).mode&0o077)throw denied()
+ const manifest=JSON.parse((await bytes(join(backup,'manifest.json'))).toString('utf8'))
+ if(manifest.root!==root||JSON.stringify(manifest.snapshot)!==JSON.stringify(expected))throw denied()
+ for(const e of expected.entries){
+  for(const folder of ['verified-copy','originals']){
+   const path=join(backup,folder,e.path)
+   await safeStagePath(home,e.kind==='directory'?path:dirname(path))
+   if(e.kind==='file'&&hash(await bytes(path))!==e.sha256)throw denied()
+  }
+ }
 }

@@ -7,12 +7,14 @@ import type { Settings } from './config.js'
 import { DirectAdminClient } from './directadmin.js'
 import { DirectAdminTransport, boundedBytes } from './directadmin-http.js'
 import { AccountDiagnostics } from './account-diagnostics.js'
-import { snapshotTemplates, preserveTemplates, type TemplateSnapshot } from './wordpress-stage-recovery.js'
+import { snapshotTemplates, preserveTemplates, verifyPreservedTemplates, type TemplateSnapshot } from './wordpress-stage-recovery.js'
 import { HostingError } from './hosting-error.js'
 
 export type StageInput = { domain: string; label: string; adminEmail: string; adminName: string; title: string; placement?: 'independent_domain' | 'subdomain' }
 export type StageTarget = StageInput & { hostname: string; root: string; database: string; version: string }
 export interface StageProvider {
+  verifyExistingDatabase?(serverId:string,target:StageTarget,password:string):Promise<void>
+  verifyTemplateBackup?(serverId:string,target:StageTarget,id:string,snapshot:TemplateSnapshot):Promise<void>
   inspectRecovery?(serverId:string,target:StageTarget):Promise<TemplateSnapshot>
   preserveTemplates?(serverId:string,target:StageTarget,id:string,snapshot:TemplateSnapshot,checkpoint:(phase:string)=>void):Promise<string>
   preflight(serverId: string, input: StageInput, database: string): Promise<{root: string; version: string}>
@@ -130,10 +132,28 @@ export class LocalStageProvider implements StageProvider {
     if(JSON.stringify(await this.inspectRecovery(serverId,target))!==JSON.stringify(snapshot))throw denied()
     return preserveTemplates(config.home,target.root,id,snapshot,checkpoint)
   }
+  async verifyTemplateBackup(serverId:string,target:StageTarget,id:string,snapshot:TemplateSnapshot) {
+    return verifyPreservedTemplates(this.config(serverId).home,target.root,id,snapshot)
+  }
+  async verifyExistingDatabase(serverId:string,target:StageTarget,password:string) {
+    const config=this.config(serverId)
+    await this.verifyRoot(serverId,target)
+    const info=await this.diagnostics.databaseInfo(serverId,target.database)
+    if([info.tableCount,info.eventCount,info.routineCount,info.triggerCount,info.viewCount].some(n=>n!==0)||info.userCount!==1)throw denied()
+    const users=z.array(z.object({dbuser:z.string(),hostPatterns:z.array(z.string()),conflictingHosts:z.boolean()})).parse(JSON.parse(await this.transport.getText(serverId,`/api/db-show/databases/${encodeURIComponent(target.database)}/users`,{})))
+    if(users.length!==1||users[0]!.dbuser!==target.database||users[0]!.conflictingHosts||JSON.stringify(users[0]!.hostPatterns)!==JSON.stringify(['localhost']))throw denied()
+    // Fixed read-only proof, no caller PHP/SQL. Password is stdin, never argv/env/output.
+    const php=`mysqli_report(MYSQLI_REPORT_OFF); $p=json_decode(stream_get_contents(STDIN),true); $c=@mysqli_connect('localhost',$p['user'],$p['password'],$p['database']); if(!$c)exit(2); $r=mysqli_query($c,'SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=DATABASE()'); if(!$r||intval(mysqli_fetch_row($r)[0])!==0)exit(3); echo 'EMPTY_DATABASE_VERIFIED';`
+    await new Promise<void>((resolve,reject)=>{
+      const child=execFile(config.phpBinary,['-r',php],{cwd:config.home,timeout:15000,maxBuffer:4096,
+        env:{HOME:config.home,PATH:dirname(config.phpBinary)+':/usr/local/bin:/usr/bin:/bin',LANG:'C.UTF-8'}},(error,stdout)=>
+        error||stdout.trim()!=='EMPTY_DATABASE_VERIFIED'?reject(new HostingError('DATABASE_PROOF_FAILED','Local empty-database credential proof failed; no install was started.')):resolve())
+      child.stdin?.on('error',()=>{});child.stdin?.end(JSON.stringify({user:target.database,database:target.database,password}))
+    })
+  }
   async createDatabase(serverId: string, target: StageTarget, password: string) {
     await this.transport.createStageDatabase(serverId, target.database, password)
-    const info = await this.diagnostics.databaseInfo(serverId, target.database)
-    if (info.tableCount !== 0) throw denied()
+    await this.verifyExistingDatabase(serverId,target,password)
   }
   async install(serverId: string, target: StageTarget, secret: {databasePassword: string; adminPassword: string}, checkpoint: (phase: string) => void) {
     await this.verifyRoot(serverId, target)

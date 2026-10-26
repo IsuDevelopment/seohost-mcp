@@ -439,7 +439,7 @@ test('changed recovery snapshot keeps unknown account lock without DB writes or 
 
 test('provider templates get a verified private copy and originals before the root becomes empty',async()=>{
  const f=await fixture();try{
- const {snapshotTemplates,preserveTemplates}=await import('../src/wordpress-stage-recovery.js')
+ const {snapshotTemplates,preserveTemplates,verifyPreservedTemplates}=await import('../src/wordpress-stage-recovery.js')
  const root=join(f.home,'templates');await mkdir(root);await mkdir(join(root,'cgi-bin'));await writeFile(join(root,'cgi-bin/.htaccess'),'fixture CGI guard');await writeFile(join(root,'index.html'),'fixture provider page')
  await mkdir(join(f.home,'.seohost-mcp-stage'),{mode:0o700})
  const snapshot=await snapshotTemplates(f.home,root), id='a'.repeat(48), phases:string[]=[]
@@ -452,6 +452,9 @@ test('provider templates get a verified private copy and originals before the ro
  assert.deepEqual(JSON.parse(await readFile(join(backup,'manifest.json'),'utf8')).snapshot,snapshot)
  const stat=await(await import('node:fs/promises')).lstat(join(backup,'verified-copy/index.html'));assert.equal(stat.mode&0o077,0)
  assert(phases.includes('preserving_provider_templates'))
+ await verifyPreservedTemplates(f.home,root,id,snapshot)
+ await writeFile(join(backup,'verified-copy/index.html'),'changed backup')
+ await assert.rejects(verifyPreservedTemplates(f.home,root,id,snapshot),code('RECOVERY_TARGET_CHANGED'))
  }finally{await f.close()}
 })
 
@@ -489,5 +492,80 @@ test('a template-preservation failure keeps the transferred account reservation 
  await assert.rejects(f.workflow.apply('primary',recovery.planId,recovery.previewHash,access),code('OWNER_CONFIRMATION_REQUIRED'))
  const store=new ChangeStore(f.settings.changeStateFile!), other=store.create({actor:access.actor,serverId:'primary',lockKey:'primary',expires:Date.now()+60000,payload:{}})
  assert.throws(()=>store.reserve(other.id,access.actor,'primary'),code('CHANGE_BUSY'));store.close()
+ }finally{await f.close()}
+})
+
+async function emptyDatabaseCheckpoint(f:Awaited<ReturnType<typeof fixture>>){
+ const original=await unknownCreation(f),recovery=await f.workflow.planRecovery('primary',original.planId,access)
+ f.provider.createDatabase=async()=>{f.state.calls.push('db-created-unknown');throw new HostingError('WRITE_OUTCOME_UNKNOWN','Created but response not verified')}
+ f.approve(recovery.planId,recovery.previewHash);await f.workflow.apply('primary',recovery.planId,recovery.previewHash,access)
+ assert.equal((await finished(f,recovery.planId)).phase,'creating_database')
+ f.provider.verifyTemplateBackup=async()=>{f.state.calls.push('backup-proof')}
+ f.provider.verifyExistingDatabase=async(_s,_t,password)=>{assert.match(password,/^[a-zA-Z0-9_-]{43}$/);f.state.calls.push('db-proof')}
+ return recovery
+}
+
+test('remaining install continues only an approved empty-DB recovery checkpoint, with no domain/DB retry',async()=>{
+ const f=await fixture();try{
+ const p=await emptyDatabaseCheckpoint(f),file=join(f.home,'.seohost-mcp-stage',p.planId+'.json'),before=await readFile(file,'utf8')
+ await assert.rejects(f.workflow.continueInstall('primary',p.planId,p.previewHash,{...access,canWrite:false}),code('WRITE_SCOPE_REQUIRED'))
+ await assert.rejects(f.workflow.continueInstall('primary',p.planId,'0'.repeat(64),access),code('OWNER_CONFIRMATION_REQUIRED'))
+ await assert.rejects(f.workflow.continueInstall('primary',p.planId,p.previewHash,{...access,actor:'other'}),code('PLAN_NOT_FOUND'))
+ assert.equal((await f.workflow.continueInstall('primary',p.planId,p.previewHash,access)).status,'applying')
+ const done=await finished(f,p.planId);assert.equal(done.status,'applied');assert.equal(f.state.calls.filter(c=>c==='db-created-unknown').length,1);assert.equal(f.state.calls.filter(c=>c==='create-unknown').length,1);assert.equal(f.state.calls.filter(c=>c==='install').length,1)
+ assert.equal(await readFile(file,'utf8'),before);assert(!JSON.stringify(done).includes(JSON.parse(before).databasePassword))
+ assert.equal((await f.workflow.continueInstall('primary',p.planId,p.previewHash,access)).status,'applied');assert.equal(f.state.calls.filter(c=>c==='install').length,1)
+ }finally{await f.close()}
+})
+
+test('failed DB/backup proof leaves the original unknown checkpoint; continuation never takes over another phase',async()=>{
+ const f=await fixture();try{
+ const p=await emptyDatabaseCheckpoint(f)
+ f.provider.verifyTemplateBackup=async()=>{throw new HostingError('RECOVERY_TARGET_CHANGED','Backup no longer matches')}
+ await assert.rejects(f.workflow.continueInstall('primary',p.planId,p.previewHash,access),code('RECOVERY_TARGET_CHANGED'))
+ f.provider.verifyTemplateBackup=async()=>{}
+ f.provider.verifyExistingDatabase=async()=>{throw new HostingError('DATABASE_PROOF_FAILED','Not an empty authenticated database')}
+ await assert.rejects(f.workflow.continueInstall('primary',p.planId,p.previewHash,access),code('DATABASE_PROOF_FAILED'))
+ assert.equal(f.workflow.get('primary',p.planId,access).phase,'creating_database');assert.equal(f.workflow.get('primary',p.planId,access).status,'unknown');assert(!f.state.calls.includes('install'))
+ const store=new ChangeStore(f.settings.changeStateFile!),c=store.get(p.planId,access.actor,'primary');(c.payload as {phase:string}).phase='installing_wordpress';store.checkpoint(c);store.close()
+ await assert.rejects(f.workflow.continueInstall('primary',p.planId,p.previewHash,access),code('INSTALL_CONTINUATION_UNAVAILABLE'))
+ }finally{await f.close()}
+})
+
+test('documented local Unix SQL sockets are accepted while remote/nonlocal connection descriptions are refused',async()=>{
+ const f=await fixture();try{
+ const{DirectAdminTransport}=await import('../src/directadmin-http.js')
+ for(const connection of [{unixSocket:true,address:'/var/lib/mysql/mysql.sock'},{unixSocket:false,address:'localhost:3306'}]){
+  let calls=0;const t=new DirectAdminTransport(f.settings,async()=>{calls++;return new Response(JSON.stringify({database:'test_fresh',dbuser:'test_fresh',password:'fixture-secret',hostPatterns:['localhost'],...connection}))})
+  assert.equal((await t.createStageDatabase('primary','test_fresh','fixture-secret')).database,'test_fresh');assert.equal(calls,1)
+ }
+ for(const connection of [{unixSocket:true,address:'remote.example:3306'},{unixSocket:true,address:'/tmp/../secret.sock'},{unixSocket:false,address:'remote.example:3306'}]){
+  const t=new DirectAdminTransport(f.settings,async()=>new Response(JSON.stringify({database:'test_fresh',dbuser:'test_fresh',password:'fixture-secret',hostPatterns:['localhost'],...connection})))
+  await assert.rejects(t.createStageDatabase('primary','test_fresh','fixture-secret'),code('WRITE_OUTCOME_UNKNOWN'))
+ }
+ }finally{await f.close()}
+})
+
+test('fixed local PHP proof uses stdin only and requires empty metadata, exact localhost user and matching root',async()=>{
+ const f=await fixture();try{
+ const root=join(f.home,'domains/stg.example.com/public_html');await mkdir(root,{recursive:true})
+ const php=join(f.home,'proof-php');await writeFile(php,`#!${process.execPath}\nlet s='';process.stdin.on('data',c=>s+=c);process.stdin.on('end',()=>{const p=JSON.parse(s);if(process.argv[2]!=='-r'||!process.argv[3].includes('information_schema.tables')||process.argv.join(' ').includes('fixture-db-secret')||p.password!=='fixture-db-secret')process.exit(2);process.stdout.write('EMPTY_DATABASE_VERIFIED')})`,{mode:0o700})
+ f.settings.accounts.primary!.wordpressProvisioning={home:f.home,phpBinary:php,wpCli:'/test/wp'}
+ let tables=0,remote=false,wrongRoot=false
+ const entry=()=>({database:'test_fresh',sizeBytes:0,tableCount:tables,userCount:1,definerIssues:0})
+ const request:typeof fetch=async(url)=>{
+  const u=new URL(String(url))
+  if(u.pathname==='/CMD_API_DOMAIN')return new Response(JSON.stringify({users:{test:{domains:{'stg.example.com':{public_html:wrongRoot?f.home:root,subdomains:{}}}}}}))
+  if(u.pathname==='/api/db-show/databases')return new Response(JSON.stringify([entry()]))
+  if(u.pathname.endsWith('/users'))return new Response(JSON.stringify([{dbuser:'test_fresh',hostPatterns:remote?['%']:['localhost'],conflictingHosts:false}]))
+  return new Response(JSON.stringify({...entry(),defaultCharset:'utf8mb4',defaultCollation:'utf8mb4_unicode_ci',eventCount:0,routineCount:0,triggerCount:0,viewCount:0}))
+ }
+ const provider=new LocalStageProvider(f.settings,request,{home:f.home,username:'test',hostname:new URL(f.settings.accounts.primary!.baseUrl).hostname})
+ const target={...input,placement:'independent_domain' as const,adminName:'stageadmin',title:'Stage',hostname:'stg.example.com',root,database:'test_fresh',version:'6.9.1'}
+ await provider.verifyExistingDatabase('primary',target,'fixture-db-secret')
+ await assert.rejects(provider.verifyExistingDatabase('primary',target,'wrong-secret'),code('DATABASE_PROOF_FAILED'))
+ tables=1;await assert.rejects(provider.verifyExistingDatabase('primary',target,'fixture-db-secret'),code('UNSAFE_STAGE_TARGET'));tables=0
+ remote=true;await assert.rejects(provider.verifyExistingDatabase('primary',target,'fixture-db-secret'),code('UNSAFE_STAGE_TARGET'));remote=false
+ wrongRoot=true;await assert.rejects(provider.verifyExistingDatabase('primary',target,'fixture-db-secret'),code('UNSAFE_STAGE_TARGET'))
  }finally{await f.close()}
 })
