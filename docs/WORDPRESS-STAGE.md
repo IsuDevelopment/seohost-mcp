@@ -373,7 +373,7 @@ cache archive privately (64 MiB limit), compare WordPress.org's HTTPS MD5, valid
 up to 10,000 safe relative wordpress/ archive entries with only regular/directory
 types, and extract via fixed /bin/tar outside web roots. Never accept caller URLs or
 archives. The candidate must pass official WP checksums before any target repair.
-Trees are bounded to 10,000 entries, 8 MiB/file and 256 MiB total. Existing files must
+Trees are bounded to 10,000 entries, 32 MiB/file and 256 MiB total. Existing files must
 match candidate SHA-256 or the exact truncated path/bytes of a candidate entry.
 Unknown/edited content is refused. Save manifests, rename proven truncated artifacts
 privately and create only missing files exclusively; no existing correct file is
@@ -383,3 +383,9 @@ The same-UID account trust boundary remains; this does not sandbox hostile tenan
 
 Sources: [WP-CLI download](https://developer.wordpress.org/cli/commands/core/download/),
 [checksum verification](https://developer.wordpress.org/cli/commands/core/verify-checksums/).
+
+The pinned core validator accepts normal comma-containing font paths and individual
+files up to 32 MiB (the live pinned build contains a 13.4 MB JS worker). The same
+approved job may re-run a pre-write core validator refusal at verifying_created_database;
+all guards, archive/candidate/tree proofs and reservation requirements still apply.
+No prepared or partially modified repair checkpoint is retried automatically.

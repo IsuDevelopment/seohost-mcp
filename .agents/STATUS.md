@@ -362,3 +362,9 @@ never place key values in documentation or logs.
   neutral/focus colors. Full 120-test check/types/build passes; dummy browser visual
   inspection passed. CSP still authorizes only the exact static style hash. No
   hosting path, plan, credential or authorization behavior changes.
+
+- 0.17.1 corrects pre-write validator limits after live metadata showed a normal
+  13.4 MB JS worker and comma-containing font names. The first 0.17 attempt refused
+  before core-repair preparation or target writes. Same-job guarded continuation
+  accepts only this pre-write refusal; archive/tree/checksum checks remain mandatory.
+  Real-tar regressions include a >8 MiB file and comma-containing font path.

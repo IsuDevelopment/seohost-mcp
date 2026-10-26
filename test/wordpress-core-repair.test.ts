@@ -15,8 +15,13 @@ async function fixture(unsafe=false){
  if(unsafe)await symlink('/etc/passwd',join(source,'unsafe-link'))
  const archive=join(home,'.seohost-mcp-stage/cache/core/wordpress-6.9.1-en_US.tar.gz');await mkdir(dirname(archive),{recursive:true,mode:0o700});await exec(tar,['-czf',archive,'-C',join(home,'source'),'wordpress'])
  const md5=createHash('md5').update(await readFile(archive)).digest('hex')
+ const font='wp-content/fonts/Family_slnt,wght.woff2',large='wp-includes/worker.min.js'
+ await mkdir(dirname(join(source,font)),{recursive:true});await writeFile(join(source,font),'font fixture');await writeFile(join(source,large),'j'.repeat(9*1024*1024));await mkdir(join(source,'empty-official-folder'))
+ await exec(tar,['-czf',archive,'-C',join(home,'source'),'wordpress'])
+ const finalMd5=createHash('md5').update(await readFile(archive)).digest('hex')
+ await mkdir(dirname(join(root,font)),{recursive:true});await writeFile(join(root,font),'font fixture');await mkdir(dirname(join(root,large)),{recursive:true});await writeFile(join(root,large),'j'.repeat(9*1024*1024))
  await writeFile(join(root,'.htaccess'),'Require all denied\n');await writeFile(join(root,'index.php'),'official index fixture');await mkdir(dirname(join(root,truncated)),{recursive:true});await writeFile(join(root,truncated),'official long module fixture')
- const request:typeof fetch=async(url)=>{assert.equal(String(url),'https://wordpress.org/wordpress-6.9.1.tar.gz.md5');return new Response(md5)}
+ const request:typeof fetch=async(url)=>{assert.equal(String(url),'https://wordpress.org/wordpress-6.9.1.tar.gz.md5');return new Response(finalMd5)}
  const verify=async(path:string)=>{assert.equal(await readFile(join(path,long),'utf8'),'official long module fixture')}
  const repair=(check=verify)=>repairDownloadedCore(home,root,'6.9.1','a'.repeat(48),request,check,()=>{},tar)
  return{home,root,long,truncated,repair,close:()=>rm(home,{recursive:true,force:true})}

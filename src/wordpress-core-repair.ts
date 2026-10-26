@@ -10,8 +10,8 @@ import { HostingError } from './hosting-error.js'
 const exec = promisify(execFile)
 const denied = () => new HostingError('CORE_REPAIR_REFUSED','Pinned core repair could not be verified; keep the reservation and inspect the checkpoint.')
 const digest=(data:Buffer)=>createHash('sha256').update(data).digest('hex')
-const relative=(p:string)=>p.length<=512&&/^[a-zA-Z0-9_./@+-]+$/.test(p)&&!p.startsWith('/')&&!p.split('/').some(v=>v==='..'||v==='.')
-async function data(path:string,max=8*1024*1024){
+const relative=(p:string)=>p.length<=512&&/^[a-zA-Z0-9_.,/@+-]+$/.test(p)&&!p.startsWith('/')&&!p.split('/').some(v=>v==='..'||v==='.')
+async function data(path:string,max=32*1024*1024){
  const f=await open(path,constants.O_RDONLY|constants.O_NOFOLLOW|constants.O_NONBLOCK)
  try{const s=await f.stat();if(!s.isFile()||s.uid!==process.getuid?.()||s.nlink!==1||s.size>max)throw denied();const b=Buffer.alloc(s.size+1),r=await f.read(b,0,b.length,0),after=await f.stat();if(r.bytesRead!==s.size||after.size!==s.size||after.mtimeMs!==s.mtimeMs)throw denied();return b.subarray(0,r.bytesRead)}finally{await f.close()}
 }
@@ -82,6 +82,7 @@ export async function repairDownloadedCore(home:string,root:string,version:strin
  for(const e of extras.filter(e=>e.kind==='file')){if(digest(await data(join(root,e.path)))!==e.sha256)throw denied();const dest=join(originals,e.path);await mkdir(dirname(dest),{recursive:true,mode:0o700});checkpoint('repairing_core_paths');await rename(join(root,e.path),dest)}
  const directories=join(backup,'truncated-directories');await mkdir(directories,{mode:0o700})
  for(const e of extras.filter(e=>e.kind==='directory').sort((a,b)=>b.path.length-a.path.length)){if((await readdir(join(root,e.path))).length)throw denied();checkpoint('repairing_core_paths');await rename(join(root,e.path),join(directories,digest(Buffer.from(e.path))))}
+ for(const e of expectedTree.filter(e=>e.kind==='directory'&&!before.some(v=>v.path===e.path))){checkpoint('repairing_core_paths');await directory(home,join(root,e.path))}
  for(const e of missing){const b=await data(join(candidate,e.path));if(digest(b)!==e.sha256)throw denied();await directory(home,dirname(join(root,e.path)));checkpoint('repairing_core_paths');await writeFile(join(root,e.path),b,{flag:'wx',mode:0o644})}
  const after=(await tree(home,root)).filter(e=>e.path!=='.htaccess')
  if(after.length!==expectedTree.length||after.some(e=>{const v=byPath.get(e.path);return !v||v.kind!==e.kind||v.sha256!==e.sha256}))throw denied()

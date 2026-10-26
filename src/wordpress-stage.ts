@@ -147,8 +147,8 @@ export class WordPressStages {
       change=store.get(id,access.actor,serverId);const p=stagePayload(change)
       if(!p.recovery||p.previewHash!==hash||!store.isOwnerApproved(change,hash))throw new HostingError('OWNER_CONFIRMATION_REQUIRED','The existing exact recovery approval is required.')
       if(change.status==='applying'||change.status==='applied')return stagePreview(change)
-      preparedCore=p.phase==='verifying_core'
-      if(change.status!=='unknown'||!((p.phase==='creating_database'&&change.code==='WRITE_OUTCOME_UNKNOWN')||(preparedCore&&change.code==='WP_CLI_FAILED'))||p.adminCredentialReference!==id||!this.provider.verifyExistingDatabase||!this.provider.verifyTemplateBackup)
+      preparedCore=p.phase==='verifying_core'||(p.phase==='verifying_created_database'&&change.code==='CORE_REPAIR_REFUSED')
+      if(change.status!=='unknown'||!((p.phase==='creating_database'&&change.code==='WRITE_OUTCOME_UNKNOWN')||(p.phase==='verifying_core'&&change.code==='WP_CLI_FAILED')||(p.phase==='verifying_created_database'&&change.code==='CORE_REPAIR_REFUSED'))||p.adminCredentialReference!==id||!this.provider.verifyExistingDatabase||!this.provider.verifyTemplateBackup)
         throw new HostingError('INSTALL_CONTINUATION_UNAVAILABLE','This checkpoint cannot continue; do not retry provider creation.')
       const secret=await retainedStageSecrets(this.settings,change)
       await this.provider.verifyTemplateBackup(serverId,p.target,id,p.recovery.snapshot)

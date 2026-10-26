@@ -77,7 +77,7 @@ export class ChangeStore {
     this.db.exec('BEGIN IMMEDIATE')
     try {
       const c=this.get(id,actor,serverId),p=c.payload as {kind?:string;phase?:string;previewHash?:string;recovery?:unknown;adminCredentialReference?:string}
-      if(c.status!=='unknown'||!((p.phase==='creating_database'&&c.code==='WRITE_OUTCOME_UNKNOWN')||(p.phase==='verifying_core'&&c.code==='WP_CLI_FAILED'))||p.kind!=='fresh_wordpress_stage'||!p.recovery||p.adminCredentialReference!==id||p.previewHash!==hash||!this.isOwnerApproved(c,hash))
+      if(c.status!=='unknown'||!((p.phase==='creating_database'&&c.code==='WRITE_OUTCOME_UNKNOWN')||(p.phase==='verifying_core'&&c.code==='WP_CLI_FAILED')||(p.phase==='verifying_created_database'&&c.code==='CORE_REPAIR_REFUSED'))||p.kind!=='fresh_wordpress_stage'||!p.recovery||p.adminCredentialReference!==id||p.previewHash!==hash||!this.isOwnerApproved(c,hash))
         throw new HostingError('INSTALL_CONTINUATION_UNAVAILABLE','Only an already owner-approved recovery stopped at empty database creation can continue.')
       c.status='applying';delete c.code;delete c.result
       this.db.prepare("UPDATE changes SET status='applying',value=? WHERE id=?").run(JSON.stringify(c),id)

@@ -146,3 +146,9 @@ checksums and whole-tree SHA-256 comparisons gate repair. Correct files are neve
 overwritten; only missing official files are created, and exact byte-matching
 100-byte-truncated artifacts are retained privately. Final core checksums remain
 mandatory. Same-UID concurrent hostile mutation is outside the account trust model.
+
+The pinned core validator accepts normal comma-containing font paths and individual
+files up to 32 MiB (the live pinned build contains a 13.4 MB JS worker). The same
+approved job may re-run a pre-write core validator refusal at verifying_created_database;
+all guards, archive/candidate/tree proofs and reservation requirements still apply.
+No prepared or partially modified repair checkpoint is retried automatically.

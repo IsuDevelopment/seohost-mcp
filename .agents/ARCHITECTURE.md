@@ -266,3 +266,9 @@ artifacts; unknown/edited files are refused. Such artifacts are renamed privatel
 only missing verified files are written exclusively. The resulting complete tree
 and final WP checksums must pass before configuration/install. Original template
 backups, zero-object DB proof, private credentials and reservation remain unchanged.
+
+The pinned core validator accepts normal comma-containing font paths and individual
+files up to 32 MiB (the live pinned build contains a 13.4 MB JS worker). The same
+approved job may re-run a pre-write core validator refusal at verifying_created_database;
+all guards, archive/candidate/tree proofs and reservation requirements still apply.
+No prepared or partially modified repair checkpoint is retried automatically.
