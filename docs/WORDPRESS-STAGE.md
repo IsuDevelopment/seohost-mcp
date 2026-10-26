@@ -9,8 +9,9 @@ This implements only the fresh-target part of [migration requirements](WORDPRESS
 | Tool | Inputs | Effect |
 | --- | --- | --- |
 | `plan_wordpress_stage` | Explicit `serverId`, owned parent `domain`, exact `label`, `adminEmail`; optional `placement` (independent_domain), `adminName` (stageadmin), `title` | Validates absence, local runtime/account and canonical root; pins a stable WordPress version and chooses a new database. Returns an immutable 30-minute plan and owner confirmation link. No target writes. |
+| `plan_wordpress_stage_recovery` | Explicit `serverId`, original `fromPlanId` | Reconciles an approved unknown independent-domain creation and captures exact provider-template metadata/hashes. Returns a new 30-minute owner review; original reservation remains held. |
 | `apply_wordpress_stage` | Same actor/account, `planId`, `previewHash` | Requires a separate owner browser approval. Reserves the shared account lock, starts a background worker and returns immediately. |
-| `get_wordpress_stage` | Same actor/account and `planId` | Reports persistent phase/result, including partial and unknown outcomes. No resume, retry, deletion or automatic reconciliation. Write authorization is required; disabled provisioning does not prevent receipt inspection. |
+| `get_wordpress_stage` | Same actor/account and `planId` | Reports persistent phase/result, including partial and unknown outcomes. No automatic retry, deletion or reconciliation; only D26 separately reviewed recovery below. Write authorization is required; disabled provisioning does not prevent receipt inspection. |
 
 All three require write authorization. Plans/apply additionally require `create_wordpress_stage` plus the hosting operation
 for the reviewed placement: `create_domain` for the default independent domain,
@@ -106,6 +107,7 @@ A process interruption leaves the `applying` reservation for operator investigat
 Failure after provider writes is `unknown`; preserve the lock and inspect the
 checkpoint, provider inventory and filesystem before deciding on recovery.
 No automatic retries, resumes, rollback or cleanup of created resources occur.
+D26 adds only the explicit separately reviewed recovery described below.
 
 Generated database/admin passwords are retained in the owner-only account directory
 `.seohost-mcp-stage/<credential-reference>.json` (directory 700, file 600), outside
@@ -279,3 +281,38 @@ root with index.html, six error pages and cgi-bin. Thus both uncertain-write rec
 and provider-template handling need explicit review before continuing. No POST was
 resent, placeholder removed, lock released or credential file disclosed. The cause
 of the unconfirmed POST is not established by inventory evidence.
+
+## Controlled pre-database recovery (0.15.0, D26)
+
+This is an explicit exception to the previous no-resume boundary, not automatic
+retry. Only an original browser-approved independent-domain plan stopped at
+`creating_independent_domain` with unknown/WRITE_OUTCOME_UNKNOWN is accepted. Same
+actor/account, original target/hash/receipt and current operation allowlists apply.
+The domain must now exist with the exact computed root and no parent-subdomain
+conflict; complete bounded DB inventory must prove the chosen dedicated DB absent.
+Only known provider templates are allowed: index.html, 400/401/403/404/500/503.shtml,
+cgi-bin and its .htaccess. No wp-config, WordPress tree, arbitrary files, symlinks,
+special files or hardlinked files. Bounds: 256 KiB/file, 2 MiB total; UID, inode,
+mode, size, mtime and SHA-256 form the reviewed immutable snapshot.
+
+Call plan_wordpress_stage_recovery and have the owner inspect the new browser page
+and approve that exact snapshot. Use apply_wordpress_stage with its new plan ID/hash.
+New consent does not fabricate or reuse the original approval. The original unknown
+lock persists while planning. Apply atomically records the parent as failed with
+RECOVERY_SUPERSEDED and reconciledByRecoveryPlan, and reserves the new plan. Concurrent
+or stale recoveries fail; no lock gap or repeated domain POST exists.
+
+The worker preserves existing generated credentials internally and writes the new
+owner-only credential reference. It rechecks actual state/snapshot, creates private
+storage at `<home>/.seohost-mcp-stage/recovery/<recovery-plan-id>/`, and saves manifest,
+verified-copy and originals subdirectories. All regular copies are mode 600 under
+mode-700 directories and verified before any public relocation. The complete source
+snapshot is rechecked before relocation and before each top-level move; originals
+are renamed privately with relocation.json journaling. Public root must then be empty.
+No template, backup or credential is automatically deleted. Missing DB/WP steps run
+under the existing fixed adapter; owner result reveals only the WP admin password.
+
+A changed snapshot, uncertain DB write or partial relocation becomes unknown and
+keeps the transferred reservation. There is no second-generation recovery, generic
+existing-site install, manual lock-reset tool or arbitrary resume checkpoint. Failed
+recovery needs operator investigation. Public DNS/TLS remains separate and unverified.

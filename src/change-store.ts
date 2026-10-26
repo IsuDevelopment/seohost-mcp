@@ -56,6 +56,23 @@ export class ChangeStore {
       this.db.exec('COMMIT'); return change
     } catch (error) { this.db.exec('ROLLBACK'); throw error }
   }
+  reserveStageRecovery(id:string,actor:string,serverId:string,hash:string) {
+    this.db.exec('BEGIN IMMEDIATE')
+    try {
+      const change=this.get(id,actor,serverId)
+      const payload=change.payload as {kind?:string;target?:unknown;recovery?:{fromPlanId:string;originalHash:string}}
+      if(change.status!=='ready'||change.expires<=Date.now()||payload.kind!=='fresh_wordpress_stage'||!payload.recovery||!this.isOwnerApproved(change,hash))
+        throw new HostingError('OWNER_CONFIRMATION_REQUIRED','An exact unexpired ready recovery approval is required.')
+      const original=this.get(payload.recovery.fromPlanId,actor,serverId),old=original.payload as {kind?:string;phase?:string;target?:unknown;previewHash?:string;recovery?:unknown}
+      if(original.status!=='unknown'||original.lockKey!==change.lockKey||old.kind!=='fresh_wordpress_stage'||old.phase!=='creating_independent_domain'||old.recovery||original.code!=='WRITE_OUTCOME_UNKNOWN'||old.previewHash!==payload.recovery.originalHash||JSON.stringify(old.target)!==JSON.stringify(payload.target)||!this.isOwnerApproved(original,payload.recovery.originalHash))
+        throw new HostingError('RECOVERY_UNAVAILABLE','Original unknown reservation no longer matches this recovery.')
+      // Transfer the existing reservation atomically; never clear a lock between operations.
+      this.finish(original,'failed',{...original.result,reconciledByRecoveryPlan:id},'RECOVERY_SUPERSEDED')
+      change.status='applying'
+      this.db.prepare("UPDATE changes SET status='applying',value=? WHERE id=?").run(JSON.stringify(change),id)
+      this.db.exec('COMMIT');return change
+    }catch(e){this.db.exec('ROLLBACK');throw e}
+  }
   getForOwner(id: string, allowApplied = false) {
     const row = this.db.prepare('SELECT value FROM changes WHERE id=?').get(id) as {value:string}|undefined
     if (!row) throw new HostingError('PLAN_NOT_FOUND','Plan unavailable.')

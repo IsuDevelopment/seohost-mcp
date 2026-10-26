@@ -382,3 +382,112 @@ test('owner pages default to Polish; switching to English preserves authenticati
  assert((await error.text()).includes('Formularz lub sesja'));assert(!f.state.calls.includes('subdomain'))
  }finally{await f.shutdown()}
 })
+
+async function unknownCreation(f:Awaited<ReturnType<typeof fixture>>){
+ f.provider.createHosting=async()=>{f.state.calls.push('create-unknown');throw new HostingError('WRITE_OUTCOME_UNKNOWN','No confirmed response')}
+ const p=await f.workflow.plan('primary',input,access);f.approve(p.planId,p.previewHash)
+ await f.workflow.apply('primary',p.planId,p.previewHash,access);assert.equal((await finished(f,p.planId)).status,'unknown')
+ const snapshot={entries:[],bytes:0}
+ f.provider.inspectRecovery=async()=>snapshot
+ f.provider.preserveTemplates=async(_id,_target,id,_snapshot,checkpoint)=>{f.state.calls.push('backup');checkpoint('preserving_provider_templates');return id}
+ return p
+}
+
+test('recovery requires original owner-approved unknown create-domain checkpoint and fresh separate approval',async()=>{
+ const f=await fixture();try{
+ const ready=await f.workflow.plan('primary',input,access)
+ await assert.rejects(f.workflow.planRecovery('primary',ready.planId,access),code('RECOVERY_UNAVAILABLE'))
+ const original=await unknownCreation(f)
+ await assert.rejects(f.workflow.planRecovery('primary',original.planId,{...access,canWrite:false}),code('WRITE_SCOPE_REQUIRED'))
+ await assert.rejects(f.workflow.planRecovery('primary',original.planId,{...access,actor:'other'}),code('PLAN_NOT_FOUND'))
+ const recovery=await f.workflow.planRecovery('primary',original.planId,access)
+ assert(recovery.recovery);assert.notEqual(recovery.previewHash,original.previewHash)
+ await assert.rejects(f.workflow.apply('primary',recovery.planId,recovery.previewHash,access),code('OWNER_CONFIRMATION_REQUIRED'))
+ const store=new ChangeStore(f.settings.changeStateFile!);assert.equal(store.get(original.planId,access.actor,'primary').status,'unknown');store.close()
+ assert(!f.state.calls.includes('backup'));assert(!f.state.calls.includes('database'))
+ }finally{await f.close()}
+})
+
+test('approved recovery transfers reservation once, retains credentials privately and skips domain creation',async()=>{
+ const f=await fixture();try{
+ const original=await unknownCreation(f), recovery=await f.workflow.planRecovery('primary',original.planId,access)
+ const competing=await f.workflow.planRecovery('primary',original.planId,access)
+ f.approve(recovery.planId,recovery.previewHash);f.approve(competing.planId,competing.previewHash)
+ await f.workflow.apply('primary',recovery.planId,recovery.previewHash,access);const done=await finished(f,recovery.planId)
+ assert.equal(done.status,'applied');assert.equal(f.state.calls.filter(c=>c==='create-unknown').length,1);assert.equal(f.state.calls.filter(c=>c==='database').length,1);assert.equal(f.state.calls.filter(c=>c==='backup').length,1)
+ const store=new ChangeStore(f.settings.changeStateFile!);const old=store.get(original.planId,access.actor,'primary');assert.equal(old.code,'RECOVERY_SUPERSEDED');assert.equal(old.result?.reconciledByRecoveryPlan,recovery.planId);store.close()
+ await assert.rejects(f.workflow.apply('primary',competing.planId,competing.previewHash,access),code('RECOVERY_UNAVAILABLE'))
+ assert.equal((await f.workflow.apply('primary',recovery.planId,recovery.previewHash,access)).status,'applied')
+ const secret=JSON.parse(await readFile(join(f.home,'.seohost-mcp-stage',recovery.planId+'.json'),'utf8'))
+ assert(!JSON.stringify(done).includes(secret.adminPassword));assert(!JSON.stringify(recovery).includes(secret.databasePassword))
+ assert.equal(done.result?.providerTemplateBackupReference,recovery.planId)
+ }finally{await f.close()}
+})
+
+test('changed recovery snapshot keeps unknown account lock without DB writes or second generation takeover',async()=>{
+ const f=await fixture();try{
+ const original=await unknownCreation(f), recovery=await f.workflow.planRecovery('primary',original.planId,access)
+ f.approve(recovery.planId,recovery.previewHash)
+ f.provider.inspectRecovery=async()=>({entries:[],bytes:1})
+ await f.workflow.apply('primary',recovery.planId,recovery.previewHash,access);const done=await finished(f,recovery.planId)
+ assert.equal(done.status,'unknown');assert.equal(done.code,'RECOVERY_TARGET_CHANGED');assert(!f.state.calls.includes('backup'));assert(!f.state.calls.includes('database'))
+ await assert.rejects(f.workflow.planRecovery('primary',recovery.planId,access),code('RECOVERY_UNAVAILABLE'))
+ const store=new ChangeStore(f.settings.changeStateFile!);const other=store.create({actor:access.actor,serverId:'primary',lockKey:'primary',expires:Date.now()+60000,payload:{}})
+ assert.throws(()=>store.reserve(other.id,access.actor,'primary'),code('CHANGE_BUSY'));store.close()
+ }finally{await f.close()}
+})
+
+test('provider templates get a verified private copy and originals before the root becomes empty',async()=>{
+ const f=await fixture();try{
+ const {snapshotTemplates,preserveTemplates}=await import('../src/wordpress-stage-recovery.js')
+ const root=join(f.home,'templates');await mkdir(root);await mkdir(join(root,'cgi-bin'));await writeFile(join(root,'cgi-bin/.htaccess'),'fixture CGI guard');await writeFile(join(root,'index.html'),'fixture provider page')
+ await mkdir(join(f.home,'.seohost-mcp-stage'),{mode:0o700})
+ const snapshot=await snapshotTemplates(f.home,root), id='a'.repeat(48), phases:string[]=[]
+ assert.equal(snapshot.entries.length,3)
+ await preserveTemplates(f.home,root,id,snapshot,p=>phases.push(p))
+ assert.deepEqual(await (await import('node:fs/promises')).readdir(root),[])
+ const backup=join(f.home,'.seohost-mcp-stage/recovery',id)
+ assert.equal(await readFile(join(backup,'verified-copy/index.html'),'utf8'),'fixture provider page')
+ assert.equal(await readFile(join(backup,'originals/cgi-bin/.htaccess'),'utf8'),'fixture CGI guard')
+ assert.deepEqual(JSON.parse(await readFile(join(backup,'manifest.json'),'utf8')).snapshot,snapshot)
+ const stat=await(await import('node:fs/promises')).lstat(join(backup,'verified-copy/index.html'));assert.equal(stat.mode&0o077,0)
+ assert(phases.includes('preserving_provider_templates'))
+ }finally{await f.close()}
+})
+
+test('template recovery refuses arbitrary files, symlinks, oversized bytes and stale approval without relocation',async()=>{
+ const f=await fixture();try{
+ const {snapshotTemplates,preserveTemplates}=await import('../src/wordpress-stage-recovery.js'),root=join(f.home,'templates');await mkdir(root)
+ await writeFile(join(root,'wp-config.php'),'unrelated content');await assert.rejects(snapshotTemplates(f.home,root),code('RECOVERY_TARGET_CHANGED'));await rm(join(root,'wp-config.php'))
+ await symlink(join(f.home,'elsewhere'),join(root,'index.html'));await assert.rejects(snapshotTemplates(f.home,root),code('RECOVERY_TARGET_CHANGED'));await rm(join(root,'index.html'))
+ await writeFile(join(root,'index.html'),'x'.repeat(256*1024+1));await assert.rejects(snapshotTemplates(f.home,root),code('RECOVERY_TARGET_CHANGED'))
+ await writeFile(join(root,'index.html'),'before');const snapshot=await snapshotTemplates(f.home,root)
+ await writeFile(join(root,'index.html'),'after')
+ await assert.rejects(preserveTemplates(f.home,root,'b'.repeat(48),snapshot,()=>{}),code('RECOVERY_TARGET_CHANGED'))
+ assert.equal(await readFile(join(root,'index.html'),'utf8'),'after')
+ }finally{await f.close()}
+})
+
+test('recovery owner page describes template preservation and still needs a separate receipt',async()=>{
+ const f=await browserFixture();try{
+ const original=await unknownCreation(f)
+ f.provider.inspectRecovery=async()=>({entries:[{path:'index.html',kind:'file',bytes:12,mode:420,inode:1,device:1,mtime:0,sha256:'a'.repeat(64)}],bytes:12})
+ const recovery=await f.workflow.planRecovery('primary',original.planId,access)
+ const page=await f.login(recovery.planId)
+ assert(page.body.includes('a'.repeat(64)));assert(page.body.includes('Template checksums (SHA-256)'));assert(page.body.includes('Templates to preserve'));assert(page.body.includes('existing domain will not be created again'));assert(page.body.includes('Verified private template copies and retained originals'))
+ assert(!page.body.includes('Target confirmed absent; no old target data to back up.'))
+ const store=new ChangeStore(f.settings.changeStateFile!);assert.equal(store.get(original.planId,access.actor,'primary').status,'unknown');assert(!store.isOwnerApproved(store.get(recovery.planId,access.actor,'primary'),recovery.previewHash));store.close()
+ }finally{await f.shutdown()}
+})
+
+test('a template-preservation failure keeps the transferred account reservation and never starts the database',async()=>{
+ const f=await fixture();try{
+ const original=await unknownCreation(f), recovery=await f.workflow.planRecovery('primary',original.planId,access)
+ f.provider.preserveTemplates=async(_s,_t,_id,_snap,checkpoint)=>{checkpoint('preserving_provider_templates');throw new HostingError('RECOVERY_TARGET_CHANGED','Stopped after a possible relocation')}
+ f.approve(recovery.planId,recovery.previewHash);await f.workflow.apply('primary',recovery.planId,recovery.previewHash,access)
+ const done=await finished(f,recovery.planId);assert.equal(done.status,'unknown');assert.equal(done.phase,'preserving_provider_templates');assert(!f.state.calls.includes('database'))
+ await assert.rejects(f.workflow.apply('primary',recovery.planId,recovery.previewHash,access),code('OWNER_CONFIRMATION_REQUIRED'))
+ const store=new ChangeStore(f.settings.changeStateFile!), other=store.create({actor:access.actor,serverId:'primary',lockKey:'primary',expires:Date.now()+60000,payload:{}})
+ assert.throws(()=>store.reserve(other.id,access.actor,'primary'),code('CHANGE_BUSY'));store.close()
+ }finally{await f.close()}
+})

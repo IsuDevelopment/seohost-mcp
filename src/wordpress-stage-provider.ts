@@ -7,11 +7,14 @@ import type { Settings } from './config.js'
 import { DirectAdminClient } from './directadmin.js'
 import { DirectAdminTransport, boundedBytes } from './directadmin-http.js'
 import { AccountDiagnostics } from './account-diagnostics.js'
+import { snapshotTemplates, preserveTemplates, type TemplateSnapshot } from './wordpress-stage-recovery.js'
 import { HostingError } from './hosting-error.js'
 
 export type StageInput = { domain: string; label: string; adminEmail: string; adminName: string; title: string; placement?: 'independent_domain' | 'subdomain' }
 export type StageTarget = StageInput & { hostname: string; root: string; database: string; version: string }
 export interface StageProvider {
+  inspectRecovery?(serverId:string,target:StageTarget):Promise<TemplateSnapshot>
+  preserveTemplates?(serverId:string,target:StageTarget,id:string,snapshot:TemplateSnapshot,checkpoint:(phase:string)=>void):Promise<string>
   preflight(serverId: string, input: StageInput, database: string): Promise<{root: string; version: string}>
   createHosting(serverId: string, target: StageTarget): Promise<void>
   verifyRoot(serverId: string, target: StageTarget): Promise<void>
@@ -111,6 +114,21 @@ export class LocalStageProvider implements StageProvider {
     if ((independent ? roots.public_html : roots.subdomains[target.label]?.public_html) !== target.root) throw denied()
     await safeStagePath(config.home,target.root)
     if ((await readdir(target.root)).length) throw denied()
+  }
+  async inspectRecovery(serverId:string,target:StageTarget) {
+    const config=this.config(serverId)
+    if(target.placement!=='independent_domain'||target.hostname!==target.label+'.'+target.domain||target.root!==join(config.home,'domains',target.hostname,'public_html'))throw denied()
+    const domains=(await this.hosting.listDomains(serverId)).domains
+    if(!domains.includes(target.domain)||!domains.includes(target.hostname)||(await this.hosting.listSubdomains(serverId,target.domain)).subdomains.includes(target.hostname))throw denied()
+    if((await this.roots(serverId,target.hostname)).public_html!==target.root)throw denied()
+    const inventory=await this.diagnostics.databases(serverId,0,100)
+    if(inventory.total>100||inventory.databases.some(d=>d.database===target.database))throw denied()
+    return snapshotTemplates(config.home,target.root)
+  }
+  async preserveTemplates(serverId:string,target:StageTarget,id:string,snapshot:TemplateSnapshot,checkpoint:(phase:string)=>void) {
+    const config=this.config(serverId)
+    if(JSON.stringify(await this.inspectRecovery(serverId,target))!==JSON.stringify(snapshot))throw denied()
+    return preserveTemplates(config.home,target.root,id,snapshot,checkpoint)
   }
   async createDatabase(serverId: string, target: StageTarget, password: string) {
     await this.transport.createStageDatabase(serverId, target.database, password)

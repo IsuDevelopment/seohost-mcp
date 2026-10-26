@@ -2,6 +2,7 @@ import { resolveServer, type Settings } from './config.js'
 
 // Configuration requirements only. This catalog never probes provider permissions.
 export const TOOL_REQUIREMENTS = {
+  plan_wordpress_stage_recovery: {credentials:true,wordpressLogs:false,write:true,stage:true,recovery:true},
   plan_wordpress_stage: {credentials:true,wordpressLogs:false,write:true,stage:true},
   apply_wordpress_stage: {credentials:true,wordpressLogs:false,write:true,stage:true},
   get_wordpress_stage: {credentials:false,wordpressLogs:false,write:true},
@@ -46,7 +47,7 @@ export function getServerCapabilities(settings: Settings, reference: string | nu
     const missingConfiguration: string[] = []
     if (requirements.credentials && !credentialsConfigured) missingConfiguration.push('hosting_credentials')
     if (requirements.wordpressLogs && !wordpressLogRootsConfigured) missingConfiguration.push('wordpress_log_roots')
-    if ('stage' in requirements && !stagePlacementsConfigured.length) missingConfiguration.push('wordpress_provisioning')
+    if (('stage' in requirements && !stagePlacementsConfigured.length) || ('recovery' in requirements && !stagePlacementsConfigured.includes('independent_domain'))) missingConfiguration.push('wordpress_provisioning')
     if ('backupMetadata' in requirements && !settings.accounts[serverId]!.backupRoots?.length) missingConfiguration.push('backup_roots')
     if ('databaseExport' in requirements) {
       if (!settings.accounts[serverId]!.databaseExports) missingConfiguration.push('account_database_exports')
@@ -56,7 +57,7 @@ export function getServerCapabilities(settings: Settings, reference: string | nu
     return { name, configurationReady: missingConfiguration.length === 0, missingConfiguration,
       providerPermission: requirements.credentials ? 'unverified' : 'not_applicable',
       requiredScope: 'write' in requirements ? 'mcp:write' : 'mcp:read',
-      readOnly: !['plan_hosting_change', 'apply_hosting_change', 'get_hosting_change', 'export_database', 'plan_wordpress_stage', 'apply_wordpress_stage'].includes(name) }
+      readOnly: !['plan_hosting_change', 'apply_hosting_change', 'get_hosting_change', 'export_database', 'plan_wordpress_stage', 'plan_wordpress_stage_recovery', 'apply_wordpress_stage'].includes(name) }
   })
   return { serverId, credentialsConfigured, wordpressLogRootsConfigured,
     source: 'installation_configuration', providerContacted: false,

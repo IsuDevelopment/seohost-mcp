@@ -2,7 +2,7 @@
 
 This describes implemented behavior, not permission to operate on an arbitrary
 account. Tool registrations and schemas in `src/server.ts` are authoritative.
-All thirty MCP tools are available over HTTP and stdio; writes use separate authorization and per-account allowlists.
+All thirty-one MCP tools are available over HTTP and stdio; writes use separate authorization and per-account allowlists.
 
 Platform scope: standard SeoHost shared hosting accounts via DirectAdmin. VPS
 compatibility is untested; panel presence does not establish endpoint/permission
@@ -17,6 +17,7 @@ equivalence. No root, VM lifecycle or operating-system administration is provide
 | `resolve_server` | Resolves one reference to canonical ID, label and credential-presence flag. | Required `serverId`. | No hosting request. Unknown/ambiguous references fail; no default selection. |
 | `get_server_capabilities` | Reports tool/configuration readiness from loaded settings without private account details. | Required `serverId`. | No provider request. `configurationReady` does not verify key permissions or endpoint availability; restart after changing configuration. |
 | `plan_wordpress_stage` | Fresh single-site stage preview and separate owner-confirmation URL. | `serverId`, parent `domain`, exact `label`, `adminEmail`; optional placement (independent_domain default), adminName/title. | Write scope, local provisioning, create_wordpress_stage plus mode-specific create_domain/create_subdomain policy, absent host/root/new DB, pinned core. No target writes. |
+| `plan_wordpress_stage_recovery` | Plan exact reconciliation of an approved unknown independent-domain creation; private template preservation and missing DB/WP steps. | `serverId`, `fromPlanId`. | Same actor/account, original owner receipt, unknown creating_independent_domain/WRITE_OUTCOME_UNKNOWN only, actual domain/root match, DB absent, bounded template snapshot. Keeps old lock; separate owner browser approval required before existing apply tool. |
 | `apply_wordpress_stage` | Start approved background installation with durable phases and account lock. | `serverId`, planId, previewHash. | Same actor/account; unexpired separate owner-password browser approval. No implicit consent, overwrite, shell input, retries or parent TLS changes. |
 | `get_wordpress_stage` | Actor-bound stage phase/receipt including partial failures. | `serverId`, planId. | Write scope; does not resume or release unknown locks. Credentials remain in private local storage. |
 | `get_account_usage` | Safe tally, limits and near-limit indicators for disk/bandwidth/inodes/counts. | `serverId`. | Self-account; provider tally can lag. Missing is null, unlimited explicit; no contact/config secrets. |
@@ -164,3 +165,9 @@ stored plans without placement retain that legacy contract. Always show exact
 placement/directory and request new approval when they change. Configuration
 capabilities expose stagePlacementsConfigured, not live provider support. Owner
 HTML defaults to Polish with an English switch; MCP data/docs stay English.
+
+D26 recovery is an explicit exception to the no-resume rule for one known pre-DB
+checkpoint only. Existing apply accepts the separately approved recovery preview,
+atomically transfers the original reservation and skips domain creation. Template
+copies are verified and originals retained privately before missing DB/WP steps.
+No generic takeover, unknown DB retry, arbitrary files or backup deletion is exposed.

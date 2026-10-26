@@ -17,7 +17,7 @@ plan and account details remain in private runtime state, not this public note.
 - No repeated POST, cleanup, relocation, lock release or password read occurred.
 - Original HTTP/application failure cause is unknown; do not infer from presence alone.
 
-## Proposed recovery (pending explicit owner approval)
+## Recovery scope approved in conversation; exact snapshot approval pending
 
 1. Review reconciliation of this exact receipt/domain/root and absence of DB/WP;
    never create the hostname a second time or silently release its account lock.
@@ -32,8 +32,10 @@ plan and account details remain in private runtime state, not this public note.
 
 ## Boundaries / next action
 
-Owner must explicitly approve handling the now-existing provider files and reviewed
-recovery; the fresh-empty-target approval does not authorize arbitrary takeover.
+Owner explicitly approved preserving these provider files and preparing controlled
+continuation. The new immutable recovery snapshot needs a separate browser receipt.
 D20/D22/D25 and WORDPRESS-STAGE.md prohibit automatic unknown retries/resume/cleanup.
-No recovery runtime capability has been implemented yet. Start from API evidence,
-then test uncertain-create reconciliation and template preservation before deploy.
+Candidate 0.15.0 implements plan_wordpress_stage_recovery and existing apply integration
+under D26, with 130 passing tests/types/build. Deploy, prepare the exact snapshot,
+obtain owner browser approval and apply through a persistent MCP connection. Do not
+repeat domain creation or override the unknown lock.

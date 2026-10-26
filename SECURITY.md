@@ -116,3 +116,14 @@ roots must match before file operations. A domain container must not preexist an
 newly populated provider templates still stop writes. Separate directories do not
 isolate same-UID sites. Polish/English rendering does not authorize anything;
 language query links retain session/CSRF, exact-Origin checks and no-store/CSP.
+
+D26 permits a separately owner-approved recovery only from the exact original
+unknown independent-domain creation checkpoint. It requires the original owner
+receipt, matching actor/account/target and a new unexpired snapshot approval. The
+reservation transfers atomically; no other account write can enter a gap. Fresh
+domain/root/DB-absence and fixed allowlisted template hashes/metadata are rechecked.
+No arbitrary WordPress/site files are accepted. Regular UID-owned single-link files
+are read with no-follow/nonblocking and 256 KiB/file, 2 MiB total bounds. Private
+verified copies precede relocation of originals; nothing is deleted automatically.
+A changed target or any failed recovery retains an unknown lock and cannot use this
+recovery path again. Password files stay private and are never MCP payloads.

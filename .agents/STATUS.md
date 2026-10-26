@@ -2,6 +2,13 @@
 
 Updated: 2026-10-26.
 
+- Candidate 0.15.0 adds D26 controlled pre-DB recovery planning (31 tools). Full
+  130-test types/build check passed: separate owner approval, same-actor/account
+  original binding, atomic reservation transfer, concurrent/stale refusal, no
+  domain replay, secret-free results, verified private template copies/originals
+  and unknown locks after partial preservation. Production recovery not yet run.
+  Owner authorized preserving the discovered templates and preparing continuation;
+  exact recovery snapshot still requires its own browser approval after deployment.
 - First owner-approved independent-domain apply stopped at creating_independent_domain
   with WRITE_OUTCOME_UNKNOWN. Separate read-only investigation confirmed the domain
   now exists, the actual computed public_html matches the reviewed root, and the

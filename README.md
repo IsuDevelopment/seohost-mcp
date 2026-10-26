@@ -3,7 +3,7 @@
 MCP integration with read-only defaults and reviewed domain/DNS/TLS changes for **standard SeoHost shared hosting** accounts using
 DirectAdmin.
 
-Version 0.14.0: a standalone TypeScript/Node.js server with HTTP and stdio transports,
+Version 0.15.0: a standalone TypeScript/Node.js server with HTTP and stdio transports,
 Bearer and built-in OAuth authentication, domain/subdomain and WordPress inventory,
 account/database/backup metadata diagnostics, opt-in private database exports, owner-confirmed fresh WordPress staging, single-read log summaries,
 bounded reads of web-server logs, account-root `log.txt` and existing WordPress debug logs,

@@ -236,3 +236,13 @@ No implicit relocation, parent-root change or future hosting isolation guarantee
 The same private state and account lock cover both variants. Polish UI defaults,
 English query links and Europe/Warsaw dates are presentation-only; language never
 changes approval semantics or authorization. See WORDPRESS-STAGE.md.
+
+D26 permits an explicitly planned recovery of an owner-approved unknown create-domain
+checkpoint, after fresh exact inventory/root reconciliation, DB absence and template
+snapshot checks. It uses a new normal owner-review receipt and immutable hash. The
+SQLite transaction marks the parent superseded and reserves the recovery without
+unlocking the account. The worker never repeats hosting creation. It copies/checksums
+allowlisted provider files into owner-only private storage, rechecks the snapshot,
+then relocates originals with a journal before missing DB/WP steps. Any failure keeps
+an unknown reservation; later checkpoints cannot use this narrow recovery. Neither
+snapshot nor result exposes credentials. Backup retention is independent of receipts.

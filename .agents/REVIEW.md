@@ -6,7 +6,7 @@ source; accepted decisions explain intent and do not exempt code from criticism.
 
 ## Baseline and evidence
 
-- Review target: 0.14.0, 30 MCP tools; stage diff: `git diff 7ba6257..HEAD -- src test docs .agents`.
+- Review target: 0.15.0, 31 MCP tools; stage diff: `git diff 7ba6257..HEAD -- src test docs .agents`.
   Historical 0.9.0 diagnostics diff: `git diff 210bfa0..HEAD -- src test docs .agents config`.
   Redirects diff: `git diff 1fef5a2..HEAD -- src test docs .agents`.
   TLS + redirects diff: `git diff c25bf96..HEAD -- src test docs .agents`.
@@ -108,3 +108,10 @@ DB and eight provider-populated template entries. No WordPress was installed.
 Investigate the unconfirmed write without assuming its cause. Recovery must preserve
 provider files and get explicit owner scope; do not clear locks or bypass MCP apply.
 See [recovery handoff](tasks/fresh-stage-recovery.md).
+
+0.15.0 focus: D26 is a narrow explicit exception, not generic unknown retry. Inspect
+original receipt/phase/actor/target binding, fresh domain/root and DB-absence reads,
+fixed template allowlist/bounds/UID/no-follow, source change detection, private-copy
+verification before original relocation, journal retention and atomic lock transfer.
+New snapshot owner receipt is mandatory; any failed recovery keeps a reservation.
+130 tests/types/build pass; production recovery/backup/install remain unverified.
