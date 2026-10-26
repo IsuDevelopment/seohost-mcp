@@ -316,3 +316,10 @@ A changed snapshot, uncertain DB write or partial relocation becomes unknown and
 keeps the transferred reservation. There is no second-generation recovery, generic
 existing-site install, manual lock-reset tool or arbitrary resume checkpoint. Failed
 recovery needs operator investigation. Public DNS/TLS remains separate and unverified.
+
+Release 0.15.0 deployed from `95821d2` through successful Deploy `40308153399`
+(Check `40308094388`, 130 tests/types/build). Independent SDK verified version,
+31 tools and read-token write rejection. Production recovery planning succeeded
+against the existing unknown checkpoint, matching root and absent DB; template
+hashes were captured. No backup relocation or DB/WP continuation ran yet; the new
+snapshot still awaits its separate browser receipt.

@@ -35,7 +35,9 @@ plan and account details remain in private runtime state, not this public note.
 Owner explicitly approved preserving these provider files and preparing controlled
 continuation. The new immutable recovery snapshot needs a separate browser receipt.
 D20/D22/D25 and WORDPRESS-STAGE.md prohibit automatic unknown retries/resume/cleanup.
-Candidate 0.15.0 implements plan_wordpress_stage_recovery and existing apply integration
-under D26, with 130 passing tests/types/build. Deploy, prepare the exact snapshot,
-obtain owner browser approval and apply through a persistent MCP connection. Do not
+Production 0.15.0 implements plan_wordpress_stage_recovery and existing apply integration
+under D26, with 130 passing tests/types/build. Deploy 40308153399/Check 40308094388
+passed; production snapshot planning verified eight files/one directory and absent
+DB. Obtain exact snapshot browser approval and apply through a persistent MCP
+connection. The original unknown reservation is still held. Do not
 repeat domain creation or override the unknown lock.

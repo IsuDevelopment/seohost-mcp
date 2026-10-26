@@ -10,7 +10,7 @@ source; accepted decisions explain intent and do not exempt code from criticism.
   Historical 0.9.0 diagnostics diff: `git diff 210bfa0..HEAD -- src test docs .agents config`.
   Redirects diff: `git diff 1fef5a2..HEAD -- src test docs .agents`.
   TLS + redirects diff: `git diff c25bf96..HEAD -- src test docs .agents`.
-  Deployed release: 0.14.0, commit `cb606e8`, Deploy run `40208957293`; Check `40204918957` (123 tests).
+  Deployed release: 0.15.0, commit `95821d2`, Deploy run `40308153399`; Check `40308094388` (130 tests).
 - Focus diff: `git diff c242a28..556b134 -- src test scripts config .env.example`.
   `c242a28` is the last pre-0.6.0 commit. Review current `main` too for later changes.
 - Historical validation for this code: `npm run check`, 57 passing tests, successful
@@ -115,3 +115,9 @@ fixed template allowlist/bounds/UID/no-follow, source change detection, private-
 verification before original relocation, journal retention and atomic lock transfer.
 New snapshot owner receipt is mandatory; any failed recovery keeps a reservation.
 130 tests/types/build pass; production recovery/backup/install remain unverified.
+
+0.15.0 deployment and authenticated discovery passed. Production recovery planning
+verified the exact original checkpoint/owner receipt, existing domain/root, absent
+DB and allowlisted template hashes (eight files/one directory, 81,102 bytes). The
+new snapshot approval is pending. Private backup/relocation and DB/WP execution
+have not run; old unknown reservation remains held until the approved transfer.

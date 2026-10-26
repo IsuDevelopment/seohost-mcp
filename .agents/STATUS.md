@@ -2,7 +2,15 @@
 
 Updated: 2026-10-26.
 
-- Candidate 0.15.0 adds D26 controlled pre-DB recovery planning (31 tools). Full
+- Production 0.15.0 deployed from `95821d2` through successful Deploy `40308153399`;
+  Check `40308094388` passed (130 tests/types/build). Workflow backup/dependency guard/
+  restart/HTTPS/authenticated smoke passed. Independent SDK confirms version, 31
+  tools, configured placements, unauthenticated 401 and read-token write rejection.
+  Real recovery planning passed: original unknown checkpoint/receipt, exact existing
+  domain/root, absent dedicated DB, eight files plus one CGI directory (81,102 bytes)
+  and hashes were verified. New ready recovery preview awaits exact browser approval;
+  no template copy/relocation or database/WordPress installation has run yet.
+- Version 0.15.0 adds D26 controlled pre-DB recovery planning (31 tools). Full
   130-test types/build check passed: separate owner approval, same-actor/account
   original binding, atomic reservation transfer, concurrent/stale refusal, no
   domain replay, secret-free results, verified private template copies/originals
