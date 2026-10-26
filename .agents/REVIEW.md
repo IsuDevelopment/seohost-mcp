@@ -99,3 +99,12 @@ independent-domain creation/installation has not run live.
 passed; real H57 preflight confirmed a ready unapproved plan for an independent
 domain/container. No target was created. Post-create root mapping, provider-generated
 placeholders, certificate/DNS readiness and full WordPress install remain live gaps.
+
+2026-10-26 live apply evidence: owner browser receipt plus conversational consent
+were verified before apply. The creation POST was not confirmed; the worker kept
+its unknown lock and did not proceed. Subsequent read-only inventory/root checks
+confirmed a created independent domain and matching computed root, absent dedicated
+DB and eight provider-populated template entries. No WordPress was installed.
+Investigate the unconfirmed write without assuming its cause. Recovery must preserve
+provider files and get explicit owner scope; do not clear locks or bypass MCP apply.
+See [recovery handoff](tasks/fresh-stage-recovery.md).

@@ -1,15 +1,25 @@
 # Status and handoff
 
-Updated: 2026-10-25.
+Updated: 2026-10-26.
 
+- First owner-approved independent-domain apply stopped at creating_independent_domain
+  with WRITE_OUTCOME_UNKNOWN. Separate read-only investigation confirmed the domain
+  now exists, the actual computed public_html matches the reviewed root, and the
+  dedicated database is absent (complete account DB inventory). The provider created
+  eight top-level template entries: index.html, six error .shtml files and cgi-bin.
+  No WP/database installation ran; no credentials were printed. The account lock
+  stays unknown; no retry, resume, delete, relocation or lock override was performed.
+  Preserve templates and require explicit reviewed recovery before continuing; see
+  [recovery handoff](tasks/fresh-stage-recovery.md). The original POST failure cause
+  is unknown: do not assume an API error/timeout/parser mismatch without evidence.
 - Production 0.14.0 deployed from `cb606e8` through successful Deploy `40208957293`;
   Check `40204918957` passed (123 tests/types/build). Backup/dependency guard/restart/
   HTTPS and authenticated smoke passed. Independent SDK confirms 0.14.0, 30 tools,
   both configured placements, unauthenticated 401 and read-token write rejection.
   Public pages verify Polish default, English switch, correct CSP hash and no-store.
   Real H57 independent-domain preflight produced a fresh unapproved ready plan with
-  the requested separate domain container/root and readable DB name. No target
-  resources were created; post-create root mapping and actual installation are unverified.
+  the requested separate domain container/root and readable DB name. That preflight
+  did not create resources; the later partial live apply is recorded above.
 - Historical production 0.13.1 brand patch deployed from `c8e6c91` through Deploy `40204066809`;
   Check `40204059667` and full local 120-test check passed. Independent HTTPS confirmed
   0.13.1, exact requested gradient, correct CSP style hash and no-store.

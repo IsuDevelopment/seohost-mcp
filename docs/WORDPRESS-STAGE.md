@@ -268,3 +268,14 @@ Release 0.14.0 deployed from `cb606e8` through successful Deploy `40208957293`
 and static CSS hash. Real H57 preflight produced an unapproved independent-domain
 plan with the intended separate root and absent target. No domain/DB/WP installation
 was executed; post-create mapping and real provider write acceptance remain unverified.
+
+### First live apply (2026-10-26)
+
+The first separately approved independent-domain creation returned an unconfirmed
+outcome. The worker stopped before DB/WP and retained the unknown account lock.
+Read-only reconciliation confirmed domain presence and the exact reviewed computed
+root; database inventory confirmed the new DB absent. DirectAdmin populated the
+root with index.html, six error pages and cgi-bin. Thus both uncertain-write recovery
+and provider-template handling need explicit review before continuing. No POST was
+resent, placeholder removed, lock released or credential file disclosed. The cause
+of the unconfirmed POST is not established by inventory evidence.
