@@ -4,9 +4,10 @@ Updated: 2026-10-26.
 
 ## Current verified outcome
 
-- Production 0.17.1 deployed from `c36262b`, Deploy `40315925731`, Check `40315903466`;
-  139 tests/types/build passed. Same dependencies/private config preserved.
-- The owner-approved independent-domain stage finished through MCP: applied,
+- Production 0.18.0 deployed from `641446d`, Deploy `40318949846`, Check `40318886786`;
+  144 tests/types/build passed. Independent HTTPS/SDK checks confirmed 0.18.0,
+  32 tools, unauthenticated 401 and read-token write rejection. Same dependencies/private config preserved.
+- The owner-approved independent-domain stage finished through MCP on 0.17.1: applied,
   completed_locally, pinned WordPress 7.1.3, correct URL and indexing disabled.
   Its reservation released normally after success; domain and DB were never recreated.
 - Eight provider template files have verified private copies and retained originals.
@@ -16,14 +17,14 @@ Updated: 2026-10-26.
 - Independent public HTTPS checks passed: frontend 403 with noindex,nofollow (expected
   staging login protection), wp-login 200. Owner result page returns 200/no-store;
   only the owner browser can reveal the generated password. No password entered chat.
-- Candidate 0.18.0/D29 consolidates new fresh provisioning: the first reviewed scope
+- 0.18.0/D29 consolidates new fresh provisioning: the first reviewed scope
   includes verified private preservation of newly generated allowlisted templates;
   pinned core uses direct bounded official archive download and safe private tar,
   mandatory candidate/final checksums and exclusive writes. Domain/subdomain POSTs
   allow 60 seconds; safe failure detail and agent polling instructions are improved.
   Repeated per-file checkpoints persist only when the phase changes, avoiding
   thousands of redundant SQLite writes during a full verified-core copy.
-  144 tests/types/build passed; deployment is pending. No new live site operation is authorized
+  Local and deployment checks passed. No new live site operation is authorized
   or used as a test; existing completed staging stays untouched. Generic resume and
   uncertain-write retries remain unavailable.
 

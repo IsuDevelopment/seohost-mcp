@@ -430,3 +430,10 @@ DB POST was repeated. Reservation released on applied success. Independent publi
 HTTPS confirmed frontend 403/noindex,nofollow (expected protection) and wp-login 200.
 Private provider templates/copies/originals are retained; no backup was deleted.
 The owner result page is available for password retrieval in the owner browser.
+
+
+Release 0.18.0 deployed from `641446d` through successful Deploy `40318949846`
+(Check `40318886786`, 144 tests/types/build). Independent HTTPS/SDK checks verified
+0.18.0, 32 tools, configured placements, unauthenticated 401 and read-token write
+rejection. No active/unknown stage jobs existed before restart. No new target or
+live installation was used for validation; the prior completed stage was untouched.

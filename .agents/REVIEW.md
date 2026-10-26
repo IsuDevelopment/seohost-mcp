@@ -12,7 +12,8 @@ empty-root compatibility, direct bounded pinned archive streaming and shared saf
 extraction/checksums, safe diagnostics and no POST retries. Per-file callbacks persist
 only phase transitions, not thousands of identical SQLite checkpoints. Check that
 unknown writes still retain reservations and never become generic takeover/resume.
-144 tests/types/build pass; deployment is pending. The previous approved live stage
+144 tests/types/build pass. Deploy `40318949846` and Check `40318886786` succeeded
+for `641446d`; independent HTTPS/SDK checks confirmed version/tools/auth boundaries. The previous approved live stage
 completed on 0.17.1; the new normal path is fixture-tested, not live-tested on another
 site. Historical pending/no-install statements below are superseded by STATUS.md.
 
@@ -22,7 +23,7 @@ site. Historical pending/no-install statements below are superseded by STATUS.md
   Historical 0.9.0 diagnostics diff: `git diff 210bfa0..HEAD -- src test docs .agents config`.
   Redirects diff: `git diff 1fef5a2..HEAD -- src test docs .agents`.
   TLS + redirects diff: `git diff c25bf96..HEAD -- src test docs .agents`.
-  Deployed release: 0.17.1, commit `c36262b`, Deploy run `40315925731`; Check `40315903466` (139 tests).
+  Deployed release: 0.18.0, commit `641446d`, Deploy run `40318949846`; Check `40318886786` (144 tests).
 - Focus diff: `git diff c242a28..556b134 -- src test scripts config .env.example`.
   `c242a28` is the last pre-0.6.0 commit. Review current `main` too for later changes.
 - Historical validation for this code: `npm run check`, 57 passing tests, successful
