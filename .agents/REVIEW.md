@@ -11,7 +11,9 @@ existing_domain/production target, complete root-template/managed-redirect snaps
 owner review wording, verified private preservation and empty-root/redirect proof,
 no hosting creation and normal production settings. Check rejection of existing WP,
 arbitrary rewrites/files, changed snapshots and substituted stage permissions.
-147 tests/types/build pass; deployment and concrete live execution remain pending.
+147 tests/types/build pass. Production 0.19.1 deployed from 12e4525 through
+Deploy 40496535288 / Check 40496520123. Live read-only production planning passes;
+concrete owner approval and live installation/redirect changes remain pending.
 
 ## Current reliability change (0.18.0, D29)
 

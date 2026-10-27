@@ -59,3 +59,11 @@ to its canonical `/` URL. Literal root-source/status/directive checks remain str
 and the full original `.htaccess` metadata/SHA-256 still binds the approved snapshot.
 This fixes a read-only live preview refusal; no target changes occurred. The real
 child/production tests cover preservation of the original noncanonical spelling.
+
+
+0.19.1 deployed from `12e4525`, Deploy `40496535288`, Check `40496520123`;
+147 tests/types/build and independent HTTPS/SDK discovery/auth checks passed.
+A concrete live production plan passed ownership/root/template/redirect/version/DB
+absence checks. Owner approval is pending; no live WordPress/redirect mutation has
+run. Required H57-only operations have a verified private configuration backup;
+original redirect configurations also have retained verified private copies.
