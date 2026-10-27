@@ -284,3 +284,13 @@ writes. Shared extraction/checksum/tree checks also serve legacy core repair. Do
 creation now waits up to 60 seconds without retries; unknown results keep their lock.
 Repeated callbacks in the same phase do not rewrite SQLite per copied core file;
 actual phase transitions are still durable before their first side effect.
+
+D30 adds a separate production entry point and install_wordpress operation policy.
+The shared target marks existing_domain/production internally; strict stage input
+cannot select it. Existing canonical root acceptance is limited to bounded provider
+files plus exact API-matched root Redirect lines, captured in the immutable snapshot.
+The owner explicitly approves existing-file preservation and redirect removal.
+Private copies/originals precede root relocation; fresh empty-root/redirect inventory
+proof precedes DB/core writes. Production omits staging MU/mail/cron restrictions.
+The shared apply/receipt/password infrastructure remains compatible; no existing-WP
+replacement or new recovery checkpoint is allowed. See WORDPRESS-INSTALL.md.

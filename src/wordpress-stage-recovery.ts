@@ -20,12 +20,12 @@ async function bytes(path:string) {
   return buffer.subarray(0,bytesRead)
  }finally{await file.close()}
 }
-export async function snapshotTemplates(home:string,root:string):Promise<TemplateSnapshot> {
+export async function snapshotTemplates(home:string,root:string,allowRootHtaccess=false):Promise<TemplateSnapshot> {
  await safeStagePath(home,root)
  const entries:TemplateEntry[]=[];let total=0
  const scan=async(relative:string) => {
   const path=join(root,relative), st=await lstat(path)
-  if(!names.has(relative)||st.isSymbolicLink()||st.uid!==process.getuid?.()||(!st.isFile()&&!st.isDirectory())||(st.isDirectory()&&relative!=='cgi-bin'))throw denied()
+  if(!(names.has(relative)||(allowRootHtaccess&&relative==='.htaccess'))||st.isSymbolicLink()||st.uid!==process.getuid?.()||(!st.isFile()&&!st.isDirectory())||(st.isDirectory()&&relative!=='cgi-bin'))throw denied()
   const entry:TemplateEntry={path:relative,kind:st.isDirectory()?'directory':'file',bytes:st.isFile()?st.size:0,mode:st.mode&0o777,inode:st.ino,device:st.dev,mtime:st.mtimeMs}
   if(st.isFile()){if(st.nlink!==1)throw denied();const data=await bytes(path);entry.sha256=hash(data);total+=data.length;if(total>2*1024*1024)throw denied()}
   entries.push(entry)
@@ -34,10 +34,10 @@ export async function snapshotTemplates(home:string,root:string):Promise<Templat
  for(const name of (await readdir(root)).sort())await scan(name)
  return{entries,bytes:total}
 }
-export async function preserveTemplates(home:string,root:string,id:string,expected:TemplateSnapshot,checkpoint:(phase:string)=>void) {
+export async function preserveTemplates(home:string,root:string,id:string,expected:TemplateSnapshot,checkpoint:(phase:string)=>void,allowRootHtaccess=false) {
  if(!/^[a-f0-9]{48}$/.test(id))throw denied()
  const same=(a:TemplateSnapshot,b:TemplateSnapshot)=>JSON.stringify(a)===JSON.stringify(b)
- if(!same(await snapshotTemplates(home,root),expected))throw denied()
+ if(!same(await snapshotTemplates(home,root,allowRootHtaccess),expected))throw denied()
  const privateRoot=join(home,'.seohost-mcp-stage');await safeStagePath(home,privateRoot)
  if((await lstat(privateRoot)).mode&0o077)throw denied()
  const parent=join(privateRoot,'recovery')
@@ -53,10 +53,10 @@ export async function preserveTemplates(home:string,root:string,id:string,expect
   if(entry.kind==='directory')await mkdir(dest,{mode:0o700})
   else{const data=await bytes(join(root,entry.path));if(hash(data)!==entry.sha256)throw denied();await writeFile(dest,data,{flag:'wx',mode:0o600});if(hash(await bytes(dest))!==entry.sha256)throw denied()}
  }
- if(!same(await snapshotTemplates(home,root),expected))throw denied()
+ if(!same(await snapshotTemplates(home,root,allowRootHtaccess),expected))throw denied()
  const remaining=[...expected.entries], moved:string[]=[]
  for(const name of expected.entries.filter(e=>!e.path.includes('/')).map(e=>e.path)){
-  if(!same(await snapshotTemplates(home,root),{entries:remaining,bytes:remaining.filter(e=>e.kind==='file').reduce((n,e)=>n+e.bytes,0)}))throw denied()
+  if(!same(await snapshotTemplates(home,root,allowRootHtaccess),{entries:remaining,bytes:remaining.filter(e=>e.kind==='file').reduce((n,e)=>n+e.bytes,0)}))throw denied()
   checkpoint('preserving_provider_templates')
   await rename(join(root,name),join(originals,name));moved.push(name)
   await writeFile(join(backup,'relocation.json'),JSON.stringify({moved}),{mode:0o600})

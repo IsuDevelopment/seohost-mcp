@@ -2,10 +2,11 @@ import { resolveServer, type Settings } from './config.js'
 
 // Configuration requirements only. This catalog never probes provider permissions.
 export const TOOL_REQUIREMENTS = {
+  plan_wordpress_install:{credentials:true,wordpressLogs:false,write:true,productionInstall:true},
   continue_wordpress_stage_install: {credentials:true,wordpressLogs:false,write:true,stage:true,recovery:true},
   plan_wordpress_stage_recovery: {credentials:true,wordpressLogs:false,write:true,stage:true,recovery:true},
   plan_wordpress_stage: {credentials:true,wordpressLogs:false,write:true,stage:true},
-  apply_wordpress_stage: {credentials:true,wordpressLogs:false,write:true,stage:true},
+  apply_wordpress_stage: {credentials:true,wordpressLogs:false,write:true,stageOrProduction:true},
   get_wordpress_stage: {credentials:false,wordpressLogs:false,write:true},
   get_server_info: { credentials: false, wordpressLogs: false },
   list_servers: { credentials: false, wordpressLogs: false },
@@ -44,11 +45,13 @@ export function getServerCapabilities(settings: Settings, reference: string | nu
   const account = settings.accounts[serverId]!
   const stagePlacementsConfigured = account.wordpressProvisioning && settings.localOAuth && account.writeOperations?.includes('create_wordpress_stage')
     ? (['independent_domain','subdomain'] as const).filter(placement => account.writeOperations?.includes(placement === 'independent_domain' ? 'create_domain' : 'create_subdomain')) : []
+  const productionInstallConfigured=Boolean(account.wordpressProvisioning&&settings.localOAuth&&account.writeOperations?.includes('install_wordpress'))
   const tools = Object.entries(TOOL_REQUIREMENTS).map(([name, requirements]) => {
     const missingConfiguration: string[] = []
     if (requirements.credentials && !credentialsConfigured) missingConfiguration.push('hosting_credentials')
     if (requirements.wordpressLogs && !wordpressLogRootsConfigured) missingConfiguration.push('wordpress_log_roots')
     if (('stage' in requirements && !stagePlacementsConfigured.length) || ('recovery' in requirements && !stagePlacementsConfigured.includes('independent_domain'))) missingConfiguration.push('wordpress_provisioning')
+    if(('productionInstall' in requirements&&!productionInstallConfigured)||('stageOrProduction' in requirements&&!stagePlacementsConfigured.length&&!productionInstallConfigured))missingConfiguration.push('wordpress_provisioning')
     if ('backupMetadata' in requirements && !settings.accounts[serverId]!.backupRoots?.length) missingConfiguration.push('backup_roots')
     if ('databaseExport' in requirements) {
       if (!settings.accounts[serverId]!.databaseExports) missingConfiguration.push('account_database_exports')
@@ -64,7 +67,7 @@ export function getServerCapabilities(settings: Settings, reference: string | nu
     source: 'installation_configuration', providerContacted: false,
     authorizationModel: 'single_owner_all_configured_accounts', hostingWritesEnabled: Boolean(settings.accounts[serverId]!.writeOperations?.length),
     enabledWriteOperations: settings.accounts[serverId]!.writeOperations ?? [],
-    stagePlacementsConfigured,
+    stagePlacementsConfigured, productionInstallConfigured,
     backupRootsConfigured: Boolean(settings.accounts[serverId]!.backupRoots?.length),
     dnsWriteAuthorityConfigured: Boolean(settings.accounts[serverId]!.dnsNameservers?.length), tools }
 }

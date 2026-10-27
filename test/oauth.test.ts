@@ -148,7 +148,7 @@ test(`local OAuth: consent, PKCE, single-use code and revocation (${requestedSco
         requestInit: { headers: { Authorization: "Bearer " + token } },
       }),
     );
-    assert.equal((await mcp.listTools()).tools.length, 32);
+    assert.equal((await mcp.listTools()).tools.length, 33);
     const rejected = await mcp.callTool({ name: 'plan_hosting_change', arguments: { serverId: 'primary', change: { operation: 'create_domain', domain: 'new.example' } } });
     assert.equal(rejected.isError, true);
     assert.equal((rejected.structuredContent as { error: { code: string } }).error.code, requestedScope.includes('mcp:write') ? 'WRITE_DISABLED' : 'WRITE_SCOPE_REQUIRED');

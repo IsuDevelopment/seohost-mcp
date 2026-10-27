@@ -2,7 +2,7 @@
 
 This describes implemented behavior, not permission to operate on an arbitrary
 account. Tool registrations and schemas in `src/server.ts` are authoritative.
-All thirty-two MCP tools are available over HTTP and stdio; writes use separate authorization and per-account allowlists.
+All thirty-three MCP tools are available over HTTP and stdio; writes use separate authorization and per-account allowlists.
 
 Platform scope: standard SeoHost shared hosting accounts via DirectAdmin. VPS
 compatibility is untested; panel presence does not establish endpoint/permission
@@ -16,6 +16,7 @@ equivalence. No root, VM lifecycle or operating-system administration is provide
 | `list_servers` | Configured server IDs, labels, aliases and `credentialsConfigured`. | None. | No hosting request; omits URLs and secrets. Credential presence is not proof of validity. |
 | `resolve_server` | Resolves one reference to canonical ID, label and credential-presence flag. | Required `serverId`. | No hosting request. Unknown/ambiguous references fail; no default selection. |
 | `get_server_capabilities` | Reports tool/configuration readiness from loaded settings without private account details. | Required `serverId`. | No provider request. `configurationReady` does not verify key permissions or endpoint availability; restart after changing configuration. |
+| `plan_wordpress_install` | Fresh production WP plan on an existing owned provider-only root. | Explicit serverId/domain/adminEmail; optional adminName/title. | Separate install_wordpress policy, local runtime/owner approval, exact template/root-redirect snapshot; no existing WP/arbitrary files, target writes or hosting creation during planning. Apply/status/password page reuse stage infrastructure. |
 | `plan_wordpress_stage` | Fresh single-site stage preview covering new-target provider-template preservation and separate owner-confirmation URL. | `serverId`, parent `domain`, exact `label`, `adminEmail`; optional placement (independent_domain default), adminName/title. | Write scope, local provisioning, create_wordpress_stage plus mode-specific create_domain/create_subdomain policy, absent host/root/new DB, pinned core. No target writes. |
 | `continue_wordpress_stage_install` | Perform only the missing install for an already approved recovery stopped at unconfirmed DB creation. | `serverId`, same `planId`, exact `previewHash`. | Original write actor/account/receipt, only the exact D27/D28 database/core checkpoint, preserved backup proof, empty mapped root, exact zero-object single-user localhost-only DB and fixed local credential proof. Same reservation; no domain/DB POST or password change. |
 | `plan_wordpress_stage_recovery` | Plan exact reconciliation of an approved unknown independent-domain creation; private template preservation and missing DB/WP steps. | `serverId`, `fromPlanId`. | Same actor/account, original owner receipt, unknown creating_independent_domain/WRITE_OUTCOME_UNKNOWN only, actual domain/root match, DB absent, bounded template snapshot. Keeps old lock; separate owner browser approval required before existing apply tool. |
@@ -192,3 +193,10 @@ safe private system-tar extraction with candidate/final checksums; no broken WP-
 extract/recovery cycle is required. Keep stdio alive during background apply; poll
 about every 10 seconds and stop at terminal states. Failures expose safe result.detail,
 never raw upstream/child output. No generic resume, POST retry or automatic consent.
+
+D30 exposes productionInstallConfigured separately from stagePlacementsConfigured.
+Production plans need install_wordpress; stage grants cannot substitute. Shared apply
+is configuration-ready when either workflow is configured, but actual apply checks
+the stored target mode and its exact operation policy. Production is public with
+normal mail/cron/indexing. Other domains' redirects need separate hosting plans;
+no production existing-site replacement or generic resume is available.

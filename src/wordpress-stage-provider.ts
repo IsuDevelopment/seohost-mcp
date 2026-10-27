@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process'
-import { lstat, realpath, readdir, mkdir, writeFile, chmod } from 'node:fs/promises'
+import { readFile, lstat, realpath, readdir, mkdir, writeFile, chmod } from 'node:fs/promises'
 import { join, dirname } from 'node:path'
 import { homedir, userInfo, hostname } from 'node:os'
 import { z } from 'zod'
@@ -9,11 +9,15 @@ import { DirectAdminTransport, boundedBytes } from './directadmin-http.js'
 import { AccountDiagnostics } from './account-diagnostics.js'
 import { snapshotTemplates, preserveTemplates, verifyPreservedTemplates, type TemplateSnapshot } from './wordpress-stage-recovery.js'
 import { assertPreparedCore, repairDownloadedCore } from './wordpress-core-repair.js'
+import { RedirectsClient, redirectDestination, redirectType } from './redirects.js'
 import { HostingError } from './hosting-error.js'
 
-export type StageInput = { domain: string; label: string; adminEmail: string; adminName: string; title: string; placement?: 'independent_domain' | 'subdomain' }
+export type StageInput = { domain: string; label: string; adminEmail: string; adminName: string; title: string; placement?: 'independent_domain' | 'subdomain' | 'existing_domain'; environment?: 'production' }
 export type StageTarget = StageInput & { hostname: string; root: string; database: string; version: string }
 export interface StageProvider {
+  describeExistingRedirects?(serverId:string,target:StageTarget):Promise<Array<{from:string;to:string;type:number}>>
+  inspectExistingRoot?(serverId:string,target:StageTarget):Promise<TemplateSnapshot>
+  preserveExistingRoot?(serverId:string,target:StageTarget,id:string,snapshot:TemplateSnapshot,checkpoint:(phase:string)=>void):Promise<string>
   prepareFreshRoot?(serverId:string,target:StageTarget,id:string,checkpoint:(phase:string)=>void):Promise<string|null>
   verifyExistingDatabase?(serverId:string,target:StageTarget,password:string,preparedCore?:boolean):Promise<void>
   verifyTemplateBackup?(serverId:string,target:StageTarget,id:string,snapshot:TemplateSnapshot):Promise<void>
@@ -25,7 +29,7 @@ export interface StageProvider {
   createDatabase(serverId: string, target: StageTarget, password: string): Promise<void>
   install(serverId: string, target: StageTarget, secret: { databasePassword: string; adminPassword: string }, checkpoint: (phase: string) => void,preparedCore?:boolean,planId?:string): Promise<void>
 }
-const denied = () => new HostingError('UNSAFE_STAGE_TARGET', 'Fresh-stage targeting could not be verified. Existing data and symlinks are never reused or overwritten.')
+const denied = () => new HostingError('UNSAFE_STAGE_TARGET', 'Fresh WordPress targeting could not be verified. Existing data and symlinks are never reused or overwritten.')
 
 // Verify every existing component: realpath alone would silently accept symlinks.
 export async function safeStagePath(home: string, path: string, allowMissing = false) {
@@ -82,16 +86,18 @@ export class LocalStageProvider implements StageProvider {
   async preflight(serverId: string, input: StageInput, database: string) {
     const config = this.config(serverId)
     const domains = (await this.hosting.listDomains(serverId)).domains
-    const hostname = input.label + '.' + input.domain
-    if (!domains.includes(input.domain) || domains.includes(hostname) || (await this.hosting.listSubdomains(serverId, input.domain)).subdomains.includes(hostname)) throw denied()
+    const existing=input.placement==='existing_domain'
+    const hostname = existing?input.domain:input.label + '.' + input.domain
+    if (!domains.includes(input.domain) || (!existing&&domains.includes(hostname)) || (await this.hosting.listSubdomains(serverId, input.domain)).subdomains.includes(hostname)) throw denied()
     const roots = await this.roots(serverId, input.domain), parent = join(config.home, 'domains', input.domain, 'public_html')
     const independent = input.placement === 'independent_domain'
-    const container = join(config.home,'domains',hostname), root = independent ? join(container,'public_html') : join(parent,input.label)
-    if (roots.public_html !== parent || roots.subdomains[input.label]) throw denied()
+    const container = join(config.home,'domains',hostname), root = existing?parent:independent ? join(container,'public_html') : join(parent,input.label)
+    if (roots.public_html !== parent || (!existing&&roots.subdomains[input.label])) throw denied()
     await safeStagePath(config.home, parent)
     if (independent) await safeStagePath(config.home,join(config.home,'domains'))
     // Even an existing empty directory is refused: this workflow owns only fresh targets.
-    try { await lstat(independent ? container : root); throw denied() } catch (e) { if ((e as NodeJS.ErrnoException).code !== 'ENOENT') throw e }
+    if(!existing){try { await lstat(independent ? container : root); throw denied() } catch (e) { if ((e as NodeJS.ErrnoException).code !== 'ENOENT') throw e }}
+    else await this.inspectExistingRoot(serverId,{...input,hostname,root,database,version:'0.0'})
     const inventory = await this.diagnostics.databases(serverId, 0, 100)
     if (inventory.total > 100 || inventory.databases.some(d => d.database === database)) throw denied()
     const versionText = await this.wp(serverId, parent, ['--version'])
@@ -113,7 +119,7 @@ export class LocalStageProvider implements StageProvider {
     }
   }
   private async mappedRoot(serverId:string,target:StageTarget,empty:boolean) {
-    const config = this.config(serverId), independent = target.placement === 'independent_domain'
+    const config = this.config(serverId), independent = target.placement === 'independent_domain'||target.placement==='existing_domain'
     const roots = await this.roots(serverId,independent ? target.hostname : target.domain)
     if ((independent ? roots.public_html : roots.subdomains[target.label]?.public_html) !== target.root) throw denied()
     await safeStagePath(config.home,target.root)
@@ -127,6 +133,32 @@ export class LocalStageProvider implements StageProvider {
     if(!snapshot.entries.length)return null
     checkpoint('backing_up_provider_templates')
     return preserveTemplates(config.home,target.root,id,snapshot,checkpoint)
+  }
+  async describeExistingRedirects(serverId:string,target:StageTarget) {
+    const rules=(await new RedirectsClient(this.settings,this.request).state(serverId,target.domain)).rules
+    if(rules.some(r=>r.from!=='/'||!redirectDestination.safeParse(r.to).success||!redirectType.safeParse(r.type).success))throw denied()
+    return rules.map(({from,to,type})=>({from,to,type}))
+  }
+  async inspectExistingRoot(serverId:string,target:StageTarget) {
+    const config=this.config(serverId)
+    if(target.placement!=='existing_domain'||target.environment!=='production'||target.label!==''||target.hostname!==target.domain||target.root!==join(config.home,'domains',target.domain,'public_html'))throw denied()
+    if(!(await this.hosting.listDomains(serverId)).domains.includes(target.domain))throw denied()
+    await this.mappedRoot(serverId,target,false)
+    const snapshot=await snapshotTemplates(config.home,target.root,true)
+    const rules=(await new RedirectsClient(this.settings,this.request).state(serverId,target.domain)).rules
+    // Only the exact provider-managed root Redirect directives may be displaced.
+    if(rules.some(r=>r.from!=='/'||!redirectDestination.safeParse(r.to).success||!redirectType.safeParse(r.type).success))throw denied()
+    const file=snapshot.entries.find(e=>e.path==='.htaccess')
+    const text=file?(await readFile(join(target.root,'.htaccess'),'utf8')).trim():''
+    const expected=rules.map(r=>`Redirect ${r.type} ${r.from} ${r.to}`).sort()
+    if(JSON.stringify(text?text.split(/\r?\n/).map(s=>s.trim()).sort():[])!==JSON.stringify(expected))throw denied()
+    return snapshot
+  }
+  async preserveExistingRoot(serverId:string,target:StageTarget,id:string,snapshot:TemplateSnapshot,checkpoint:(phase:string)=>void) {
+    if(JSON.stringify(await this.inspectExistingRoot(serverId,target))!==JSON.stringify(snapshot))throw denied()
+    const reference=await preserveTemplates(this.config(serverId).home,target.root,id,snapshot,checkpoint,true)
+    if((await new RedirectsClient(this.settings,this.request).state(serverId,target.domain)).rules.length)throw denied()
+    return reference
   }
   async inspectRecovery(serverId:string,target:StageTarget) {
     const config=this.config(serverId)
@@ -184,21 +216,24 @@ export class LocalStageProvider implements StageProvider {
     checkpoint('creating_config')
     await this.wp(serverId, target.root, ['config', 'create', '--dbname=' + target.database, '--dbuser=' + target.database, '--dbhost=localhost', '--dbprefix=wp_', '--prompt=dbpass'], secret.databasePassword + '\n')
     await chmod(join(target.root, 'wp-config.php'), 0o600)
-    for (const [name, value] of [['WP_ENVIRONMENT_TYPE', 'staging'], ['DISABLE_WP_CRON', 'true'], ['DISALLOW_FILE_EDIT', 'true']])
+    const production=target.environment==='production'
+    for (const [name, value] of (production?[['WP_ENVIRONMENT_TYPE','production'],['DISALLOW_FILE_EDIT','true']]:[['WP_ENVIRONMENT_TYPE', 'staging'], ['DISABLE_WP_CRON', 'true'], ['DISALLOW_FILE_EDIT', 'true']]))
       await this.wp(serverId, target.root, ['config', 'set', name!, value!, ...(value === 'true' ? ['--raw'] : [])])
     // Access and outbound-email policy exists before installing or serving WP.
+    if(!production){
     checkpoint('installing_stage_policy')
     const mu = join(target.root, 'wp-content', 'mu-plugins'); await mkdir(mu, {mode: 0o755})
     await writeFile(join(mu, 'seohost-stage.php'), `<?php\n/** Fresh staging policy. Managed by SeoHost MCP. */\nadd_filter('pre_wp_mail', '__return_false');\nadd_filter('pre_option_blog_public', '__return_zero');\nadd_action('template_redirect', function () { if (!is_user_logged_in()) { status_header(403); header('X-Robots-Tag: noindex, nofollow'); exit('Private staging site. Please log in.'); } });\n`, {flag: 'wx', mode: 0o644})
+    }
     checkpoint('installing_wordpress')
     await this.wp(serverId, target.root, ['core', 'install', '--url=https://' + target.hostname, '--title=' + target.title,
       '--admin_user=' + target.adminName, '--admin_email=' + target.adminEmail, '--skip-email', '--prompt=admin_password'], secret.adminPassword + '\n')
-    await this.wp(serverId, target.root, ['option', 'update', 'blog_public', '0'])
+    await this.wp(serverId, target.root, ['option', 'update', 'blog_public', production?'1':'0'])
     checkpoint('verifying_wordpress')
     await this.wp(serverId, target.root, ['core', 'is-installed'])
     if (await this.wp(serverId, target.root, ['core', 'version']) !== target.version
       || await this.wp(serverId, target.root, ['option', 'get', 'siteurl']) !== 'https://' + target.hostname
-      || await this.wp(serverId, target.root, ['option', 'get', 'blog_public']) !== '0') throw denied()
+      || await this.wp(serverId, target.root, ['option', 'get', 'blog_public']) !== (production?'1':'0')) throw denied()
     const guard = await lstat(join(target.root, '.htaccess'))
     if (!guard.isFile() || guard.isSymbolicLink()) throw denied()
     await writeFile(join(target.root, '.htaccess'), 'Options -Indexes\n', {mode: 0o644})

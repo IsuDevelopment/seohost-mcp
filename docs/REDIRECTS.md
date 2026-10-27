@@ -91,3 +91,11 @@ ambiguous outcomes. Candidate 0.8.0 is not deployed by this change.
 
 Sources: [redirect API](https://docs.directadmin.com/changelog/version-1.25.0.html),
 [status codes and typed inventory](https://docs.directadmin.com/changelog/version-1.28.2.html).
+
+
+D30 fresh production installation is a separate, narrowly reviewed exception for
+an existing provider-only target root. Its `.htaccess` must contain only exact
+API-matched root Redirect directives; the immutable owner-approved installation
+preserves that file in verified private copies/originals before relocation. It
+verifies empty redirect inventory before new DB/core work. No arbitrary rewrite
+editing is exposed. Redirects on other domains continue to use the plans above.

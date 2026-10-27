@@ -3,7 +3,7 @@
 MCP integration with read-only defaults and reviewed domain/DNS/TLS changes for **standard SeoHost shared hosting** accounts using
 DirectAdmin.
 
-Version 0.18.0: a standalone TypeScript/Node.js server with HTTP and stdio transports,
+Version 0.19.0: a standalone TypeScript/Node.js server with HTTP and stdio transports,
 Bearer and built-in OAuth authentication, domain/subdomain and WordPress inventory,
 account/database/backup metadata diagnostics, opt-in private database exports, owner-confirmed fresh WordPress staging, single-read log summaries,
 bounded reads of web-server logs, account-root `log.txt` and existing WordPress debug logs,
@@ -48,9 +48,11 @@ Test the running HTTP server with `npm run smoke`. Available tools:
 `get_wordpress_log_info`, `read_account_log`, `read_web_log`, `read_wordpress_log`,
 `get_domain_info`, `get_tls_info`, `list_redirects`, `list_dns_records`, `check_dns`, `plan_hosting_change`,
 `apply_hosting_change`, `get_hosting_change`, `export_database`,
-`plan_wordpress_stage`, `apply_wordpress_stage` and `get_wordpress_stage`.
+`plan_wordpress_install`, `plan_wordpress_stage`, `plan_wordpress_stage_recovery`,
+`continue_wordpress_stage_install`, `apply_wordpress_stage` and `get_wordpress_stage`.
 See [logs, aliases and key setup](docs/LOGS.md),
-[WordPress inventory and logs](docs/WORDPRESS.md) and
+[WordPress inventory and logs](docs/WORDPRESS.md),
+[fresh production WordPress installation](docs/WORDPRESS-INSTALL.md) and
 [configuration and deployment](docs/DEPLOYMENT.md). MIT license.
 
 To verify live domain/subdomain lists and access/error log reads for one explicit

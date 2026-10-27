@@ -1,6 +1,14 @@
 # Status and handoff
 
-Updated: 2026-10-26.
+Updated: 2026-10-27.
+
+## Current production-install work (D30)
+
+Candidate 0.19.0 adds fresh production installation on an existing provider-only
+canonical domain root, separate from protected staging. 147 tests/types/build pass.
+Deployment/configuration and concrete owner review are pending. No live hosting
+redirect or WordPress data has been changed. See WORDPRESS-INSTALL.md and the
+private ignored operation artifacts for the exact requested domains/state.
 
 ## Current verified outcome
 

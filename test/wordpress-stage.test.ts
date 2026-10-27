@@ -121,9 +121,10 @@ test('browser owner approval requires password, Origin and single-use cookie-bou
  }finally{await new Promise<void>(r=>app.close(()=>r()));await f.close()}
 })
 
-test('real child adapter uses fixed shell-free arguments, secret stdin and clean environment; blocks preexisting files',async()=>{
+for(const production of [false,true])test(production?'production installation uses normal mail/cron/indexing without staging MU policy':'real child adapter uses fixed shell-free arguments, secret stdin and clean environment; blocks preexisting files',async()=>{
  const f=await fixture();try{
- const fake=join(f.home,'fake-cli.cjs');await writeFile(fake,`const fs=require('node:fs'),path=require('node:path');const a=process.argv.slice(2),root=a.find(x=>x.startsWith('--path=')).slice(7);let input='';process.stdin.on('data',x=>input+=x);process.stdin.on('end',()=>{fs.appendFileSync(path.join(__dirname,'trace.jsonl'),JSON.stringify({args:a,input,env:process.env})+'\\n');if(a.includes('download'))fs.mkdirSync(path.join(root,'wp-content'));if(a.includes('create'))fs.writeFileSync(path.join(root,'wp-config.php'),'<?php');if(a.includes('version'))console.log('6.9.1');if(a.includes('get'))console.log(a.includes('siteurl')?'https://stg.example.com':'0')});`)
+ if(production)f.state.root=join(f.home,'domains/example.com/public_html')
+ const fake=join(f.home,'fake-cli.cjs');await writeFile(fake,`const fs=require('node:fs'),path=require('node:path');const a=process.argv.slice(2),root=a.find(x=>x.startsWith('--path=')).slice(7);let input='';process.stdin.on('data',x=>input+=x);process.stdin.on('end',()=>{fs.appendFileSync(path.join(__dirname,'trace.jsonl'),JSON.stringify({args:a,input,env:process.env})+'\\n');if(a.includes('download'))fs.mkdirSync(path.join(root,'wp-content'));if(a.includes('create'))fs.writeFileSync(path.join(root,'wp-config.php'),'<?php');if(a.includes('version'))console.log('6.9.1');if(a.includes('get'))console.log(a.includes('siteurl')?'${production?'https://example.com':'https://stg.example.com'}':'${production?'1':'0'}')});`)
  f.settings.accounts.primary!.wordpressProvisioning={home:f.home,phpBinary:process.execPath,wpCli:fake}
  await mkdir(f.state.root,{recursive:true})
  const source=join(f.home,'source/wordpress');await mkdir(join(source,'wp-content'),{recursive:true})
@@ -138,7 +139,7 @@ test('real child adapter uses fixed shell-free arguments, secret stdin and clean
  }
  const provider=new LocalStageProvider(f.settings,request,{home:f.home,username:'test',hostname:new URL(f.settings.accounts.primary!.baseUrl).hostname})
  process.env.STAGE_TEST_FORBIDDEN='private-inherited-token'
- const target={...input,adminName:'stageadmin',title:'$(touch unsafe); quoted title',root:f.state.root,hostname:'stg.example.com',database:'test_fresh',version:'6.9.1'}
+ const target={...input,...(production?{label:'',placement:'existing_domain' as const,environment:'production' as const}:{}),adminName:'stageadmin',title:'$(touch unsafe); quoted title',root:f.state.root,hostname:production?'example.com':'stg.example.com',database:'test_fresh',version:'6.9.1'}
  await provider.install('primary',target,{databasePassword:'database-secret',adminPassword:'admin-secret'},()=>{},false,'b'.repeat(48))
  const trace=(await readFile(join(f.home,'trace.jsonl'),'utf8')).trim().split('\n').map(s=>JSON.parse(s))
  assert(trace.some(v=>v.input==='database-secret\n'));assert(trace.some(v=>v.input==='admin-secret\n'))
@@ -146,6 +147,9 @@ test('real child adapter uses fixed shell-free arguments, secret stdin and clean
  assert(trace.some(v=>v.args.includes('--title=$(touch unsafe); quoted title')))
  assert(!trace.some(v=>v.args.includes('download')))
  assert.equal(trace.filter(v=>v.args.includes('verify-checksums')).length,2)
+ assert.equal(trace.some(v=>v.args.includes('DISABLE_WP_CRON')),!production)
+ assert(trace.some(v=>v.args.includes('WP_ENVIRONMENT_TYPE')&&v.args.includes(production?'production':'staging')))
+ if(production)await assert.rejects(readFile(join(f.state.root,'wp-content/mu-plugins/seohost-stage.php')),{code:'ENOENT'})
  assert.equal(await readFile(join(f.state.root,long),'utf8'),'verified fixture')
  assert.equal(await readFile(join(f.state.root,'.htaccess'),'utf8'),'Options -Indexes\n')
  await assert.rejects(provider.verifyRoot('primary',target),code('UNSAFE_STAGE_TARGET'))
@@ -637,5 +641,58 @@ test('unconfirmed domain response exposes only safe status and never retries the
  const transport=new DirectAdminTransport(f.settings,async()=>{calls++;return new Response('private upstream body',{status:503})})
  await assert.rejects(transport.postForm('primary','/CMD_API_DOMAIN',{action:'create',domain:'stg.example.com'}),(e:unknown)=>e instanceof HostingError&&e.code==='WRITE_OUTCOME_UNKNOWN'&&e.message.includes('HTTP 503')&&!e.message.includes('private upstream'))
  assert.equal(calls,1)
+ }finally{await f.close()}
+})
+
+
+test('production plan has distinct policy and owner receipt, snapshots existing provider root and never creates hosting',async()=>{
+ const f=await browserFixture();try{
+ const input={domain:'example.com',adminEmail:'owner@example.com'}
+ await assert.rejects(f.workflow.planInstall('primary',input,access),code('WRITE_DISABLED'))
+ f.settings.accounts.primary!.writeOperations=['install_wordpress']
+ f.provider.inspectExistingRoot=async()=>({entries:[],bytes:0})
+ f.provider.describeExistingRedirects=async()=>[{from:'/',to:'https://old.example.com/',type:302}]
+ f.provider.preserveExistingRoot=async(_server,target,id)=>{assert.equal(target.environment,'production');f.state.calls.push('existing-backup');return id}
+ f.provider.install=async(_server,target)=>{assert.equal(target.placement,'existing_domain');assert.equal(target.hostname,'example.com');assert.equal(target.label,'');assert.equal(target.environment,'production');f.state.calls.push('production-install')}
+ const plan=await f.workflow.planInstall('primary',input,access)
+ assert.equal(plan.target.adminName,'siteadmin');assert.equal(plan.target.title,'WordPress')
+ assert.equal(getServerCapabilities(f.settings,'primary').tools.find(t=>t.name==='apply_wordpress_stage')?.configurationReady,true)
+ await assert.rejects(f.workflow.apply('primary',plan.planId,plan.previewHash,access),code('OWNER_CONFIRMATION_REQUIRED'))
+ const signed=await f.login(plan.planId);assert(signed.body.includes('Production mode'));assert(signed.body.includes('Current domain redirect'));assert(signed.body.includes('302 / → https://old.example.com/'));assert(!signed.body.includes('Login required for frontend;'))
+ const token=f.csrf(signed.body)
+ assert.equal((await f.post(f.url(plan.planId),{csrf:token,phase:'approve',decision:'approve',preview:plan.previewHash},signed.cookie+'; stage_owner='+token)).status,200)
+ await f.workflow.apply('primary',plan.planId,plan.previewHash,access);const done=await finished(f,plan.planId)
+ assert.equal(done.status,'applied');assert(f.state.calls.includes('existing-backup'));assert(f.state.calls.includes('production-install'));assert(!f.state.calls.includes('subdomain'))
+ assert.equal((done.result as {providerTemplateBackupReference:string}).providerTemplateBackupReference,plan.planId)
+ }finally{await f.shutdown()}
+})
+test('production root inspector refuses existing WordPress and arbitrary htaccess; preserves exact reviewed provider redirect',async()=>{
+ const f=await fixture();try{
+ const root=join(f.home,'domains/example.com/public_html');await mkdir(root,{recursive:true});await mkdir(join(f.home,'.seohost-mcp-stage'),{mode:0o700})
+ await writeFile(join(root,'index.html'),'existing provider page')
+ const htaccess=join(root,'.htaccess'),redirect='Redirect 302 / https://old.example.com/\n'
+ const request:typeof fetch=async(url)=>{
+  const u=new URL(String(url))
+  if(u.pathname==='/CMD_API_SHOW_DOMAINS')return new Response('list[]=example.com')
+  if(u.pathname==='/CMD_API_DOMAIN')return new Response(JSON.stringify({users:{test:{domains:{'example.com':{public_html:root,subdomains:{}}}}}}))
+  if(u.pathname==='/CMD_API_REDIRECT'){
+   const exists=await readFile(htaccess,'utf8').then(()=>true,()=>false)
+   return new Response(exists?new URLSearchParams({'/':new URLSearchParams({to:'https://old.example.com/',type:'302'}).toString()}).toString():'')
+  }
+  throw Error('Unexpected request')
+ }
+ const provider=new LocalStageProvider(f.settings,request,{home:f.home,username:'test',hostname:new URL(f.settings.accounts.primary!.baseUrl).hostname})
+ const target={domain:'example.com',label:'',hostname:'example.com',root,database:'test_new',version:'6.9.1',adminEmail:'owner@example.com',adminName:'siteadmin',title:'Site',placement:'existing_domain' as const,environment:'production' as const}
+ await writeFile(join(root,'wp-config.php'),'existing config sentinel')
+ await assert.rejects(provider.inspectExistingRoot('primary',target));assert.equal(await readFile(join(root,'wp-config.php'),'utf8'),'existing config sentinel')
+ await rm(join(root,'wp-config.php'));await writeFile(htaccess,'RewriteRule .* https://unexpected.example/ [R=302]\n')
+ await assert.rejects(provider.inspectExistingRoot('primary',target),code('UNSAFE_STAGE_TARGET'))
+ await writeFile(htaccess,redirect);const snapshot=await provider.inspectExistingRoot('primary',target)
+ await writeFile(join(root,'index.html'),'changed provider page')
+ await assert.rejects(provider.preserveExistingRoot('primary',target,'d'.repeat(48),snapshot,()=>{}),code('UNSAFE_STAGE_TARGET'))
+ await writeFile(join(root,'index.html'),'existing provider page');const fresh=await provider.inspectExistingRoot('primary',target)
+ assert.equal(await provider.preserveExistingRoot('primary',target,'d'.repeat(48),fresh,()=>{}),'d'.repeat(48))
+ await provider.verifyRoot('primary',target)
+ for(const kind of ['originals','verified-copy'])assert.equal(await readFile(join(f.home,'.seohost-mcp-stage/recovery','d'.repeat(48),kind,'.htaccess'),'utf8'),redirect)
  }finally{await f.close()}
 })

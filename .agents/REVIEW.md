@@ -4,6 +4,15 @@ Prepared for Claude or another reviewer; review has not been performed or approv
 Read the context required by [README.md](README.md) first. Verify claims against
 source; accepted decisions explain intent and do not exempt code from criticism.
 
+## Production root workflow (0.19.0, D30)
+
+Focus the diff after 619caa8: distinct install_wordpress policy, strict internal
+existing_domain/production target, complete root-template/managed-redirect snapshot,
+owner review wording, verified private preservation and empty-root/redirect proof,
+no hosting creation and normal production settings. Check rejection of existing WP,
+arbitrary rewrites/files, changed snapshots and substituted stage permissions.
+147 tests/types/build pass; deployment and concrete live execution remain pending.
+
 ## Current reliability change (0.18.0, D29)
 
 Focus `git diff 3f2cfaa..HEAD -- src test docs .agents`: explicit initial review of
@@ -19,7 +28,7 @@ site. Historical pending/no-install statements below are superseded by STATUS.md
 
 ## Baseline and evidence
 
-- Review target: 0.18.0, 32 MCP tools; stage diff: `git diff 7ba6257..HEAD -- src test docs .agents`.
+- Review target: 0.19.0, 33 MCP tools; stage diff: `git diff 7ba6257..HEAD -- src test docs .agents`.
   Historical 0.9.0 diagnostics diff: `git diff 210bfa0..HEAD -- src test docs .agents config`.
   Redirects diff: `git diff 1fef5a2..HEAD -- src test docs .agents`.
   TLS + redirects diff: `git diff c25bf96..HEAD -- src test docs .agents`.

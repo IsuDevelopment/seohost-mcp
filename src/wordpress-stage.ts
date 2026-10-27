@@ -20,8 +20,9 @@ export const stageInput = z.object({ domain: domainSchema,
   adminName: z.string().regex(/^[a-zA-Z][a-zA-Z0-9_]{3,31}$/).default('stageadmin'),
   title: z.string().min(1).max(100).refine(s => !/[\u0000-\u001f\u007f]/.test(s)).default('WordPress staging'),
 }).strict()
+export const wordpressInstallInput=stageInput.omit({label:true,placement:true}).extend({adminName:stageInput.shape.adminName.default('siteadmin'),title:stageInput.shape.title.default('WordPress')}).strict()
 export type StagePayload = { kind: 'fresh_wordpress_stage'; target: StageTarget; previewHash: string; phase: string; source: null;
-  overwrite: false; backup: string; publicAccess: string; providerTemplates?: 'preserve_new_target_only'; providerTemplateBackupReference?: string; adminCredentialReference?: string; recovery?: {fromPlanId:string;originalHash:string;snapshot:TemplateSnapshot} }
+  overwrite: false; backup: string; publicAccess: string; existingRootSnapshot?: TemplateSnapshot; removedRedirects?: Array<{from:string;to:string;type:number}>; providerTemplates?: 'preserve_new_target_only'; providerTemplateBackupReference?: string; adminCredentialReference?: string; recovery?: {fromPlanId:string;originalHash:string;snapshot:TemplateSnapshot} }
 export const stagePayload = (c: StoredChange): StagePayload => {
   const p = c.payload as StagePayload
   if (p.kind !== 'fresh_wordpress_stage') throw new HostingError('PLAN_NOT_FOUND', 'This is not a fresh WordPress stage plan.')
@@ -30,7 +31,7 @@ export const stagePayload = (c: StoredChange): StagePayload => {
 export function stagePreview(change: StoredChange) {
   const p = stagePayload(change), {root: _root, ...target} = p.target
   return { serverId: change.serverId, planId: change.id, previewHash: p.previewHash, expiresAt: new Date(change.expires).toISOString(),
-    status: change.status, phase: p.phase, target, source: p.source, overwrite: p.overwrite, backup: p.backup, providerTemplates:p.providerTemplates??null,
+    status: change.status, phase: p.phase, target, source: p.source, overwrite: p.overwrite, backup: p.backup, removedRedirects:p.removedRedirects??[], existingRoot:p.existingRootSnapshot?{templates:p.existingRootSnapshot.entries.map(e=>({path:e.path,kind:e.kind,bytes:e.bytes,sha256:e.sha256})),bytes:p.existingRootSnapshot.bytes}:null, providerTemplates:p.providerTemplates??null,
     recovery: p.recovery ? {fromPlanId:p.recovery.fromPlanId,templates:p.recovery.snapshot.entries.map(e=>({path:e.path,kind:e.kind,bytes:e.bytes,sha256:e.sha256})),bytes:p.recovery.snapshot.bytes} : null,
     publicAccess: p.publicAccess, code: change.code ?? null, result: change.result ?? null }
 }
@@ -76,11 +77,11 @@ export async function stageAdminPassword(settings:Settings,change:StoredChange) 
 export class WordPressStages {
   private readonly provider: StageProvider
   constructor(private readonly settings: Settings, request: typeof fetch = fetch, provider?: StageProvider) { this.provider = provider ?? new LocalStageProvider(settings, request) }
-  private authorize(reference: string | number, access: AccessContext, enabled = true, placement: 'independent_domain'|'subdomain' = 'subdomain') {
+  private authorize(reference: string | number, access: AccessContext, enabled = true, placement: 'independent_domain'|'subdomain'|'existing_domain' = 'subdomain') {
     const {serverId, account} = resolveServer(this.settings.accounts, reference)
     if (!access.canWrite) throw new HostingError('WRITE_SCOPE_REQUIRED', 'Fresh-stage plans require write authorization.')
-    if (enabled && (!account.wordpressProvisioning || ![placement === 'independent_domain' ? 'create_domain' : 'create_subdomain', 'create_wordpress_stage'].every(op => account.writeOperations?.includes(op as 'create_domain'))))
-      throw new HostingError('WRITE_DISABLED', 'Enable local WordPress provisioning and both required operations explicitly.')
+    if (enabled && (!account.wordpressProvisioning || !(placement==='existing_domain'?['install_wordpress']:[placement === 'independent_domain' ? 'create_domain' : 'create_subdomain', 'create_wordpress_stage']).every(op => account.writeOperations?.includes(op as 'create_domain'|'install_wordpress'))))
+      throw new HostingError('WRITE_DISABLED', 'Enable local WordPress provisioning and the required operation policy explicitly.')
     if (enabled && !this.settings.localOAuth) throw new HostingError('OWNER_APPROVAL_UNAVAILABLE', 'Local owner login is required for the separate browser confirmation.')
     return serverId
   }
@@ -102,6 +103,25 @@ export class WordPressStages {
       return {...stagePreview(change), approvalUrl: new URL('/wordpress-stage/' + change.id, this.settings.publicUrl).href,
         next:'Owner must log in and confirm the exact preview in the browser, then the same MCP actor may apply. Never automate owner consent.'}
     } finally {store.close()}
+  }
+  async planInstall(reference:string|number,input:unknown,access:AccessContext) {
+    const value=wordpressInstallInput.parse(input),serverId=this.authorize(reference,access,true,'existing_domain')
+    const username=this.settings.credentials[serverId]?.username
+    if(!username)throw new HostingError('CREDENTIALS_MISSING','A valid account identity is required.')
+    const database=stageDatabaseName(username,value.domain)
+    const request={...value,label:'',placement:'existing_domain' as const,environment:'production' as const}
+    const checked=await this.provider.preflight(serverId,request,database)
+    const target={...request,...checked,hostname:value.domain,database}
+    if(!this.provider.inspectExistingRoot||!this.provider.preserveExistingRoot||!this.provider.describeExistingRedirects)throw new HostingError('INSTALL_UNAVAILABLE','Production root preparation is unavailable.')
+    const existingRootSnapshot=await this.provider.inspectExistingRoot(serverId,target),removedRedirects=await this.provider.describeExistingRedirects(serverId,target)
+    const payload:StagePayload={kind:'fresh_wordpress_stage',target,phase:'awaiting_owner_confirmation',source:null,overwrite:false,existingRootSnapshot,removedRedirects,
+      backup:'Existing allowlisted provider files and exact managed root-redirect configuration will be copied, checksum-verified and retained privately before relocation. No deletion.',
+      publicAccess:'Production installation: public frontend, indexing and normal WP mail/cron enabled. No source copying, parent TLS changes or DNS repair.',
+      previewHash:fingerprint({serverId,target,existingRootSnapshot,removedRedirects,scope:'fresh_production_existing_provider_only_root_preserve_templates_remove_exact_managed_redirects_new_database'})}
+    const store=this.store()
+    try{const change=store.create({actor:access.actor,serverId,lockKey:serverId,expires:Date.now()+30*60000,payload})
+      return{...stagePreview(change),approvalUrl:new URL('/wordpress-stage/'+change.id,this.settings.publicUrl).href,next:'Owner must review and approve this exact production root snapshot in the browser. No installation or redirect changes occurred.'}
+    }finally{store.close()}
   }
   async planRecovery(reference:string|number,fromPlanId:string,access:AccessContext) {
     const serverId=this.authorize(reference,access,true,'independent_domain'),store=this.store()
@@ -183,7 +203,12 @@ export class WordPressStages {
       // Retain credentials for recovery outside web roots. Never return them through MCP.
       await writeFile(join(root,change.id+'.json'),JSON.stringify({hostname:target.hostname,database:target.database,adminName:target.adminName,...secrets}),{flag:'wx',mode:0o600})
       payload.adminCredentialReference=change.id
-      if(payload.recovery){
+      if(payload.existingRootSnapshot){
+        if(!this.provider.preserveExistingRoot)throw new HostingError('INSTALL_UNAVAILABLE','Production root preparation is unavailable.')
+        checkpoint('backing_up_existing_root');mutated=true
+        payload.providerTemplateBackupReference=await this.provider.preserveExistingRoot(change.serverId,target,change.id,payload.existingRootSnapshot,checkpoint)
+        store.checkpoint(change)
+      }else if(payload.recovery){
         checkpoint('revalidating_recovery')
         if(!this.provider.inspectRecovery||!this.provider.preserveTemplates||JSON.stringify(await this.provider.inspectRecovery(change.serverId,target))!==JSON.stringify(payload.recovery.snapshot))throw new HostingError('RECOVERY_TARGET_CHANGED','The reviewed recovery snapshot changed; preserve the unknown lock.')
         checkpoint('backing_up_provider_templates')

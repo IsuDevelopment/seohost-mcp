@@ -8,10 +8,10 @@ module responsibilities or important flows change; keep this map short.
 | `src/http.ts` | HTTP entry point, Host/Origin checks, health/discovery, authenticated actor/write context, per-request MCP transport and cleanup. |
 | `src/stdio.ts` | Local process entry point; stdout reserved for MCP, owner write context still subject to account operation policy. |
 | `src/server.ts` | Version, thirty tool registrations, input schemas, MCP results/errors and safe auditing. |
-| `src/wordpress-stage.ts` | Hostname-derived DB names and bounded HTML-only admin credential reader; Placement-specific immutable stage/recovery plans, initial reviewed template-preservation policy, shared account reservation, secret-free background checkpoints/results and no retries. |
+| `src/wordpress-stage.ts` | Hostname-derived DB names and bounded HTML-only admin credential reader; Placement-specific immutable stage/recovery and existing-provider-root production plans, initial reviewed template-preservation policy, shared account reservation, secret-free background checkpoints/results and no retries. |
 | `src/wordpress-stage-recovery.ts` | Bounded fixed-template metadata/hash snapshot, verified private copies, retained-backup proof and journaled relocation of originals; no deletion or arbitrary path input. |
 | `src/wordpress-core-repair.ts` | Normal fresh pinned archive download/extraction and same-job core repair: official archive MD5, bounded safe system tar, candidate checksums, exact tree comparison, private truncated originals and missing-file exclusive writes. |
-| `src/wordpress-stage-provider.ts` | Local UID/home/host binding, canonical/absent target, separate-domain or nested hosting creation, post-create allowlisted template preservation, exact document-root and dedicated DB APIs and fixed read-only local empty-DB credential proof; fixed shell-free WP-CLI, stdin secrets and stage policy. |
+| `src/wordpress-stage-provider.ts` | Local UID/home/host binding, canonical/absent target, separate-domain or nested hosting creation, post-create allowlisted template preservation, exact existing-root/managed-redirect snapshot and production preparation, exact document-root and dedicated DB APIs and fixed read-only local empty-DB credential proof; fixed shell-free WP-CLI, stdin secrets and environment-specific stage/production policy. |
 | `src/wordpress-stage-approval.ts` | Polish-default/English-switch owner login/logout and readable browser review/approve/deny with per-plan cookie-bound single-use challenges; completed-result WP admin password view and hash-authorized responsive CSS; no hosting writes from the page. |
 | `src/capabilities.ts` | Shared tool/configuration-requirement catalog and honest configuration-only readiness; smoke tests verify names against the catalog. |
 | `src/config.ts` | Validates env/JSON, origins, aliases, distinct read/write tokens, account write operations and trusted NS; selects private state files and resolves explicit accounts. |
@@ -131,3 +131,9 @@ no overwrite of valid core, changed-byte refusal, mandatory candidate checksums 
 archive-link refusal, fresh HTTPS archive streaming and bad digest/size refusal. Stage
 tests cover one-approval template preservation, refusal before DB on unexpected files,
 real child installation with safe long-name extraction and legacy checkpoint continuation.
+
+D30 production entry point: plan_wordpress_install → shared owner HTML receipt →
+apply_wordpress_stage/get_wordpress_stage. Existing-root templates/redirects are
+snapshotted and privately preserved; hosting creation is skipped. Stage tests cover
+policy separation, production browser wording/receipt, no hosting-create replay,
+changed/foreign-root refusal and real child production settings. See WORDPRESS-INSTALL.
