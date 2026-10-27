@@ -13,7 +13,9 @@ no hosting creation and normal production settings. Check rejection of existing 
 arbitrary rewrites/files, changed snapshots and substituted stage permissions.
 147 tests/types/build pass. Production 0.19.1 deployed from 12e4525 through
 Deploy 40496535288 / Check 40496520123. Live read-only production planning passes;
-concrete owner approval and live installation/redirect changes remain pending.
+the exact real owner receipt/chat confirmation subsequently gated a completed live
+production install and source redirects. Public root/login and HTTPS 301 path/query
+behavior passed; see STATUS for retained backups and reconciliation limits.
 
 ## Current reliability change (0.18.0, D29)
 

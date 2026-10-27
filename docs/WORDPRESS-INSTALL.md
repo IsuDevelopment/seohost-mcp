@@ -49,8 +49,8 @@ be verified separately; local installation never proves DNS/TLS readiness.
 
 Verification: 147 tests/types/build pass, including production-only policy, actual
 owner browser approval, changed-root refusal, existing-WP/custom-rewrite refusal,
-verified redirect/template preservation and real child production settings. Live
-production installation is pending a concrete owner-approved plan.
+verified redirect/template preservation and real child production settings. The first real owner-approved production installation completed on 2026-10-27;
+see the live evidence below.
 
 
 Patch 0.19.1 compares safe Redirect destinations using normalized HTTP(S) URLs,
@@ -64,6 +64,26 @@ child/production tests cover preservation of the original noncanonical spelling.
 0.19.1 deployed from `12e4525`, Deploy `40496535288`, Check `40496520123`;
 147 tests/types/build and independent HTTPS/SDK discovery/auth checks passed.
 A concrete live production plan passed ownership/root/template/redirect/version/DB
-absence checks. Owner approval is pending; no live WordPress/redirect mutation has
-run. Required H57-only operations have a verified private configuration backup;
+absence checks. That initial ready-preview checkpoint was superseded by the completed owner-approved
+operation below. Required H57-only operations have a verified private configuration backup;
 original redirect configurations also have retained verified private copies.
+
+
+## First live approved installation (2026-10-27)
+
+The real exact browser receipt and conversational confirmation gated a successful
+production install through MCP 0.19.1. Nine existing provider files including the
+old root redirect (81,003 bytes) were copied/checksum-verified and retained privately
+before relocation. Empty root/provider redirect checks, a fresh dedicated DB with
+local credential proof, pinned WordPress 7.1.3 archive/candidate/final checksums and
+local installation verification all passed. No domain/subdomain create or migration
+was performed. Production config is mode 600 and has no staging MU plugin; public
+HTTPS root and login return 200. Password delivery remains owner HTML only.
+
+Subsequent separately planned source 301 redirects passed provider-state and public
+HTTPS apex/www/path/query verification. Legacy POST success was not recognized;
+the documented exact-state reconciliation completed each receipt without resending
+writes. Original source configurations were privately backed up/verified, source
+WP files/databases and staging remain, and no backups were deleted. The account
+has no remaining applying/unknown reservation. Existing TLS policy is preserved,
+including one source's HTTP-to-HTTPS hop before the canonical-domain redirect.

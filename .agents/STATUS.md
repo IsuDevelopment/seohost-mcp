@@ -2,22 +2,29 @@
 
 Updated: 2026-10-27.
 
-## Current production-install work (D30)
+## Current production installation (D30, completed 2026-10-27)
 
-Production 0.19.1 adds fresh production installation on an existing provider-only
-canonical domain root, separate from protected staging. 147 tests/types/build pass.
-0.19.1 deployed from 12e4525 through successful Deploy 40496535288 and Check
-40496520123; independent HTTPS/SDK verified 0.19.1, 33 tools, unauthenticated 401
-and read-token write rejection. Earlier 0.19.0 Deploy 40496062158 also passed. H57-only required
-operations were enabled after a verified private configuration backup and single-app
-restart. Read-only production planning identified an equivalent root redirect URL
-without a trailing slash; 0.19.1 normalizes safe destinations for API comparison
-while retaining the full original file fingerprint. Read-only live production planning now passes. The concrete immutable root
-preview is ready in private operation artifacts; actual owner browser/conversation
-confirmation is pending. Verified private copies of requested domains redirect
-configuration are retained; source WordPress files/databases remain untouched. No live hosting
-redirect or WordPress data has been changed. See WORDPRESS-INSTALL.md and the
-private ignored operation artifacts for the exact requested domains/state.
+- Production MCP 0.19.1 deployed from `12e4525`, Deploy `40496535288`, Check
+  `40496520123`; 147 tests/types/build pass. Independent HTTPS/SDK confirmed version,
+  33 tools, unauthenticated 401 and read-token write rejection. H57-only required
+  policies have a verified private configuration backup; other accounts unchanged.
+- The exact real owner browser receipt and chat confirmation gated a successful
+  existing-domain production install: applied/completed_locally, WordPress 7.1.3,
+  new hostname-named DB, correct HTTPS URL and normal indexing/mail/cron policy.
+  No hosting-create POST or source WP migration. Full archive/candidate/final core
+  checksums passed. Config mode 600; no staging MU plugin. Public root/login 200.
+- Nine provider files, including the old root redirect configuration (81,003 bytes),
+  have verified private copies and retained originals. Separate original redirect
+  configurations for three requested domains have verified retained private copies.
+  No backup, old source WordPress/database or existing staging was deleted.
+- Requested source redirects completed through separate exact delete/add plans.
+  Legacy write responses were unconfirmed; each exact expected inventory was proved
+  during documented reconciliation, without repeated POSTs. Public HTTPS apex/www
+  return 301 to the intended canonical target and retain path/query. One source's
+  existing HTTP-to-HTTPS hop remains before its canonical 301; TLS policy unchanged.
+- No applying/unknown reservations remain. Prior staging frontend 403/noindex and
+  login 200 remain verified. Exact operational IDs and owner password-page link stay
+  in ignored private artifacts. Passwords never entered agent/chat output.
 
 ## Current verified outcome
 

@@ -99,3 +99,17 @@ API-matched root Redirect directives; the immutable owner-approved installation
 preserves that file in verified private copies/originals before relocation. It
 verifies empty redirect inventory before new DB/core work. No arbitrary rewrite
 editing is exposed. Redirects on other domains continue to use the plans above.
+
+
+## Live approved redirect changes (2026-10-27)
+
+Three owner-requested source-domain delete/add changes completed through separate
+MCP plans after a new production destination was verified. The provider responses
+were unconfirmed, but fresh exact expected inventories completed each receipt via
+the documented reconciliation; no POST was repeated. Public HTTPS apex and www
+returned 301 to the intended canonical destination with path/query retained. Source
+WordPress files/databases remain in place. Original redirect configs have verified
+retained private copies; no backup deletion or parent TLS change was performed.
+One preexisting HTTP-to-HTTPS hop remains before the source's canonical redirect.
+This live evidence supersedes the historical fixture-only statement above; arbitrary
+rewrites, precedence and future provider responses remain outside that proof.
