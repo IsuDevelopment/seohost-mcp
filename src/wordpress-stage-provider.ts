@@ -150,8 +150,14 @@ export class LocalStageProvider implements StageProvider {
     if(rules.some(r=>r.from!=='/'||!redirectDestination.safeParse(r.to).success||!redirectType.safeParse(r.type).success))throw denied()
     const file=snapshot.entries.find(e=>e.path==='.htaccess')
     const text=file?(await readFile(join(target.root,'.htaccess'),'utf8')).trim():''
-    const expected=rules.map(r=>`Redirect ${r.type} ${r.from} ${r.to}`).sort()
-    if(JSON.stringify(text?text.split(/\r?\n/).map(s=>s.trim()).sort():[])!==JSON.stringify(expected))throw denied()
+    const expected=rules.map(r=>`${r.type} ${r.to}`).sort()
+    const directives=text?text.split(/\r?\n/).map(line=>{
+      const match=line.trim().match(/^Redirect[ \t]+(301|302|303)[ \t]+\/[ \t]+(\S+)$/)
+      if(!match)throw denied()
+      const destination=redirectDestination.safeParse(match[2]);if(!destination.success)throw denied()
+      return `${match[1]} ${destination.data}`
+    }).sort():[]
+    if(JSON.stringify(directives)!==JSON.stringify(expected))throw denied()
     return snapshot
   }
   async preserveExistingRoot(serverId:string,target:StageTarget,id:string,snapshot:TemplateSnapshot,checkpoint:(phase:string)=>void) {

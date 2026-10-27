@@ -28,7 +28,7 @@ site. Historical pending/no-install statements below are superseded by STATUS.md
 
 ## Baseline and evidence
 
-- Review target: 0.19.0, 33 MCP tools; stage diff: `git diff 7ba6257..HEAD -- src test docs .agents`.
+- Review target: 0.19.1, 33 MCP tools; stage diff: `git diff 7ba6257..HEAD -- src test docs .agents`.
   Historical 0.9.0 diagnostics diff: `git diff 210bfa0..HEAD -- src test docs .agents config`.
   Redirects diff: `git diff 1fef5a2..HEAD -- src test docs .agents`.
   TLS + redirects diff: `git diff c25bf96..HEAD -- src test docs .agents`.
@@ -166,3 +166,7 @@ files and retained 33 truncated artifacts; candidate and final checksums passed.
 Independent HTTPS sees protected frontend 403/noindex and wp-login 200. No generated
 password was read into model context. Review normal fresh-path reliability separately;
 this success does not prove generic arbitrary-checkpoint resume or hostile-tenant isolation.
+
+0.19.1 root redirect comparison normalizes safe destination URLs, exactly as provider
+inventory does, but never drops the original file snapshot/hash from owner consent.
+The live no-trailing-slash case is regression-tested; unknown directives still fail.

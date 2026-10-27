@@ -4,9 +4,14 @@ Updated: 2026-10-27.
 
 ## Current production-install work (D30)
 
-Candidate 0.19.0 adds fresh production installation on an existing provider-only
+Candidate 0.19.1 adds fresh production installation on an existing provider-only
 canonical domain root, separate from protected staging. 147 tests/types/build pass.
-Deployment/configuration and concrete owner review are pending. No live hosting
+0.19.0 deployed through successful Deploy 40496062158. H57-only required
+operations were enabled after a verified private configuration backup and single-app
+restart. Read-only production planning identified an equivalent root redirect URL
+without a trailing slash; 0.19.1 normalizes safe destinations for API comparison
+while retaining the full original file fingerprint. Patch deployment and owner
+review are pending. No live hosting
 redirect or WordPress data has been changed. See WORDPRESS-INSTALL.md and the
 private ignored operation artifacts for the exact requested domains/state.
 

@@ -51,3 +51,11 @@ Verification: 147 tests/types/build pass, including production-only policy, actu
 owner browser approval, changed-root refusal, existing-WP/custom-rewrite refusal,
 verified redirect/template preservation and real child production settings. Live
 production installation is pending a concrete owner-approved plan.
+
+
+Patch 0.19.1 compares safe Redirect destinations using normalized HTTP(S) URLs,
+matching the inventory projection. A bare origin with no trailing slash is equivalent
+to its canonical `/` URL. Literal root-source/status/directive checks remain strict,
+and the full original `.htaccess` metadata/SHA-256 still binds the approved snapshot.
+This fixes a read-only live preview refusal; no target changes occurred. The real
+child/production tests cover preservation of the original noncanonical spelling.

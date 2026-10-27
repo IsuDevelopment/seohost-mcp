@@ -670,7 +670,7 @@ test('production root inspector refuses existing WordPress and arbitrary htacces
  const f=await fixture();try{
  const root=join(f.home,'domains/example.com/public_html');await mkdir(root,{recursive:true});await mkdir(join(f.home,'.seohost-mcp-stage'),{mode:0o700})
  await writeFile(join(root,'index.html'),'existing provider page')
- const htaccess=join(root,'.htaccess'),redirect='Redirect 302 / https://old.example.com/\n'
+ const htaccess=join(root,'.htaccess'),redirect='Redirect 302 / https://old.example.com\n'
  const request:typeof fetch=async(url)=>{
   const u=new URL(String(url))
   if(u.pathname==='/CMD_API_SHOW_DOMAINS')return new Response('list[]=example.com')
