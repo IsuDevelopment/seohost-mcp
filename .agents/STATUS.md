@@ -2,21 +2,34 @@
 
 Updated: 2026-10-29.
 
-## Artifact cleanup (D31)
+## Artifact cleanup (D31, completed 2026-10-29)
 
-Candidate 0.20.0 implements success-only deploy/install temporary-file cleanup and
-one retained previous-code rollback inside the app. Initial 150 tests/types/build
-passed; final checks, deployment and audited removal of historical artifacts are
-pending. Read-only H57 inventory found no active jobs and roughly 353 MiB of deploy
-and stage storage, mostly disposable copied WordPress core. Original website backups,
-credentials, active configuration/SQLite and Redis are excluded from cleanup.
+- Production 0.20.0 deployed from `a09b4d0`, Deploy `40840433809`, Check
+  `40840382646`; 150 tests/types/build passed. Independent HTTPS/SDK verified
+  0.20.0, 33 tools, unauthenticated 401 and read-token write rejection.
+- Successful deployment removed 19 historical numeric transfer trees and its own
+  transfer. One mode-600 previous-code archive (163,267 bytes) and release metadata
+  remain inside the app; archive listing confirmed no runtime config/state.
+- Owner-authorized audited cleanup removed four obsolete config/reset backup trees,
+  two completed jobs' source/extraction copies and one old fixed core-cache archive:
+  7,571 files / 326,263,992 logical bytes. Manual cleanup reclaimed 338,732 KiB;
+  including deploy history, roughly 365 MB of disk was reclaimed (net of code backup).
+- Only stage runtime/retained originals (~4.9 MiB) and redirect backups (16 KiB)
+  remain among MCP home directories. Credential files, template/truncated originals,
+  manifests, active env/config/SQLite, Redis and all websites/databases were preserved.
+  Completed receipts reflect removed temporary archives; owner credentials remain.
+- Production frontend 200, both canonical source redirects 301 and protected stage
+  403/noindex remained verified. No active/unknown account jobs. Private audit is in
+  the app's data/maintenance directory. Future success performs bounded cleanup;
+  failed/incomplete evidence and original backups are never swept automatically.
 
 ## Current production installation (D30, completed 2026-10-27)
 
 - Production MCP 0.19.1 deployed from `12e4525`, Deploy `40496535288`, Check
   `40496520123`; 147 tests/types/build pass. Independent HTTPS/SDK confirmed version,
   33 tools, unauthenticated 401 and read-token write rejection. H57-only required
-  policies have a verified private configuration backup; other accounts unchanged.
+  policies were enabled after a verified private config backup; obsolete config
+  copies were later removed under D31. Other accounts are unchanged.
 - The exact real owner browser receipt and chat confirmation gated a successful
   existing-domain production install: applied/completed_locally, WordPress 7.1.3,
   new hostname-named DB, correct HTTPS URL and normal indexing/mail/cron policy.

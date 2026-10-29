@@ -10,7 +10,9 @@ Review after 50dfb7d: verified-success-only deploy pruning and one private previ
 rollback, filesystem lock, marker/ownership/no-link/private-state refusal, cleanup
 outside rollback handling, and fixed verified-WP archive/extraction cleanup. Keep
 originals/credentials/manifests and incomplete-job evidence. 150 tests/types/build
-pass; production deployment and audited historical cleanup are pending. No generic
+pass. Deploy 40840433809 / Check 40840382646 succeeded for a09b4d0; audited
+historical cleanup completed with original backups/credentials preserved and public
+MCP/site checks passing (see STATUS). No generic
 MCP deletion tool or new runtime dependency is introduced. See MAINTENANCE.md.
 
 ## Production root workflow (0.19.0, D30)

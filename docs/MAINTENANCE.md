@@ -51,3 +51,13 @@ runtime paths, live release, reservations, ownership/types and sizes before dele
 old deploy trees or superseded MCP config/reset backups. Never infer that a hidden
 folder is disposable from its name alone. Report actual removed size/count and any
 retained runtime/backup directories; preserve private data outside Git and web roots.
+
+
+Verified on 2026-10-29: 0.20.0 deployed from `a09b4d0`, Deploy `40840433809`,
+Check `40840382646`; 150 tests/types/build passed. The live deployment pruned its
+own transfer and 19 historical releases, retaining one private 163,267-byte code
+archive without runtime state. The audited historical cleanup removed four stale
+config/reset trees and completed-job core copies/cache (7,571 files). Combined disk
+reclaimed was roughly 365 MB. Stage runtime/originals (~4.9 MiB), redirect backups
+(16 KiB), credentials, all sites/databases and Redis remain. MCP discovery/auth,
+production HTTP, both source 301s and protected staging checks passed afterward.
