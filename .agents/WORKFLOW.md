@@ -51,6 +51,16 @@ change. Do not edit every file mechanically or record a no-op review for a typo.
   Write documentation and agent instructions in English.
 - Do not infer production deployment from a passing build, CI run or push.
 
+## Temporary operator files
+
+Follow [maintenance](../docs/MAINTENANCE.md). Keep one-off config/reset working copies
+inside the app's private data/maintenance workspace, not new permanent HOME folders.
+After verifying the new setup, remove superseded temporary copies that are no longer
+needed for recovery. Failed/incomplete tasks keep their evidence. Website originals,
+retained redirect/template backups, credentials and active config/SQLite are separate;
+never sweep them as deployment junk. Successful code deployments and verified WP
+installs use their built-in bounded cleanup rather than ad hoc broad deletes.
+
 ## Work spanning sessions
 
 When a task needs a durable handoff, create `.agents/tasks/<task-name>.md` with:
