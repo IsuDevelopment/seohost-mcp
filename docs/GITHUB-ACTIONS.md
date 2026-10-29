@@ -85,9 +85,13 @@ and requests another restart. The workflow stays failed so the incident is visib
 An interrupted SSH session, unavailable hosting or a failed rollback may still need
 the Node.js panel; this does not provide zero-downtime deployments or automatic database rollback.
 
-Release archives, restart results and the code backup remain private under
-`~/.seohost-mcp-deploy/<run-id>-<attempt>/`. Retain the backup needed for recovery;
-remove older transfer directories periodically to avoid exhausting disk space.
+After successful verification, transfer archives, unpacked code and restart files
+under `~/.seohost-mcp-deploy/<run-id>-<attempt>/` are removed automatically. One
+checksum-verified previous-code archive remains privately in
+`<app>/.mcp-rollback/rollback.tar.gz`; runtime config/state are never included.
+Failed deployments retain recovery evidence. Cleanup failure does not roll back a
+healthy release. A filesystem lock also prevents concurrent manual deploys. See
+[maintenance](MAINTENANCE.md) for bounds, retained state and historical cleanup.
 
 The first production workflow deployment of 0.3.0 was verified on 2026-10-21:
 locked dependency check, code backup/restart, HTTPS health, unauthenticated rejection

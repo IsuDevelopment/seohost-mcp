@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtemp, mkdir, writeFile, readFile, copyFile, symlink, readlink, rm } from 'node:fs/promises'
+import { mkdtemp, mkdir, writeFile, readFile, copyFile, symlink, readlink, rm, lstat } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { spawnSync } from 'node:child_process'
@@ -31,7 +31,7 @@ test('dependency guard accepts code-only updates and rejects changed or missing 
 test('release archive includes runtime allowlist and excludes private state and configuration', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'mcp-package-'))
   try {
-    const files = ['dist/src/http.js', 'package.json', 'package-lock.json', 'deploy/start.cjs', 'deploy/verify.mjs', 'scripts/smoke.mjs', 'scripts/smoke-hosting.mjs', 'scripts/smoke-oauth.mjs', 'scripts/setup-hosting.mjs', 'scripts/setup-oauth.mjs', 'scripts/download-database.mjs', 'scripts/check-runtime-dependencies.mjs', '.env', 'config/servers.json', 'data/oauth.sqlite', 'dist/test/example.js']
+    const files = ['dist/src/http.js', 'package.json', 'package-lock.json', 'deploy/start.cjs', 'deploy/verify.mjs', 'scripts/smoke.mjs', 'scripts/smoke-hosting.mjs', 'scripts/smoke-oauth.mjs', 'scripts/setup-hosting.mjs', 'scripts/setup-oauth.mjs', 'scripts/download-database.mjs', 'scripts/check-runtime-dependencies.mjs', 'scripts/cleanup-deploy.mjs', '.env', 'config/servers.json', 'data/oauth.sqlite', 'dist/test/example.js']
     for (const path of files) {
       await mkdir(join(dir, path, '..'), { recursive: true })
       await writeFile(join(dir, path), 'fixture')
@@ -63,6 +63,7 @@ for (const failVerification of [false, true]) {
         await writeFile(join(base, 'deploy/start.cjs'), '// startup\n')
       }
       await copyFile(join(root, 'scripts/check-runtime-dependencies.mjs'), join(candidate, 'scripts/check-runtime-dependencies.mjs'))
+      await copyFile(join(root,'scripts/cleanup-deploy.mjs'),join(candidate,'scripts/cleanup-deploy.mjs'))
       await mkdir(join(home, 'managed-modules'))
       await symlink(join(home, 'managed-modules'), join(app, 'node_modules'))
       for (const path of ['.env', 'config/servers.json', 'data/oauth.sqlite']) {
@@ -82,6 +83,31 @@ for (const failVerification of [false, true]) {
       assert.equal(await readFile(join(home, 'restarts'), 'utf8'), failVerification ? 'candidate\nprevious\n' : 'candidate\n')
       for (const path of ['.env', 'config/servers.json', 'data/oauth.sqlite']) assert.equal(await readFile(join(app, path), 'utf8'), `private:${path}`)
       assert.equal(await readlink(join(app, 'node_modules')), join(home, 'managed-modules'))
+      if(failVerification){assert((await lstat(join(transfer,'rollback.tar.gz'))).isFile());assert((await lstat(join(transfer,'stage'))).isDirectory())}
+      else{await assert.rejects(lstat(transfer),{code:'ENOENT'});assert((await lstat(join(app,'.mcp-rollback/rollback.tar.gz'))).isFile());const previous=spawnSync('tar',['-xOzf',join(app,'.mcp-rollback/rollback.tar.gz'),'dist/src/revision'],{encoding:'utf8'});assert.equal(previous.stdout,'previous')}
+      await assert.rejects(lstat(join(home,'.seohost-mcp-deploy/.lock')),{code:'ENOENT'})
     } finally { await rm(home, { recursive: true, force: true }) }
   })
 }
+
+
+test('deployment cleanup bounds release paths, preserves unknown folders and refuses symlink/private-state candidates',async()=>{
+ const home=await mkdtemp(join(tmpdir(),'mcp-prune-'))
+ try{
+  const app=join(home,'node-apps/mcp'),parent=join(home,'.seohost-mcp-deploy'),current=join(parent,'200-1'),old=join(parent,'100-1')
+  await mkdir(app,{recursive:true});await mkdir(current,{recursive:true});await mkdir(old)
+  await writeFile(join(app,'.mcp-deploy-release'),'200-1\n');await writeFile(join(current,'rollback.tar.gz'),'verified code fixture')
+  await mkdir(join(parent,'config-backups'));await writeFile(join(parent,'config-backups/keep'),'configuration sentinel')
+  await writeFile(join(old,'bundle.tar.gz'),'disposable code fixture')
+  const run=()=>spawnSync(process.execPath,[join(root,'scripts/cleanup-deploy.mjs'),home,'node-apps/mcp','200-1'],{encoding:'utf8'})
+  await writeFile(join(app,'.mcp-deploy-release'),'different-release\n');assert.notEqual(run().status,0);assert((await lstat(join(current,'rollback.tar.gz'))).isFile());await writeFile(join(app,'.mcp-deploy-release'),'200-1\n')
+  const outside=join(home,'outside');await mkdir(outside);await writeFile(join(outside,'keep'),'outside sentinel');await symlink(outside,join(old,'escape'))
+  assert.notEqual(run().status,0);assert.equal(await readFile(join(outside,'keep'),'utf8'),'outside sentinel');assert((await lstat(join(old,'bundle.tar.gz'))).isFile())
+  await rm(join(old,'escape'));await rm(join(app,'.mcp-rollback'),{recursive:true})
+  await writeFile(join(old,'.env'),'private sentinel');assert.notEqual(run().status,0);assert.equal(await readFile(join(old,'.env'),'utf8'),'private sentinel')
+  await rm(join(old,'.env'));await rm(join(app,'.mcp-rollback'),{recursive:true})
+  assert.equal(run().status,0);await assert.rejects(lstat(old),{code:'ENOENT'});await assert.rejects(lstat(current),{code:'ENOENT'})
+  assert.equal(await readFile(join(parent,'config-backups/keep'),'utf8'),'configuration sentinel')
+  assert.equal(await readFile(join(app,'.mcp-rollback/rollback.tar.gz'),'utf8'),'verified code fixture')
+ }finally{await rm(home,{recursive:true,force:true})}
+})

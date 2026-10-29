@@ -20,7 +20,8 @@ storage (HTTPS, no redirects, 64 MiB/180 seconds), verifies its official MD5, va
 safe archive paths/types and extracts with system tar. Candidate official WP checksums
 must pass before exclusive target writes; final tree equality and WP checksums must
 pass before config/install. This avoids H57's observed WP-CLI long-name truncation.
-Archive/candidate/manifest remain private in `.seohost-mcp-stage/core-repair/<job>/`;
+In 0.20.0, archive/candidate copies are removed only after verified success;
+the manifest remains private in `.seohost-mcp-stage/core-repair/<job>/`;
 provider template backups remain in `.seohost-mcp-stage/recovery/<job>/`. No deletion.
 The same validators still support the narrowly gated legacy recovery below.
 
@@ -437,3 +438,9 @@ Release 0.18.0 deployed from `641446d` through successful Deploy `40318949846`
 0.18.0, 32 tools, configured placements, unauthenticated 401 and read-token write
 rejection. No active/unknown stage jobs existed before restart. No new target or
 live installation was used for validation; the prior completed stage was untouched.
+
+
+D31/0.20.0 supersedes historical source/candidate archive retention only after a
+verified successful install. Original templates, truncated artifacts, manifests
+and credential files remain. Failed/unknown jobs keep recovery inputs; cleanup
+failure never changes a completed installation to unknown. See MAINTENANCE.md.

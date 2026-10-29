@@ -87,3 +87,8 @@ writes. Original source configurations were privately backed up/verified, source
 WP files/databases and staging remain, and no backups were deleted. The account
 has no remaining applying/unknown reservation. Existing TLS policy is preserved,
 including one source's HTTP-to-HTTPS hop before the canonical-domain redirect.
+
+
+Version 0.20.0 removes successful jobs' disposable source archive/extracted core
+only after installation verification. Manifests, originals, template/redirect
+backups and credentials remain. See [maintenance](MAINTENANCE.md).

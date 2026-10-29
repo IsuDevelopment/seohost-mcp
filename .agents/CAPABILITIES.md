@@ -200,3 +200,9 @@ is configuration-ready when either workflow is configured, but actual apply chec
 the stored target mode and its exact operation policy. Production is public with
 normal mail/cron/indexing. Other domains' redirects need separate hosting plans;
 no production existing-site replacement or generic resume is available.
+
+D31 adds internal success-only artifact maintenance, not an MCP cleanup tool.
+Successful deployments retain one private previous-code archive; successful WP jobs
+report temporaryArtifactsRemoved and coreManifestReference. coreArchiveReference
+is null after its disposable source archive is removed. Original backups/passwords
+and incomplete-job recovery evidence remain. See MAINTENANCE.md.

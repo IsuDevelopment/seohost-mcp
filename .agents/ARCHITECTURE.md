@@ -294,3 +294,12 @@ Private copies/originals precede root relocation; fresh empty-root/redirect inve
 proof precedes DB/core writes. Production omits staging MU/mail/cron restrictions.
 The shared apply/receipt/password infrastructure remains compatible; no existing-WP
 replacement or new recovery checkpoint is allowed. See WORDPRESS-INSTALL.md.
+
+D31 separates disposable transfer/download copies from retained original backups and
+runtime credentials/state. Deployments acquire an exclusive filesystem lock; only
+a verified live release can replace one private previous-code archive and prune
+validated numeric transfer trees. Pruning runs after disabling the rollback trap.
+WordPress removes fixed per-job source/extraction copies only after installation
+verification; cleanup failure is reported/deferred, never an installation failure.
+Unknown jobs, original templates/truncated artifacts, passwords and SQLite/config
+remain untouched. Same-UID trust and bounded no-link checks apply; see MAINTENANCE.md.

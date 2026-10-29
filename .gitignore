@@ -18,3 +18,6 @@ plugins/
 .mcp-deploy-release
 *.tar.gz
 *.zip
+
+# Private previous-code rollback on hosted installations
+.mcp-rollback/

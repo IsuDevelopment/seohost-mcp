@@ -7,8 +7,9 @@ module responsibilities or important flows change; keep this map short.
 | --- | --- |
 | `src/http.ts` | HTTP entry point, Host/Origin checks, health/discovery, authenticated actor/write context, per-request MCP transport and cleanup. |
 | `src/stdio.ts` | Local process entry point; stdout reserved for MCP, owner write context still subject to account operation policy. |
-| `src/server.ts` | Version, thirty tool registrations, input schemas, MCP results/errors and safe auditing. |
+| `src/server.ts` | Version, tool registrations, input schemas, MCP results/errors and safe auditing. |
 | `src/wordpress-stage.ts` | Hostname-derived DB names and bounded HTML-only admin credential reader; Placement-specific immutable stage/recovery and existing-provider-root production plans, initial reviewed template-preservation policy, shared account reservation, secret-free background checkpoints/results and no retries. |
+| `src/wordpress-stage-maintenance.ts` | Verified-install-only cleanup of fixed downloaded/extracted core copies; preserves credentials, manifests and all original backups. |
 | `src/wordpress-stage-recovery.ts` | Bounded fixed-template metadata/hash snapshot, verified private copies, retained-backup proof and journaled relocation of originals; no deletion or arbitrary path input. |
 | `src/wordpress-core-repair.ts` | Normal fresh pinned archive download/extraction and same-job core repair: official archive MD5, bounded safe system tar, candidate checksums, exact tree comparison, private truncated originals and missing-file exclusive writes. |
 | `src/wordpress-stage-provider.ts` | Local UID/home/host binding, canonical/absent target, separate-domain or nested hosting creation, post-create allowlisted template preservation, exact existing-root/managed-redirect snapshot and production preparation, exact document-root and dedicated DB APIs and fixed read-only local empty-DB credential proof; fixed shell-free WP-CLI, stdin secrets and environment-specific stage/production policy. |
@@ -41,7 +42,8 @@ module responsibilities or important flows change; keep this map short.
 | `.github/workflows/deploy.yml` | Manual deployment from `main`, production environment, SSH with a trusted host key. |
 | `deploy/package.sh` | Runtime archive from an explicit allowlist, excluding private configuration. |
 | `scripts/check-runtime-dependencies.mjs` | Checks production lockfile graphs and installed versions before copying. |
-| `deploy/remote.sh` | Code backup, copy, single-app restart, verification and rollback. |
+| `deploy/remote.sh` | Filesystem deploy lock, code backup/copy, single-app restart/verification/rollback; success-only cleanup outside the rollback trap. |
+| `scripts/cleanup-deploy.mjs` | Exact successful-release marker, verified single private previous-code archive, validated numeric transfer pruning; no config/state or unknown folder deletion. |
 | `deploy/start.cjs`, `deploy/verify.mjs` | CloudLinux bootstrap with env / HTTPS health and unauthenticated rejection probes. |
 | `test/server.test.ts` | HTTP auth, Host/Origin, method/body limits, real HTTP SDK and stdio. |
 | `test/directadmin.test.ts` | Account isolation, aliases, domain validation, provider failures, limits, plain/JSON/PHP WordPress credential redaction and SDK. |
@@ -56,7 +58,7 @@ module responsibilities or important flows change; keep this map short.
 | `test/diagnostics.test.ts` | Configuration-only readiness, catalog/registration agreement, safe detail projection, ID encoding, account isolation and metadata inspection without downloads. |
 | `test/oauth-desktop.test.ts` | Captured native DCR shape, loopback opt-in/exact binding, refresh scope/resource/client isolation, persistence, expiry, replay/concurrency and family revocation. |
 | `test/oauth.test.ts` | Separate read/read-write consent, scope non-escalation, CSRF, PKCE, single-use codes, shared SQLite, HTTP context propagation and revocation. |
-| `test/deploy.test.ts` | Dependency graph, archive contents, release/rollback and private file preservation. |
+| `test/deploy.test.ts` | Dependency graph, archive contents, release/rollback and private file preservation; success-only pruning, failed-release evidence, wrong marker/symlink/private-state refusal. |
 | `test/smoke-hosting.test.ts` | Real HTTP SDK/subprocess smoke: explicit selection, bounded log requests, payload-free output and nonzero failure status. |
 | `docs/`, `SECURITY.md` | Operator contracts, setup and security limitations; `PHP.md` records the pending plugin API contract, `WORDPRESS.md` distinguishes native DA from Softaculous. Private ignored `docs/api/` is the API research entry point listed in the agent README. |
 | `AGENTS.md`, `CLAUDE.md`, `.agents/` | Codex/Claude entry points and shared memory; `CAPABILITIES.md` catalogs operations, `REVIEW.md` guides the next peer review, optional `tasks/` holds temporary handoffs. |
@@ -137,3 +139,7 @@ apply_wordpress_stage/get_wordpress_stage. Existing-root templates/redirects are
 snapshotted and privately preserved; hosting creation is skipped. Stage tests cover
 policy separation, production browser wording/receipt, no hosting-create replay,
 changed/foreign-root refusal and real child production settings. See WORDPRESS-INSTALL.
+
+Maintenance tests: test/wordpress-stage-maintenance.test.ts exercises fixed temporary
+archive/extraction removal while retaining credentials, manifests and original backups;
+unsafe links/traversal are refused before any removal. See MAINTENANCE.md.

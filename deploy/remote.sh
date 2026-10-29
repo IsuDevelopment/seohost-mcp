@@ -14,6 +14,11 @@ test -f "$app/.env"
 test -L "$app/node_modules"
 test -x "$node_bin"
 selector=$(command -v cloudlinux-selector)
+# Serializes manual invocations too; GitHub already serializes workflow runs.
+lock="$HOME/.seohost-mcp-deploy/.lock"
+mkdir "$lock" || { echo 'Another deployment or cleanup needs attention.' >&2; exit 1; }
+release_lock() { rmdir "$lock"; rmdir "$HOME/.seohost-mcp-deploy" 2>/dev/null || true; }
+trap release_lock EXIT
 mkdir "$transfer/stage"
 tar -xzf "$transfer/bundle.tar.gz" -C "$transfer/stage"
 stage="$transfer/stage"
@@ -54,4 +59,7 @@ version=$("$node_bin" -p 'JSON.parse(require("node:fs").readFileSync("package.js
 "$node_bin" --env-file=.env --input-type=module -e 'if(process.env.MCP_AUTH_TOKEN) await import("./scripts/smoke.mjs"); else console.log("OAuth-only installation: authenticated smoke requires a client token")'
 trap - ERR INT TERM
 printf '%s\n' "$release" > "$app/.mcp-deploy-release"
-echo 'PASS: deployment completed; private runtime configuration and state preserved.'
+# Cleanup is deliberately outside the rollback trap: a housekeeping failure must
+# never roll back a healthy release or remove evidence from a failed deployment.
+"$node_bin" "$app/scripts/cleanup-deploy.mjs" "$HOME" "$app_root" "$release"
+echo 'PASS: deployment completed; temporary release history removed; one private code rollback retained.'

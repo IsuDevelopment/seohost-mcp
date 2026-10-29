@@ -1,3 +1,4 @@
+import { cleanupVerifiedInstallArtifacts } from './wordpress-stage-maintenance.js'
 import { randomBytes } from 'node:crypto'
 import { mkdir, writeFile, lstat, open } from 'node:fs/promises'
 import { join } from 'node:path'
@@ -227,10 +228,12 @@ export class WordPressStages {
       }
       await this.provider.install(change.serverId,target,secrets,checkpoint,preparedCore,change.id)
       checkpoint('completed_locally')
+      let temporaryArtifactsRemoved=true
+      try{await cleanupVerifiedInstallArtifacts(this.settings.accounts[change.serverId]!.wordpressProvisioning!.home,change.id)}catch{temporaryArtifactsRemoved=false}
       store.finish(change,'applied',{hostname:target.hostname,siteUrl:'https://'+target.hostname,adminName:target.adminName,adminEmail:target.adminEmail,
         database:target.database,wordpressVersion:target.version,localInstallationVerified:true,publicDnsTlsHttp:'not_verified',
         adminCredentialReference:change.id,ownerResultUrl:new URL('/wordpress-stage/'+change.id,this.settings.publicUrl).href,credentials:'Retained in owner-only .seohost-mcp-stage/<reference>.json under the configured account home. Never publish this file.',
-        providerTemplateBackupReference:payload.recovery ? change.id : payload.providerTemplateBackupReference??null,coreArchiveReference:change.id,coreRepairReference:preparedCore ? change.id : null,
+        providerTemplateBackupReference:payload.recovery ? change.id : payload.providerTemplateBackupReference??null,coreManifestReference:change.id,coreArchiveReference:temporaryArtifactsRemoved?null:change.id,temporaryArtifactsRemoved,coreRepairReference:preparedCore ? change.id : null,
         backup:payload.recovery||payload.providerTemplateBackupReference ? 'Provider templates retained with verified private copies and originals; no backups deleted.' : 'No existing target data; verified absence. No source copied. No backups deleted.',newDatabase:true,overwrite:false})
     } catch(e) {
       const code=e instanceof HostingError?e.code:'STAGE_FAILED'

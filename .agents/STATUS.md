@@ -1,6 +1,15 @@
 # Status and handoff
 
-Updated: 2026-10-27.
+Updated: 2026-10-29.
+
+## Artifact cleanup (D31)
+
+Candidate 0.20.0 implements success-only deploy/install temporary-file cleanup and
+one retained previous-code rollback inside the app. Initial 150 tests/types/build
+passed; final checks, deployment and audited removal of historical artifacts are
+pending. Read-only H57 inventory found no active jobs and roughly 353 MiB of deploy
+and stage storage, mostly disposable copied WordPress core. Original website backups,
+credentials, active configuration/SQLite and Redis are excluded from cleanup.
 
 ## Current production installation (D30, completed 2026-10-27)
 

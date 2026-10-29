@@ -4,6 +4,15 @@ Prepared for Claude or another reviewer; review has not been performed or approv
 Read the context required by [README.md](README.md) first. Verify claims against
 source; accepted decisions explain intent and do not exempt code from criticism.
 
+## Temporary artifact lifecycle (0.20.0, D31)
+
+Review after 50dfb7d: verified-success-only deploy pruning and one private previous-code
+rollback, filesystem lock, marker/ownership/no-link/private-state refusal, cleanup
+outside rollback handling, and fixed verified-WP archive/extraction cleanup. Keep
+originals/credentials/manifests and incomplete-job evidence. 150 tests/types/build
+pass; production deployment and audited historical cleanup are pending. No generic
+MCP deletion tool or new runtime dependency is introduced. See MAINTENANCE.md.
+
 ## Production root workflow (0.19.0, D30)
 
 Focus the diff after 619caa8: distinct install_wordpress policy, strict internal
@@ -32,7 +41,7 @@ site. Historical pending/no-install statements below are superseded by STATUS.md
 
 ## Baseline and evidence
 
-- Review target: 0.19.1, 33 MCP tools; stage diff: `git diff 7ba6257..HEAD -- src test docs .agents`.
+- Review target: 0.20.0, 33 MCP tools; stage diff: `git diff 7ba6257..HEAD -- src test docs .agents`.
   Historical 0.9.0 diagnostics diff: `git diff 210bfa0..HEAD -- src test docs .agents config`.
   Redirects diff: `git diff 1fef5a2..HEAD -- src test docs .agents`.
   TLS + redirects diff: `git diff c25bf96..HEAD -- src test docs .agents`.

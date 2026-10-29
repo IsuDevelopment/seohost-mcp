@@ -15,7 +15,7 @@ import { DomainDnsClient } from './domain-dns.js'
 import { HostingChanges, changeInputSchema } from './hosting-changes.js'
 import type { AccessContext } from './auth.js'
 import { DatabaseExports } from './database-exports.js'
-export const VERSION = '0.19.1'
+export const VERSION = '0.20.0'
 
 export function createMcpServer(settings: Settings, request: typeof fetch = fetch, access: AccessContext = { actor: 'read-only', canWrite: false }) {
   const server = new McpServer({ name: 'seohost-mcp', version: VERSION }, {
