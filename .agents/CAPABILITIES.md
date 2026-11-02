@@ -2,7 +2,7 @@
 
 This describes implemented behavior, not permission to operate on an arbitrary
 account. Tool registrations and schemas in `src/server.ts` are authoritative.
-All thirty-three MCP tools are available over HTTP and stdio; writes use separate authorization and per-account allowlists.
+All forty MCP tools are available over HTTP and stdio; writes use separate authorization and per-account allowlists.
 
 Platform scope: standard SeoHost shared hosting accounts via DirectAdmin. VPS
 compatibility is untested; panel presence does not establish endpoint/permission
@@ -16,6 +16,13 @@ equivalence. No root, VM lifecycle or operating-system administration is provide
 | `list_servers` | Configured server IDs, labels, aliases and `credentialsConfigured`. | None. | No hosting request; omits URLs and secrets. Credential presence is not proof of validity. |
 | `resolve_server` | Resolves one reference to canonical ID, label and credential-presence flag. | Required `serverId`. | No hosting request. Unknown/ambiguous references fail; no default selection. |
 | `get_server_capabilities` | Reports tool/configuration readiness from loaded settings without private account details. | Required `serverId`. | No provider request. `configurationReady` does not verify key permissions or endpoint availability; restart after changing configuration. |
+| `list_email_accounts` | Paged ordinary mailbox addresses/limits/status. | serverId, domain; offset/limit. | Fresh owned domain, system mailbox excluded; metadata only. |
+| `get_email_configuration` | Quota/usage bytes and validated provider IMAP/SMTP host/port/username. | serverId, domain, user. | Existing ordinary mailbox, no password or DNS readiness claim. |
+| `create_email_account` | Direct creation without browser preview. | serverId, domain, user, UUID requestId; quotaMiB (1024), dailySendLimit (100). | Write scope and exact create_email_account policy; no overwrite. Generated password retained privately, owner hosting access only. |
+| `update_email_account` | Direct quota/limit and/or generated password reset. | serverId, domain, user, UUID requestId; quotaMiB/dailySendLimit/resetPassword. | Exact update policy/write scope; at least one change. No rename, DNS or password in chat. |
+| `plan_email_account_deletion` | Five-minute exact mailbox deletion snapshot and warning. | serverId, domain, user. | Exact delete policy/write scope. Show permanent message-loss/no-backup warning and ask explicit confirmation in chat; no web page. |
+| `delete_email_account` | Delete exactly the confirmed ordinary mailbox and messages. | serverId, planId, previewHash, exact confirmation string. | Same actor/account, fresh snapshot and explicit conversational user consent. No automatic message backup or unknown retry. |
+| `get_email_operation` | Actor/account durable mailbox status/receipt. | serverId, operationId. | Write scope. Secret-free file reference only; unknown/applying locks stay reserved. |
 | `plan_wordpress_install` | Fresh production WP plan on an existing owned provider-only root. | Explicit serverId/domain/adminEmail; optional adminName/title. | Separate install_wordpress policy, local runtime/owner approval, exact template/root-redirect snapshot; no existing WP/arbitrary files, target writes or hosting creation during planning. Apply/status/password page reuse stage infrastructure. |
 | `plan_wordpress_stage` | Fresh single-site stage preview covering new-target provider-template preservation and separate owner-confirmation URL. | `serverId`, parent `domain`, exact `label`, `adminEmail`; optional placement (independent_domain default), adminName/title. | Write scope, local provisioning, create_wordpress_stage plus mode-specific create_domain/create_subdomain policy, absent host/root/new DB, pinned core. No target writes. |
 | `continue_wordpress_stage_install` | Perform only the missing install for an already approved recovery stopped at unconfirmed DB creation. | `serverId`, same `planId`, exact `previewHash`. | Original write actor/account/receipt, only the exact D27/D28 database/core checkpoint, preserved backup proof, empty mapped root, exact zero-object single-user localhost-only DB and fixed local credential proof. Same reservation; no domain/DB POST or password change. |

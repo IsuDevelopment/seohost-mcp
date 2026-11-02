@@ -2,6 +2,7 @@ import type { Settings } from './config.js'
 import { HostingError, TlsProvisionRejected } from './hosting-error.js'
 
 type ReadPath = '/CMD_API_DOMAIN' | '/CMD_API_SHOW_USER_USAGE' | '/CMD_API_SHOW_USER_CONFIG' | '/api/resource-usage/latest' | '/api/resource-usage/history'
+  | '/CMD_API_POP' | '/api/email-config/mobileconfig'
   | '/api/db-show/databases' | `/api/db-show/databases/${string}`
   | '/CMD_API_SHOW_DOMAINS' | '/CMD_SHOW_LOG' | '/CMD_API_SUBDOMAINS'
   | '/CMD_API_REDIRECT' | '/CMD_API_ADDITIONAL_DOMAINS' | '/CMD_API_DNS_CONTROL'
@@ -10,7 +11,7 @@ type ReadPath = '/CMD_API_DOMAIN' | '/CMD_API_SHOW_USER_USAGE' | '/CMD_API_SHOW_
   | `/api/wordpress/locations/${string}/wordpress`
   | `/api/wordpress/locations/${string}/config`
 export const MAX_RESPONSE_BYTES = 512 * 1024
-export type WritePath = '/CMD_API_REDIRECT' | '/CMD_API_DOMAIN' | '/CMD_API_SUBDOMAINS' | '/CMD_API_DNS_CONTROL'
+export type WritePath = '/CMD_API_REDIRECT' | '/CMD_API_DOMAIN' | '/CMD_API_SUBDOMAINS' | '/CMD_API_DNS_CONTROL' | '/CMD_API_POP'
 
 export async function boundedBytes(response: Response) {
   if (Number(response.headers.get('content-length')) > MAX_RESPONSE_BYTES) {

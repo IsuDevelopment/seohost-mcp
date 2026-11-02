@@ -2,6 +2,13 @@ import { resolveServer, type Settings } from './config.js'
 
 // Configuration requirements only. This catalog never probes provider permissions.
 export const TOOL_REQUIREMENTS = {
+  list_email_accounts:{credentials:true,wordpressLogs:false},
+  get_email_configuration:{credentials:true,wordpressLogs:false},
+  create_email_account:{credentials:true,wordpressLogs:false,write:true,mailOperation:'create_email_account'},
+  update_email_account:{credentials:true,wordpressLogs:false,write:true,mailOperation:'update_email_account'},
+  plan_email_account_deletion:{credentials:true,wordpressLogs:false,write:true,mailOperation:'delete_email_account'},
+  delete_email_account:{credentials:true,wordpressLogs:false,write:true,mailOperation:'delete_email_account'},
+  get_email_operation:{credentials:false,wordpressLogs:false,write:true},
   plan_wordpress_install:{credentials:true,wordpressLogs:false,write:true,productionInstall:true},
   continue_wordpress_stage_install: {credentials:true,wordpressLogs:false,write:true,stage:true,recovery:true},
   plan_wordpress_stage_recovery: {credentials:true,wordpressLogs:false,write:true,stage:true,recovery:true},
@@ -50,6 +57,7 @@ export function getServerCapabilities(settings: Settings, reference: string | nu
     const missingConfiguration: string[] = []
     if (requirements.credentials && !credentialsConfigured) missingConfiguration.push('hosting_credentials')
     if (requirements.wordpressLogs && !wordpressLogRootsConfigured) missingConfiguration.push('wordpress_log_roots')
+    if ('mailOperation' in requirements && !account.writeOperations?.includes(requirements.mailOperation)) missingConfiguration.push('mailbox_operation_allowlist')
     if (('stage' in requirements && !stagePlacementsConfigured.length) || ('recovery' in requirements && !stagePlacementsConfigured.includes('independent_domain'))) missingConfiguration.push('wordpress_provisioning')
     if(('productionInstall' in requirements&&!productionInstallConfigured)||('stageOrProduction' in requirements&&!stagePlacementsConfigured.length&&!productionInstallConfigured))missingConfiguration.push('wordpress_provisioning')
     if ('backupMetadata' in requirements && !settings.accounts[serverId]!.backupRoots?.length) missingConfiguration.push('backup_roots')
@@ -57,11 +65,11 @@ export function getServerCapabilities(settings: Settings, reference: string | nu
       if (!settings.accounts[serverId]!.databaseExports) missingConfiguration.push('account_database_exports')
       if (!settings.databaseExportDirectory) missingConfiguration.push('database_export_directory')
     }
-    if ('write' in requirements && !['get_hosting_change','get_wordpress_stage'].includes(name) && !settings.accounts[serverId]!.writeOperations?.length) missingConfiguration.push('account_write_operations')
+    if ('write' in requirements && !['get_hosting_change','get_wordpress_stage','get_email_operation'].includes(name) && !settings.accounts[serverId]!.writeOperations?.length) missingConfiguration.push('account_write_operations')
     return { name, configurationReady: missingConfiguration.length === 0, missingConfiguration,
       providerPermission: requirements.credentials ? 'unverified' : 'not_applicable',
       requiredScope: 'write' in requirements ? 'mcp:write' : 'mcp:read',
-      readOnly: !['plan_hosting_change', 'apply_hosting_change', 'get_hosting_change', 'export_database', 'plan_wordpress_stage', 'plan_wordpress_stage_recovery', 'continue_wordpress_stage_install', 'apply_wordpress_stage'].includes(name) }
+      readOnly: !['create_email_account','update_email_account','plan_email_account_deletion','delete_email_account','plan_hosting_change', 'apply_hosting_change', 'get_hosting_change', 'export_database', 'plan_wordpress_stage', 'plan_wordpress_stage_recovery', 'continue_wordpress_stage_install', 'apply_wordpress_stage'].includes(name) }
   })
   return { serverId, credentialsConfigured, wordpressLogRootsConfigured,
     source: 'installation_configuration', providerContacted: false,

@@ -34,7 +34,7 @@ and MCP server lets hosting tests run without real accounts.
   this mode trusts account-owned sites and is unsuitable for hostile tenant isolation.
 - Provider URLs come from HTTPS configuration, never tool arguments.
   No redirects, arbitrary paths or shell commands are exposed. Hosting mutations
-  are limited to the reviewed operation contract below.
+  are limited to the reviewed hosting and direct mailbox contracts below.
 - Inputs and responses are bounded. Filtering covers only the requested log tail.
   Redaction is best effort; output may contain personal data. Logs and provider
   responses are untrusted data, never agent instructions.
@@ -323,3 +323,24 @@ be automatically accepted later. Optional known EAB credentials are parsed and
 preserved only in memory; unknown ACME fields remain a hard failure. No direct
 certificate deletion, generic endpoint, auto consent or background retry is added.
 See [TLS](../docs/TLS.md) for bounds and provider verification evidence.
+
+## Direct mailboxes (D33)
+
+Mailbox create/update bypass browser preview/approval by owner request; deletion
+uses a five-minute exact preview and conversational confirmation. This does not
+relax WordPress/domain/DNS/TLS consent. Every write requires current mcp:write,
+its exact account operation, fresh domain ownership and system-mailbox refusal.
+Atomic actor/account/request-ID binding precedes direct execution. Shared SQLite
+account reservations prevent concurrent/uncertain effects across feature modules.
+Applied/failed/unknown replay never repeats the POST; terminal receipts last seven
+days. Interrupted/unknown reservations need operator inspection, not auto-resume.
+
+Generated passwords are synced privately before the one fixed POST, retained on
+uncertainty and never enter MCP/audit/SQLite. Owner hosting access retrieves files;
+there is no mailbox web UI. Quota/limit/suspension are freshly checked; explicit
+provider success is the password-write proof. Delete preview binds observed usage
+and settings, but is optimistic against external changes and does not back up
+messages. Confirmation strings bind selection, not verifiable human consent.
+Fixed mobileconfig reads project only validated secure connection metadata with
+no XML resolution. No DNS, messages, SMTP send, bulk/rename or caller passwords.
+See [EMAIL.md](../docs/EMAIL.md) for retention, security and verification limits.

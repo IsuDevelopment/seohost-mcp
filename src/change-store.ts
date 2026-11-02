@@ -41,6 +41,23 @@ export class ChangeStore {
     if (!row) throw new HostingError('PLAN_NOT_FOUND', 'No matching change belongs to this caller and account.')
     return JSON.parse(row.value) as StoredChange
   }
+  // Atomically bind a mailbox caller request to one durable operation before I/O.
+  mailboxRequest(data: Omit<StoredChange, 'id' | 'status'>, requestId: string, requestHash: string) {
+    this.db.exec('BEGIN IMMEDIATE')
+    try {
+      const row = this.db.prepare(`SELECT value FROM changes WHERE actor=? AND server_id=?
+        AND json_extract(value,'$.payload.kind')='mailbox_operation'
+        AND json_extract(value,'$.payload.requestId')=?`).get(data.actor, data.serverId, requestId) as {value:string}|undefined
+      if (row) {
+        const saved = JSON.parse(row.value) as StoredChange
+        if ((saved.payload as {requestHash:string}).requestHash !== requestHash)
+          throw new HostingError('REQUEST_ID_CONFLICT', 'This request ID already belongs to different mailbox parameters.')
+        this.db.exec('COMMIT'); return saved
+      }
+      const saved = this.create(data)
+      this.db.exec('COMMIT'); return saved
+    } catch (error) { this.db.exec('ROLLBACK'); throw error }
+  }
   reserve(id: string, actor: string, serverId: string, ownerHash?: string) {
     this.db.exec('BEGIN IMMEDIATE')
     try {

@@ -235,6 +235,7 @@ export class HostingChanges {
     const serverId = this.authorize(reference, access), store = new ChangeStore(this.settings.changeStateFile || 'data/changes.sqlite')
     try {
       const change = store.get(id, access.actor, serverId), payload = change.payload as Prepared
+      if (!payload.input || 'kind' in payload) throw new HostingError('PLAN_NOT_FOUND', 'Use the receipt tool for this operation type.')
       if (reconcile && change.status === 'unknown' && !change.result?.unexpectedProvisioningScope && !change.result?.unexpectedCertificateRemoval && await this.verify(serverId, payload)) {
         store.finish(change, 'applied', { serverId, planId: id, operation: payload.input.operation, domain: payload.input.domain,
           status: 'applied', providerStateVerified: true, originalWriteConfirmation: 'unknown',
@@ -252,6 +253,7 @@ export class HostingChanges {
     let provisioningSummary: Record<string, unknown> | undefined
     try {
       const existing = store.get(id, access.actor, serverId), payload = existing.payload as Prepared
+      if (!payload.input || 'kind' in payload) throw new HostingError('PLAN_NOT_FOUND', 'Use the apply tool for this operation type.')
       this.authorize(serverId, access, payload.input.operation)
       if (payload.previewHash !== previewHash) throw new HostingError('PREVIEW_MISMATCH', 'The preview fingerprint does not match this stored change.')
       change = store.reserve(id, access.actor, serverId)

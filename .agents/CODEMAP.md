@@ -25,8 +25,9 @@ module responsibilities or important flows change; keep this map short.
 | `src/redirects.ts` | Typed legacy site-redirect inventory, opaque selection, secret-safe URL projection, literal input policy and rule-map snapshots. |
 | `src/tls.ts` | Owned parent-domain ACME/certificate metadata, bounded dry-run/provision result projections, EAB preservation, safe projections, secret-preserving config snapshots and conservative all-web-host redirect readiness. |
 | `src/public-dns.ts` | Fixed-origin public recursive DNS observations, TTL cache, NS/provider hints; no lookups in log/list flows. |
+| `src/mailboxes.ts` | Owned ordinary mailbox metadata/configuration, direct create/update, chat-confirmed deletion snapshots, private generated credentials and durable request-bound receipts; no browser workflow or DNS/message access. |
 | `src/hosting-changes.ts` | Validated operation previews/apply/reconciliation, write gates, stale checks, provider verification and no blind retries. |
-| `src/change-store.ts` | Private persistent SQLite previews, actor binding, account reservations, hash-only owner browser sessions, atomic original-to-recovery transfer / same-job install continuation and receipts across stateless MCP requests. |
+| `src/change-store.ts` | Private persistent SQLite previews, actor binding, account reservations, hash-only owner browser sessions, atomic mailbox request-ID binding, original-to-recovery transfer / same-job install continuation and receipts across stateless MCP requests. |
 | `src/account-log.ts` | Fixed account-root `log.txt` policy, file metadata checks and bounded/redacted reads independent of WordPress. |
 | `src/directadmin-http.ts` | Shared account-bound GET and fixed form-POST/ACME-PUT transport: credentials, fixed routes, timeout, response caps, redirect refusal and log suffix validation. |
 | `src/hosting-error.ts` | Shared safe provider error codes/messages; no raw upstream diagnostics. |
@@ -52,6 +53,7 @@ module responsibilities or important flows change; keep this map short.
 | `test/account-diagnostics.test.ts`, `test/log-summary.test.ts` | Tally projection/unknown limits, resource denial/series validation, fresh DB ownership, backup boundaries/pagination and single-read/rare fatal/SDK summaries. |
 | `test/redirects.test.ts` | Typed decoding, secret projection, exact delete/add edits, authorization, stale/full-state checks, uncertainty/replay and SDK discovery. |
 | `test/tls.test.ts` | Immediate issuance scope/gates/one-shot replay, stale secrets/dry-run, safe rejection versus uncertainty, preserved certificate identity and EAB/output secrecy; Parent-wide scope/write gates, config-secret preservation, certificate coverage/date checks, stale state, PUT uncertainty/reconciliation and MCP projection. |
+| `test/mailboxes.test.ts` | Direct creation/update, quota units/preservation, private credential durability, deletion confirmation/staleness, request replay/concurrency, shared locks, actor/scope/policy boundaries and real SDK errors/receipts. |
 | `test/account-log.test.ts` | Fixed-file/account isolation, unsafe/missing/incomplete metadata, suffix bounds, redaction and real SDK reads. |
 | `test/wordpress.test.ts` | Subdomain ownership, installation projection/paging, cross-account IDs, root boundaries, file metadata, suffix ranges, output caps and custom log paths. |
 | `test/database-exports.test.ts` | Ownership/secret projection, storage modes/symlinks, compressed/decompressed limits, partial cleanup, actor/expiry/quota/concurrency and SDK/HTTP/local download helper. |

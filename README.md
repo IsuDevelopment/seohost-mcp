@@ -3,11 +3,14 @@
 MCP integration with read-only defaults and reviewed domain/DNS/TLS changes for **standard SeoHost shared hosting** accounts using
 DirectAdmin.
 
-Version 0.21.0: a standalone TypeScript/Node.js server with HTTP and stdio transports,
+Version 0.22.0: a standalone TypeScript/Node.js server with HTTP and stdio transports,
 Bearer and built-in OAuth authentication, domain/subdomain and WordPress inventory,
 account/database/backup metadata diagnostics, opt-in private database exports, owner-confirmed fresh WordPress staging, single-read log summaries,
 bounded reads of web-server logs, account-root `log.txt` and existing WordPress debug logs,
 plus local/public DNS diagnostics and separately authorized domain/DNS changes, free certificate automation, HTTPS enforcement and site redirect rules.
+Mailbox creation and quota/limit/password changes run directly without browser
+approval; mailbox deletion requires explicit confirmation in the conversation.
+See [mailbox management](docs/EMAIL.md) for authorization and private password delivery.
 
 ## Hosting scope
 
@@ -49,7 +52,10 @@ Test the running HTTP server with `npm run smoke`. Available tools:
 `get_domain_info`, `get_tls_info`, `list_redirects`, `list_dns_records`, `check_dns`, `plan_hosting_change`,
 `apply_hosting_change`, `get_hosting_change`, `export_database`,
 `plan_wordpress_install`, `plan_wordpress_stage`, `plan_wordpress_stage_recovery`,
-`continue_wordpress_stage_install`, `apply_wordpress_stage` and `get_wordpress_stage`.
+`continue_wordpress_stage_install`, `apply_wordpress_stage`, `get_wordpress_stage`,
+`list_email_accounts`, `get_email_configuration`, `create_email_account`,
+`update_email_account`, `plan_email_account_deletion`, `delete_email_account`
+and `get_email_operation`.
 See [logs, aliases and key setup](docs/LOGS.md),
 [WordPress inventory and logs](docs/WORDPRESS.md),
 [fresh production WordPress installation](docs/WORDPRESS-INSTALL.md) and

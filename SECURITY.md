@@ -12,6 +12,18 @@ MCP tokens and DirectAdmin Login Keys are separate credentials. Keep secrets out
 public web roots, tool results and client-side JavaScript. This project is an independent
 integration, not an official SeoHost or DirectAdmin product.
 
+Mailbox creation/update is a deliberate direct-write exception to reviewed hosting
+plans: separate write scope, exact account operation policy, ownership checks,
+durable request IDs and shared account reservations remain mandatory. Deletion
+requires a fresh exact preview and explicit user confirmation in chat, including
+permanent message loss without a tool-created backup; a hash/string does not prove
+human consent. Generated passwords are synced to owner-only files before POST,
+never returned in MCP, logged or persisted in SQLite. There is no mailbox web UI.
+Owner hosting access retrieves credentials; agents must not read them into chat.
+Unknown writes retain reservations and credentials, without retry or automatic
+reconciliation. Provider-side external changes can race optimistic checks. See
+[mailboxes](docs/EMAIL.md).
+
 WordPress log reads require explicit private root allowlists and fresh provider
 installation/file metadata. Callers cannot provide file paths or enable debug.
 Metadata checks and download are not atomic against concurrent filesystem changes;

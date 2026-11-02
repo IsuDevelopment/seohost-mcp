@@ -2,7 +2,27 @@
 
 Updated: 2026-11-02.
 
-## Candidate 0.21.0 — immediate TLS provisioning (D32)
+## Candidate 0.22.0 — direct mailbox management (D33)
+
+- Forty tools: added mailbox inventory, secure client configuration, direct
+  create/update (quota/send limit/generated password reset), chat-confirmed
+  deletion and durable receipts. No browser preview, consent page or login step.
+  Per-operation account policy/write scopes and shared locks remain mandatory.
+- UUID request IDs atomically bind direct operations across MCP instances;
+  no duplicate POST on replay/concurrency. Generated credentials are synced to
+  owner-only files before provider I/O, never returned/logged/stored in SQLite.
+  Owner retrieves through authenticated hosting access. Deletion permanently
+  removes messages without an automatic backup and requires a fresh exact warning
+  and conversational consent. No mail DNS/content/send/bulk/rename functionality.
+- Verified the current official legacy POP contract and live profile field names
+  read-only. Prior safe read confirmed empty inventory on the selected domain.
+  Nonempty live inventory, CRUD, IMAP/SMTP login/delivery remain unverified;
+  fixture tests must not be described as live provider writes.
+- Full Node 22.23.2 check passes: types, 166/166 tests (including real SDK
+  direct-write/error receipt verification) and build. Markdown links and diff checks pass. Production remains 0.20.0; neither 0.21.0 nor this feature has
+  been deployed. Production mailbox allowlists are unchanged.
+
+## Historical candidate 0.21.0 — immediate TLS provisioning (D32)
 
 - Added the exact provision_certificates operation to existing planned hosting
   writes, preserving the 33-tool catalog. Fixed provider dry-run, owned parent-wide
@@ -13,8 +33,8 @@ Updated: 2026-11-02.
 - Current public H57 Swagger was re-read: response model names changed and ACME
   now includes externalAccountKeyID/externalAccountHMAC. A read-only dry-run on the
   owner-requested domain succeeded with no pending requests and one fulfilled
-  certificate. Independent metadata/normal HTTPS confirmed automatic issuance had
-  completed (valid apex/wildcard certificate, HTTP 200). No live issuance POST,
+  certificate. Independent metadata/normal HTTPS confirmed issuance had
+  completed after the owner manually triggered it in the panel (valid apex/wildcard certificate, HTTP 200). No live issuance POST,
   ACME config/policy edit, certificate removal, deployment or restart was performed.
 - `npm run check` passes on Node 22.23.2: types, 158/158 tests and build. Changed
   Markdown links and `git diff --check` pass. The restricted sandbox initially
