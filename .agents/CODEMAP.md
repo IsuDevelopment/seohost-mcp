@@ -23,7 +23,7 @@ module responsibilities or important flows change; keep this map short.
 | `src/backup-inventory.ts` | Opt-in private root, canonical/regular-file checks and paged archive candidate metadata; no contents, recursion or restore. |
 | `src/domain-dns.ts` | Account-owned domain settings, local DNS records/IDs/snapshots and contextual diagnostics. |
 | `src/redirects.ts` | Typed legacy site-redirect inventory, opaque selection, secret-safe URL projection, literal input policy and rule-map snapshots. |
-| `src/tls.ts` | Owned parent-domain ACME/certificate metadata, safe projections, secret-preserving config snapshots and conservative all-web-host redirect readiness. |
+| `src/tls.ts` | Owned parent-domain ACME/certificate metadata, bounded dry-run/provision result projections, EAB preservation, safe projections, secret-preserving config snapshots and conservative all-web-host redirect readiness. |
 | `src/public-dns.ts` | Fixed-origin public recursive DNS observations, TTL cache, NS/provider hints; no lookups in log/list flows. |
 | `src/hosting-changes.ts` | Validated operation previews/apply/reconciliation, write gates, stale checks, provider verification and no blind retries. |
 | `src/change-store.ts` | Private persistent SQLite previews, actor binding, account reservations, hash-only owner browser sessions, atomic original-to-recovery transfer / same-job install continuation and receipts across stateless MCP requests. |
@@ -51,7 +51,7 @@ module responsibilities or important flows change; keep this map short.
 | `test/wordpress-stage.test.ts` | Owner approval/CSRF/replay/expiry, write/host/path gates, secret stdin/environment, shared locks and partial failure; real child fixture and HTTP page; browser-compatible referrer policy with null/cross-site Origin rejection; remembered login persistence/expiry/rotation, cookie flags, logout and stale/cross-plan forms; DB naming and protected completed-result password reads/file boundaries/CSP hash; independent-domain placement, legacy compatibility, mode-specific permissions and locale switching; exact recovery approval, lock transfer, stale snapshot/refused file boundaries, verified private copies and no domain replay; documented SQL socket handling, exact empty-DB credential proof and no-creation install continuation. |
 | `test/account-diagnostics.test.ts`, `test/log-summary.test.ts` | Tally projection/unknown limits, resource denial/series validation, fresh DB ownership, backup boundaries/pagination and single-read/rare fatal/SDK summaries. |
 | `test/redirects.test.ts` | Typed decoding, secret projection, exact delete/add edits, authorization, stale/full-state checks, uncertainty/replay and SDK discovery. |
-| `test/tls.test.ts` | Parent-wide scope/write gates, config-secret preservation, certificate coverage/date checks, stale state, PUT uncertainty/reconciliation and MCP projection. |
+| `test/tls.test.ts` | Immediate issuance scope/gates/one-shot replay, stale secrets/dry-run, safe rejection versus uncertainty, preserved certificate identity and EAB/output secrecy; Parent-wide scope/write gates, config-secret preservation, certificate coverage/date checks, stale state, PUT uncertainty/reconciliation and MCP projection. |
 | `test/account-log.test.ts` | Fixed-file/account isolation, unsafe/missing/incomplete metadata, suffix bounds, redaction and real SDK reads. |
 | `test/wordpress.test.ts` | Subdomain ownership, installation projection/paging, cross-account IDs, root boundaries, file metadata, suffix ranges, output caps and custom log paths. |
 | `test/database-exports.test.ts` | Ownership/secret projection, storage modes/symlinks, compressed/decompressed limits, partial cleanup, actor/expiry/quota/concurrency and SDK/HTTP/local download helper. |
@@ -91,7 +91,8 @@ module responsibilities or important flows change; keep this map short.
   expected provider state, without another POST. Interrupted `applying` needs review.
 - Explicit creation+TLS request → separate create receipt → parent-wide ACME plan →
   daily provider issuance / later metadata check → HTTPS plan only when ready. No
-  automatic child-to-parent consent, on-demand issuance or background polling.
+  automatic child-to-parent consent or background polling. D32 adds separately
+  reviewed immediate provision_certificates requests when pending work exists.
 - Site redirect edit → API-listed opaque rule ID → separately authorized delete
   receipt → refreshed inventory → add receipt. No assumed overwrite or atomic edit;
   failure after deletion is partial completion. No destination HTTP requests.

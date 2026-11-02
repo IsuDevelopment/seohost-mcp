@@ -6,9 +6,9 @@ import { domainSchema } from './directadmin.js'
 import { DomainDnsClient, fingerprint, type ZoneRecord } from './domain-dns.js'
 import { dnsName } from './public-dns.js'
 import { ChangeStore } from './change-store.js'
-import { HostingError } from './hosting-error.js'
+import { HostingError, TlsProvisionRejected } from './hosting-error.js'
 import { RedirectsClient, redirectPath, redirectDestination, redirectType, projectRedirect, redirectVersion } from './redirects.js'
-import { TlsClient } from './tls.js'
+import { TlsClient, covers, provisionRequestKey, provisioningHostingState } from './tls.js'
 import type { WritePath } from './directadmin-http.js'
 
 const dnsRecordInput = z.object({ type: z.enum(['A', 'AAAA', 'CNAME', 'MX', 'TXT']),
@@ -22,6 +22,7 @@ export const changeInputSchema = z.discriminatedUnion('operation', [
   z.object({ operation: z.literal('delete_redirect'), domain: domainSchema, redirectId: z.string().regex(/^[a-f0-9]{64}$/) }).strict(),
   z.object({ operation: z.literal('set_free_certificate'), ...tlsChange }).strict(),
   z.object({ operation: z.literal('set_https_redirect'), ...tlsChange }).strict(),
+  z.object({ operation: z.literal('provision_certificates'), domain: domainSchema, scope: z.literal('domain_and_all_subdomains') }).strict(),
   z.object({ operation: z.literal('add_dns_record'), domain: domainSchema, record: dnsRecordInput }).strict(),
   z.object({ operation: z.literal('update_dns_record'), domain: domainSchema, recordId: z.string().regex(/^[a-f0-9]{64}$/), record: dnsRecordInput }).strict(),
   z.object({ operation: z.literal('delete_dns_record'), domain: domainSchema, recordId: z.string().regex(/^[a-f0-9]{64}$/) }).strict(),
@@ -103,10 +104,29 @@ export class HostingChanges {
         after: after ? { from: after.from, destination: after.to, type: after.type, overlappingPaths: overlaps } : null,
         expected: redirectVersion([...current.rules.filter(rule => rule.id !== before?.id), ...(after ? [after] : [])]), warnings }
     }
-    if (input.operation === 'set_free_certificate' || input.operation === 'set_https_redirect') {
+    if (input.operation === 'set_free_certificate' || input.operation === 'set_https_redirect' || input.operation === 'provision_certificates') {
       const state = await this.tls.state(serverId, input.domain)
       const before = state.publicState
       warnings.push('Domain-wide setting: affects the parent, all current/future subdomains and provider aliases. Never infer parent-wide consent from a request for one subdomain.')
+      if (input.operation === 'provision_certificates') {
+        if (!before.sslEnabled || before.suspended) throw new HostingError('TLS_DISABLED', 'Certificate provisioning requires an active domain with SSL enabled.')
+        if (!state.acme.enabled) throw new HostingError('ACME_DISABLED', 'Enable automatic certificates through a separate authorized plan first.')
+        if (state.acme.provider === 'letsencrypt-staging') throw new HostingError('ACME_PROVIDER_CONFLICT', 'Test-CA certificates do not establish public HTTPS readiness. Review the provider separately.')
+        const preview = await this.tls.previewProvision(serverId, input.domain)
+        if (!preview.acmeEnabled) throw new HostingError('ACME_DISABLED', 'The provider reports ACME disabled.')
+        if (preview.acmeInProgress) throw new HostingError('TLS_IN_PROGRESS', 'Certificate provisioning is already running; inspect TLS metadata instead of starting another request.')
+        if (preview.ratelimitReached) throw new HostingError('TLS_RATE_LIMIT', 'The provider reports a certificate rate limit. Do not retry issuance.')
+        if (preview.certsObsolete.length) throw new HostingError('CERTIFICATE_REMOVAL_REQUIRED', 'The provider would remove obsolete certificates. This operation preserves existing certificates; review removal manually.')
+        if (preview.dnsNamesFailedCAA.length || preview.dnsNamesFailedChallenge.length)
+          throw new HostingError('TLS_VALIDATION_BLOCKED', 'The dry run reports DNS/CAA/challenge failures. Diagnose DNS before requesting a certificate.')
+        if (!preview.certsPending.length) throw new HostingError('CERTIFICATE_ALREADY_READY', 'No certificate requests are pending. Inspect get_tls_info and do not request redundant issuance.')
+        const dnsNames = [...new Set(preview.certsPending.flatMap(cert => cert.dnsNames))].sort()
+        warnings.push('Sends one immediate ACME provisioning request using existing CA/DNS/account settings. Can take up to two minutes. Does not change DNS, hosting, HTTPS redirects, HSTS or ACME configuration. Raw provider logs are never returned.')
+        warnings.push('Only the exact pending certificate scope in this dry run is approved. No obsolete certificate deletion, automatic retry, background polling or guarantee of public/browser HTTPS is included.')
+        return { input, snapshot: fingerprint({ state: state.snapshot, preview }), path: null, params: {}, before,
+          after: { scope: input.scope, requests: preview.certsPending, dnsNames, skippedDnsNames: preview.dnsNamesSkipped, existingCertificates: 'preserved', issuance: 'one_immediate_request' },
+          expected: JSON.stringify({ dnsNames, retainedCertIds: before.certificates.map(cert => cert.id), acme: fingerprint(state.acme), hosting: provisioningHostingState(before) }), warnings }
+      }
       if (input.operation === 'set_free_certificate') {
         if (input.enabled && !['', 'letsencrypt'].includes(state.acme.provider))
           throw new HostingError('ACME_PROVIDER_CONFLICT', 'The domain uses another ACME provider. Review its settings in DirectAdmin before switching to production Let’s Encrypt.')
@@ -192,6 +212,14 @@ export class HostingChanges {
     } finally { store.close() }
   }
   private async verify(serverId: string, payload: Prepared) {
+    if (payload.input.operation === 'provision_certificates') {
+      const expected = JSON.parse(payload.expected) as { dnsNames: string[]; retainedCertIds: string[]; acme: string; hosting: string }
+      const current = await this.tls.state(serverId, payload.input.domain), info = current.publicState
+      return fingerprint(current.acme) === expected.acme && provisioningHostingState(info) === expected.hosting
+        && expected.retainedCertIds.every(id => info.certificates.some(cert => cert.id === id))
+        && !info.missingDnsNames.some(host => expected.dnsNames.some(name => covers(name, host) || covers(host, name)))
+        && expected.dnsNames.every(host => info.certificates.some(cert => cert.providerValidNow && cert.dnsNames.some(pattern => covers(pattern, host))))
+    }
     if (payload.input.operation === 'add_redirect' || payload.input.operation === 'delete_redirect')
       return (await this.redirects.state(serverId, payload.input.domain)).version === payload.expected
     if (payload.input.operation === 'set_free_certificate') return fingerprint((await this.tls.state(serverId, payload.input.domain)).acme) === payload.expected
@@ -207,10 +235,11 @@ export class HostingChanges {
     const serverId = this.authorize(reference, access), store = new ChangeStore(this.settings.changeStateFile || 'data/changes.sqlite')
     try {
       const change = store.get(id, access.actor, serverId), payload = change.payload as Prepared
-      if (reconcile && change.status === 'unknown' && await this.verify(serverId, payload)) {
+      if (reconcile && change.status === 'unknown' && !change.result?.unexpectedProvisioningScope && !change.result?.unexpectedCertificateRemoval && await this.verify(serverId, payload)) {
         store.finish(change, 'applied', { serverId, planId: id, operation: payload.input.operation, domain: payload.input.domain,
           status: 'applied', providerStateVerified: true, originalWriteConfirmation: 'unknown',
-          verificationSource: 'observed_during_reconciliation', ...(payload.input.operation === 'set_free_certificate' ? { certificateIssuance: 'not_verified_use_get_tls_info' } : {}), publicPropagation: 'unverified', appliedAt: new Date().toISOString() })
+          verificationSource: 'observed_during_reconciliation', ...(payload.input.operation === 'set_free_certificate' ? { certificateIssuance: 'not_verified_use_get_tls_info' } : {}),
+          ...(payload.input.operation === 'provision_certificates' ? { certificateIssuance: 'verified_for_planned_names', coveredNames: JSON.parse(payload.expected).dnsNames } : {}), publicPropagation: 'unverified', appliedAt: new Date().toISOString() })
       }
       return { serverId, planId: id, operation: payload.input.operation, status: change.status,
         expiresAt: new Date(change.expires).toISOString(), code: change.code ?? null, result: change.result ?? null }
@@ -220,6 +249,7 @@ export class HostingChanges {
     const serverId = this.authorize(reference, access), store = new ChangeStore(this.settings.changeStateFile || 'data/changes.sqlite')
     let sent = false
     let change
+    let provisioningSummary: Record<string, unknown> | undefined
     try {
       const existing = store.get(id, access.actor, serverId), payload = existing.payload as Prepared
       this.authorize(serverId, access, payload.input.operation)
@@ -229,7 +259,19 @@ export class HostingChanges {
       const fresh = await this.prepare(serverId, payload.input)
       if (fresh.snapshot !== payload.snapshot || fingerprint(fresh.params) !== fingerprint(payload.params))
         throw new HostingError('STALE_PLAN', 'Hosting/DNS state changed after the preview. Prepare and review a new plan.')
-      if (payload.input.operation === 'set_free_certificate') {
+      if (payload.input.operation === 'provision_certificates') {
+        const response = await this.tls.provision(serverId, payload.input.domain, () => { sent = true })
+        const requests = (fresh.after as { requests: Parameters<typeof provisionRequestKey>[0][] }).requests
+        const approved = new Set(requests.map(provisionRequestKey))
+        provisioningSummary = { requestsSucceeded: response.provisionResults.filter(item => item.success).length,
+          requestsFailed: response.provisionResults.filter(item => !item.success).length,
+          failedCaaNames: response.dnsNamesFailedCAA, failedChallengeNames: response.dnsNamesFailedChallenge,
+          unexpectedCertificateRemoval: response.certsRemoved.length > 0,
+          unexpectedProvisioningScope: response.provisionResults.some(item => !approved.has(provisionRequestKey(item.request))) }
+        if (provisioningSummary.unexpectedCertificateRemoval || provisioningSummary.unexpectedProvisioningScope
+          || provisioningSummary.requestsFailed || response.dnsNamesFailedCAA.length || response.dnsNamesFailedChallenge.length)
+          throw new HostingError('WRITE_OUTCOME_UNKNOWN', 'Certificate provisioning returned partial/failing or unexpected results. Inspect the safe receipt and TLS state; do not retry.')
+      } else if (payload.input.operation === 'set_free_certificate') {
         // Re-read secrets immediately before PUT; never persist them in plans/receipts.
         const state = await this.tls.state(serverId, payload.input.domain)
         if (state.snapshot !== payload.snapshot) throw new HostingError('STALE_PLAN', 'TLS settings changed after the preview.')
@@ -243,12 +285,15 @@ export class HostingChanges {
       }
       const verified = await this.verify(serverId, payload)
       if (!verified) throw new HostingError('WRITE_OUTCOME_UNKNOWN', 'The write response arrived but the expected provider state could not be verified. Inspect before retrying.')
-      const result = { serverId, planId: id, operation: payload.input.operation, domain: payload.input.domain,
+      const result: Record<string, unknown> = { serverId, planId: id, operation: payload.input.operation, domain: payload.input.domain,
         status: 'applied', providerStateVerified: true, ...(payload.input.operation === 'set_free_certificate' ? { certificateIssuance: 'not_verified_use_get_tls_info' } : {}), publicPropagation: 'unverified', appliedAt: new Date().toISOString() }
+      if (payload.input.operation === 'provision_certificates') Object.assign(result, provisioningSummary,
+        { certificateIssuance: 'verified_for_planned_names', coveredNames: JSON.parse(payload.expected).dnsNames })
       store.finish(change, 'applied', result)
       return result
     } catch (error) {
-      if (change) store.finish(change, sent ? 'unknown' : 'failed', undefined, error instanceof HostingError ? error.code : 'REQUEST_FAILED')
+      if (error instanceof TlsProvisionRejected) sent = false
+      if (change) store.finish(change, sent ? 'unknown' : 'failed', provisioningSummary, error instanceof HostingError ? error.code : 'REQUEST_FAILED')
       if (sent && !(error instanceof HostingError && error.code === 'WRITE_OUTCOME_UNKNOWN'))
         throw new HostingError('WRITE_OUTCOME_UNKNOWN', 'A write was sent but its outcome is uncertain. Inspect the receipt and provider state; do not retry blindly.')
       throw error

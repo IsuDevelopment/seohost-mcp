@@ -104,8 +104,8 @@ HSTS and document roots. Different ACME providers block enablement rather than
 being silently replaced. A config receipt does not establish certificate issuance.
 
 Agents chain separately reviewed plans only on an explicit creation+TLS request.
-Daily provider issuance can remain pending; no background workflow or on-demand
-provisioning is installed. HTTPS enablement requires conservative provider metadata
+Daily provider issuance can remain pending; no background workflow is installed.
+D32 adds separately allowlisted immediate provisioning with its own reviewed plan. HTTPS enablement requires conservative provider metadata
 coverage of all listed web/www hosts, valid dates and no reported missing names.
 It is not live chain/browser trust, alias completeness or Cloudflare mode validation.
 See [TLS.md](../docs/TLS.md) for recovery, scope and verification limits.
@@ -303,3 +303,23 @@ WordPress removes fixed per-job source/extraction copies only after installation
 verification; cleanup failure is reported/deferred, never an installation failure.
 Unknown jobs, original templates/truncated artifacts, passwords and SQLite/config
 remain untouched. Same-UID trust and bounded no-link checks apply; see MAINTENANCE.md.
+
+## Immediate ACME provisioning (D32)
+
+Extend existing immutable plans/actor/account reservations with the exact
+`provision_certificates` operation and parent-wide scope. Preview and apply both
+refresh a fixed provider dry-run; disabled/concurrent/limited/invalid/foreign or
+certificate-removing requests are refused. One fixed no-body POST consumes the
+reservation before I/O, uses bounded timeout/output and never follows redirects or
+retries. Existing CA/DNS/EAB settings, certificate identities, DNS/hosting and
+redirect/HSTS state must be preserved. Success requires fresh valid coverage for
+the exact planned names, not just an HTTP success response.
+
+Raw provisioning output is discarded. Receipts contain safe counts/names only.
+Documented no-start rejection statuses release a failed reservation; ambiguous or
+partial writes remain unknown/locked. Reconciliation is read-only and must prove
+planned coverage and preserved state. Unexpected removals/unapproved scope cannot
+be automatically accepted later. Optional known EAB credentials are parsed and
+preserved only in memory; unknown ACME fields remain a hard failure. No direct
+certificate deletion, generic endpoint, auto consent or background retry is added.
+See [TLS](../docs/TLS.md) for bounds and provider verification evidence.

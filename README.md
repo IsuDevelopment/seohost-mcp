@@ -3,7 +3,7 @@
 MCP integration with read-only defaults and reviewed domain/DNS/TLS changes for **standard SeoHost shared hosting** accounts using
 DirectAdmin.
 
-Version 0.20.0: a standalone TypeScript/Node.js server with HTTP and stdio transports,
+Version 0.21.0: a standalone TypeScript/Node.js server with HTTP and stdio transports,
 Bearer and built-in OAuth authentication, domain/subdomain and WordPress inventory,
 account/database/backup metadata diagnostics, opt-in private database exports, owner-confirmed fresh WordPress staging, single-read log summaries,
 bounded reads of web-server logs, account-root `log.txt` and existing WordPress debug logs,
@@ -81,6 +81,8 @@ separate write authorization and per-account operation allowlists. Existing read
 tokens remain read-only. See [domain/DNS workflow](docs/DOMAIN-DNS.md) and [certificates/HTTPS](docs/TLS.md).
 Certificate automation and redirects are parent-wide, including subdomains. Agents
 can chain them after explicitly requested creation; pending issuance delays HTTPS.
+Version 0.21.0 adds separately allowlisted immediate certificate provisioning through
+reviewed dry-run/apply plans, with fresh coverage checks and no blind retries.
 [Site redirects](docs/REDIRECTS.md) support reads and planned add/delete operations
 with explicit 301/302/303 codes. Editing uses separate delete/add plans; partial
 failure is reported, with no assumed overwrite or automatic rollback.

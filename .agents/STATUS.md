@@ -1,6 +1,26 @@
 # Status and handoff
 
-Updated: 2026-10-29.
+Updated: 2026-11-02.
+
+## Candidate 0.21.0 — immediate TLS provisioning (D32)
+
+- Added the exact provision_certificates operation to existing planned hosting
+  writes, preserving the 33-tool catalog. Fixed provider dry-run, owned parent-wide
+  scope, CA/SSL/concurrency/rate/validation/removal gates, one-shot request and fresh
+  coverage/retained-state proof; explicit no-start rejection versus uncertainty.
+  Raw output is discarded and unknown receipts are not retried. Known EAB metadata
+  is preserved privately and no longer breaks TLS reads. Dependencies unchanged.
+- Current public H57 Swagger was re-read: response model names changed and ACME
+  now includes externalAccountKeyID/externalAccountHMAC. A read-only dry-run on the
+  owner-requested domain succeeded with no pending requests and one fulfilled
+  certificate. Independent metadata/normal HTTPS confirmed automatic issuance had
+  completed (valid apex/wildcard certificate, HTTP 200). No live issuance POST,
+  ACME config/policy edit, certificate removal, deployment or restart was performed.
+- `npm run check` passes on Node 22.23.2: types, 158/158 tests and build. Changed
+  Markdown links and `git diff --check` pass. The restricted sandbox initially
+  blocked loopback HTTP tests; the complete suite passed with local-network access.
+  Production remains 0.20.0 until separately deployed; the new account operation
+  stays disabled until explicitly configured.
 
 ## Artifact cleanup (D31, completed 2026-10-29)
 

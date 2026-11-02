@@ -152,3 +152,12 @@ files up to 32 MiB (the live pinned build contains a 13.4 MB JS worker). The sam
 approved job may re-run a pre-write core validator refusal at verifying_created_database;
 all guards, archive/candidate/tree proofs and reservation requirements still apply.
 No prepared or partially modified repair checkpoint is retried automatically.
+
+Immediate certificate issuance requires the exact `provision_certificates` account
+operation, write authorization and a reviewed parent-wide plan. Fresh provider
+dry-run/metadata gate the one-shot request; rate limits, concurrent provisioning,
+validation errors, removal or unexpected scope block it. Uncertain writes remain
+locked without retry; read-only reconciliation must prove preserved state and
+planned coverage. Raw provider output and EAB secrets never enter MCP/SQLite.
+Known EAB fields are preserved in memory; unknown config fields still fail closed.
+See [TLS](docs/TLS.md).

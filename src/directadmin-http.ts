@@ -1,5 +1,5 @@
 import type { Settings } from './config.js'
-import { HostingError } from './hosting-error.js'
+import { HostingError, TlsProvisionRejected } from './hosting-error.js'
 
 type ReadPath = '/CMD_API_DOMAIN' | '/CMD_API_SHOW_USER_USAGE' | '/CMD_API_SHOW_USER_CONFIG' | '/api/resource-usage/latest' | '/api/resource-usage/history'
   | '/api/db-show/databases' | `/api/db-show/databases/${string}`
@@ -158,6 +158,33 @@ export class DirectAdminTransport {
       if (response.status !== 204) throw new Error('Uncertain provider result')
     } catch {
       throw new HostingError('WRITE_OUTCOME_UNKNOWN', 'The provider did not confirm the ACME change. Inspect current state; do not retry blindly.')
+    }
+  }
+
+  // Fixed, domain-owned certificate request only. Dry-run never issues a certificate.
+  async postTlsProvision(serverId: string, domain: string, dryRun: boolean) {
+    const credentials = this.settings.credentials[serverId]
+    if (!credentials) throw new HostingError('CREDENTIALS_MISSING', 'Hosting credentials are missing.')
+    try {
+      const suffix = dryRun ? 'provision-certs-dry-run' : 'provision-certs'
+      const response = await this.request(new URL(`/api/domain-tls/${encodeURIComponent(domain)}/${suffix}`, this.settings.accounts[serverId]!.baseUrl), {
+        method: 'POST', redirect: 'manual', signal: AbortSignal.timeout(dryRun ? 30_000 : 120_000),
+        headers: { Authorization: 'Basic ' + Buffer.from(credentials.username + ':' + credentials.loginKey).toString('base64'), Accept: 'application/json' },
+      })
+      if (response.status !== 200) {
+        await response.body?.cancel()
+        const rejected: Record<number, string> = { 401: 'ACCESS_DENIED', 403: 'ACCESS_DENIED', 404: 'NOT_FOUND',
+          409: 'ACME_DISABLED', 490: 'TLS_RATE_LIMIT', 491: 'TLS_IN_PROGRESS' }
+        if (!dryRun && rejected[response.status])
+          throw new TlsProvisionRejected(rejected[response.status]!, 'The provider rejected certificate provisioning before starting this request. Inspect TLS settings, availability and rate limits before preparing another plan.')
+        throw new HostingError(dryRun ? 'TLS_PREVIEW_FAILED' : 'WRITE_OUTCOME_UNKNOWN',
+          dryRun ? 'The provider did not return a certificate provisioning preview.' : 'The provider did not confirm certificate provisioning. Inspect the stored receipt and TLS state; do not retry.')
+      }
+      return (await boundedBytes(response)).toString('utf8')
+    } catch (error) {
+      if (error instanceof HostingError) throw error
+      throw new HostingError(dryRun ? 'TLS_PREVIEW_FAILED' : 'WRITE_OUTCOME_UNKNOWN',
+        dryRun ? 'Could not obtain the bounded certificate preview.' : 'Certificate provisioning timed out or failed. Inspect current state without resending the request.')
     }
   }
 

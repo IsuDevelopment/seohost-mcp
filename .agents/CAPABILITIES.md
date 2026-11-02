@@ -105,10 +105,11 @@ Not implemented: arbitrary file/shell execution through MCP,
 global machine logs, automatic debug enablement, rotated-history search, multi-user
 ACLs or automatic production deployment on push.
 
-DNS/hosting changes do not register domains, edit external Cloudflare/registrar DNS,
-trigger immediate certificate issuance, delete hosted domains/subdomains or write whole zones/NS/SOA/DS.
+Domain/DNS creation does not register domains, edit external Cloudflare/registrar
+DNS, issue certificates, delete hosted domains/subdomains or write whole zones/NS/SOA/DS.
+Immediate issuance uses the separate `provision_certificates` operation below.
 
-TLS operations: `set_free_certificate` and `set_https_redirect`, with `domain`,
+TLS toggles: `set_free_certificate` and `set_https_redirect`, with `domain`,
 `enabled` and explicit `scope=domain_and_all_subdomains`. Both require their own
 account allowlist entries. ACME enablement uses the daily provider schedule; disabling
 retains installed certs/redirects. HTTPS enablement waits for provider metadata
@@ -206,3 +207,16 @@ Successful deployments retain one private previous-code archive; successful WP j
 report temporaryArtifactsRemoved and coreManifestReference. coreArchiveReference
 is null after its disposable source archive is removed. Original backups/passwords
 and incomplete-job recovery evidence remain. See MAINTENANCE.md.
+
+Immediate TLS provisioning (0.21.0): `plan_hosting_change` accepts
+`{operation:"provision_certificates",domain,scope:"domain_and_all_subdomains"}`.
+Requires write scope and that exact account allowlist entry. A fresh provider dry-run
+shows pending certificate requests and refuses disabled ACME/SSL, concurrent work,
+limits, validation failures, foreign/duplicate requests or proposed certificate
+removal. No pending work means already ready, not a reason to force renewal.
+Apply sends one request (up to 120 seconds; use an adequate client timeout), checks
+coverage and retained state and stores a safe receipt. Unknown/partial results stay
+locked without retry; get_hosting_change can reconcile observed coverage, except
+unexpected scope/removal requires operator review. No settings/DNS/redirect writes
+or raw provider output/keys. Live immediate issuance remains unverified; deployment
+and private operation enablement are separate. See [TLS](../docs/TLS.md).

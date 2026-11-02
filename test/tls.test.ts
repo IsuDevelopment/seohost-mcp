@@ -20,18 +20,47 @@ async function fixture() {
   settings.accounts = { primary: { label: 'Hosting', aliases: [], baseUrl: 'https://hosting.example:2222', usernameEnv: 'USER', loginKeyEnv: 'KEY', writeOperations: [...writeOperations] } }
   settings.credentials = { primary: { username: 'account', loginKey: 'private-key' } }
   const state = { acme: { enabled: false, provider: 'letsencrypt', keyType: 'ec256', preferWildcard: true,
+    externalAccountKeyID: 'secret-never-eab-id', externalAccountHMAC: 'secret-never-eab-hmac',
     dnsProvider: 'cloudflare', dnsEnvironment: { CLOUDFLARE_DNS_API_TOKEN: 'secret-never-return-or-persist' }, skipDNSNames: ['testing.site.example'] },
     subdomains: ['stage'], forceHttps: false, ssl: true, hsts: false, suspended: false,
     certs: { certIds: ['certificate-id'], missingDNSNames: [] as string[], certs: [{ id: 'certificate-id', autorenewEnabled: true, validationError: '',
       certificate: { dnsNames: ['site.example', '*.site.example', '*.stage.site.example'],
         notBefore: new Date(Date.now() - 86400000).toISOString(), notAfter: new Date(Date.now() + 86400000).toISOString(),
         issuer: 'safe issuer', privateKey: 'do-not-project-additional-fields' } }] },
-    writes: [] as { method: string; path: string; body: string }[], calls: [] as string[], uncertain: false, badStatus: 0, invalid: false }
+    writes: [] as { method: string; path: string; body: string }[], calls: [] as string[], uncertain: false, badStatus: 0, invalid: false,
+    previewCalls: 0, previewOverride: undefined as unknown, provisionStatus: 0, provisionMode: 'success',
+    dryRun: { acmeEnabled: true, acmeInProgress: false, ratelimitReached: false,
+      certsPending: [{ certID: 'certificate-id', challengeType: 'http-01', dnsNames: ['site.example','www.site.example'] }],
+      certsFulfilled: [] as { certID: string; dnsNames: string[] }[], certsObsolete: [] as { certID: string; dnsNames: string[] }[],
+      dnsNamesFailedCAA: [] as string[], dnsNamesFailedChallenge: [] as string[], dnsNamesSkipped: [] as string[] } }
+  const readyCertificate = structuredClone(state.certs.certs[0]!)
   const request: typeof fetch = async (input, init) => {
     const url = new URL(String(input)); state.calls.push(url.pathname)
     assert.equal(url.origin, 'https://hosting.example:2222'); assert.equal(init?.redirect, 'manual')
     assert.equal(new Headers(init?.headers).get('Authorization'), 'Basic ' + Buffer.from('account:private-key').toString('base64'))
     assert(!url.pathname.endsWith('/files')); assert.notEqual(url.pathname, '/CMD_API_SSL')
+    if (url.pathname.endsWith('/provision-certs-dry-run')) {
+      assert.equal(init?.method, 'POST'); assert.equal(init.body, undefined)
+      state.previewCalls++
+      return json(state.previewOverride ?? state.dryRun)
+    }
+    if (url.pathname.endsWith('/provision-certs')) {
+      assert.equal(init?.method, 'POST'); assert.equal(init.body, undefined)
+      state.writes.push({ method: 'POST', path: url.pathname, body: '' })
+      if (state.provisionStatus) return new Response('secret-never-provider-error', { status: state.provisionStatus })
+      if (!['missing', 'partial'].includes(state.provisionMode)) {
+        state.certs.certs = [structuredClone(readyCertificate)]; state.certs.certIds = ['certificate-id']; state.certs.missingDNSNames = []
+      }
+      if (state.provisionMode === 'timeout') throw new Error('secret-never-timeout')
+      if (state.provisionMode === 'malformed') return json({ output: 'secret-never-output' })
+      if (state.provisionMode === 'oversized') return new Response('secret-never-output', { headers: { 'Content-Length': String(512*1024+1) } })
+      const result = { certsFulfilled: [{ certID: 'certificate-id', dnsNames: ['site.example','www.site.example'] }],
+        certsRemoved: state.provisionMode === 'removed' ? [{ certID: 'old', dnsNames: ['site.example'] }] : [],
+        dnsNamesFailedCAA: [], dnsNamesFailedChallenge: [], dnsNamesSkipped: [],
+        provisionResults: [{ request: structuredClone(state.dryRun.certsPending[0]!), success: state.provisionMode !== 'partial', output: 'secret-never-command-output' }] }
+      if (state.provisionMode === 'unexpected') result.provisionResults.push({ request: { certID: 'foreign', challengeType: 'http-01', dnsNames: ['foreign.example'] }, success: true, output: 'secret-never-other-output' })
+      return json(result)
+    }
     if (init?.method !== 'GET') {
       state.writes.push({ method: init!.method!, path: url.pathname, body: String(init!.body) })
       if (init?.method === 'PUT') {
@@ -188,4 +217,150 @@ test('MCP exposes safe TLS read and strictly validated planned changes to AI cli
     const plan = await client.callTool({ name: 'plan_hosting_change', arguments: { serverId: 'primary', change: f.change('set_free_certificate', true) } })
     assert.equal(plan.isError, undefined); assert.equal(f.state.writes.length, 0)
   } finally { await client.close(); await server.close(); await f.close() }
+})
+
+const provisionInput = { operation: 'provision_certificates', domain: 'site.example', scope: 'domain_and_all_subdomains' }
+async function pendingFixture() {
+  const f = await fixture(), certificate = structuredClone(f.state.certs.certs[0]!)
+  f.state.acme.enabled = true; f.state.subdomains = []
+  f.state.certs = { certIds: [], certs: [], missingDNSNames: ['site.example','www.site.example'] }
+  return { ...f, observeProvisioned() { f.state.certs = { certIds: ['certificate-id'], certs: [structuredClone(certificate)], missingDNSNames: [] } } }
+}
+
+test('immediate issuance plans use dry run, require exact authorization and send one replay-safe request', async () => {
+  const f = await pendingFixture()
+  try {
+    assert(!changeInputSchema.safeParse({ operation: 'provision_certificates', domain: 'site.example' }).success)
+    assert(!changeInputSchema.safeParse({ ...provisionInput, enabled: true }).success)
+    await assert.rejects(f.changes.plan('primary', provisionInput, { ...access, canWrite: false }), code('WRITE_SCOPE_REQUIRED'))
+    f.settings.accounts.primary!.writeOperations = ['set_free_certificate']
+    await assert.rejects(f.changes.plan('primary', provisionInput, access), code('WRITE_DISABLED'))
+    assert.equal(f.state.calls.length, 0)
+    f.settings.accounts.primary!.writeOperations = ['provision_certificates']
+    const p = await f.changes.plan('primary', provisionInput, access)
+    assert.equal(f.state.previewCalls, 1); assert.equal(f.state.writes.length, 0)
+    assert(!JSON.stringify(p).includes('secret-never'))
+    f.settings.accounts.primary!.writeOperations = ['set_free_certificate']
+    await assert.rejects(f.changes.apply('primary', p.planId, p.previewHash, access), code('WRITE_DISABLED'))
+    f.settings.accounts.primary!.writeOperations = ['provision_certificates']
+    const applied = await f.changes.apply('primary', p.planId, p.previewHash, access)
+    assert.equal(applied.certificateIssuance, 'verified_for_planned_names')
+    assert.deepEqual(applied.coveredNames, ['site.example','www.site.example'])
+    assert.equal(f.state.writes.length, 1); assert.equal(f.state.previewCalls, 2)
+    assert.deepEqual(await new HostingChanges(f.settings, f.request).apply('primary', p.planId, p.previewHash, access), applied)
+    assert.equal(f.state.writes.length, 1)
+    assert.equal(f.state.forceHttps, false); assert.equal(f.state.hsts, false)
+    const stored = await readFile(f.settings.changeStateFile!)
+    assert(!stored.includes(Buffer.from('secret-never'))); assert(!stored.includes(Buffer.from('do-not-project')))
+  } finally { await f.close() }
+})
+
+test('issuance refuses disabled, concurrent, limited, invalid, foreign and certificate-removing previews', async () => {
+  const scenarios: [string, (f: Awaited<ReturnType<typeof pendingFixture>>) => void][] = [
+    ['ACME_DISABLED', f => { f.state.acme.enabled = false }],
+    ['TLS_DISABLED', f => { f.state.ssl = false }],
+    ['TLS_DISABLED', f => { f.state.suspended = true }],
+    ['ACME_PROVIDER_CONFLICT', f => { f.state.acme.provider = 'letsencrypt-staging' }],
+    ['ACME_DISABLED', f => { f.state.dryRun.acmeEnabled = false }],
+    ['TLS_IN_PROGRESS', f => { f.state.dryRun.acmeInProgress = true }],
+    ['TLS_RATE_LIMIT', f => { f.state.dryRun.ratelimitReached = true }],
+    ['CERTIFICATE_REMOVAL_REQUIRED', f => { f.state.dryRun.certsObsolete.push({ certID: 'old', dnsNames: ['site.example'] }) }],
+    ['TLS_VALIDATION_BLOCKED', f => { f.state.dryRun.dnsNamesFailedCAA.push('site.example') }],
+    ['TLS_VALIDATION_BLOCKED', f => { f.state.dryRun.dnsNamesFailedChallenge.push('site.example') }],
+    ['CERTIFICATE_ALREADY_READY', f => { f.state.dryRun.certsPending = [] }],
+    ['INVALID_RESPONSE', f => { f.state.dryRun.certsPending[0]!.dnsNames = ['foreign.example'] }],
+    ['INVALID_RESPONSE', f => { f.state.dryRun.certsPending.push(structuredClone(f.state.dryRun.certsPending[0]!)) }],
+    ['INVALID_RESPONSE', f => { f.state.previewOverride = { error: 'secret-never-upstream-error' } }],
+    ['INVALID_RESPONSE', f => { Object.assign(f.state.acme, { futureSecretSetting: 'secret-never-drop' }) }],
+  ]
+  for (const [expected, mutate] of scenarios) {
+    const f = await pendingFixture()
+    try { mutate(f); await assert.rejects(f.changes.plan('primary', provisionInput, access), code(expected)); assert.equal(f.state.writes.length, 0) }
+    finally { await f.close() }
+  }
+})
+
+test('changed ACME secrets, pending request scope or hosting invalidate issuance plans before any write', async () => {
+  for (const mutate of [
+    (f: Awaited<ReturnType<typeof pendingFixture>>) => { f.state.acme.externalAccountHMAC = 'secret-never-changed' },
+    (f: Awaited<ReturnType<typeof pendingFixture>>) => { f.state.dryRun.certsPending[0]!.dnsNames = ['site.example'] },
+    (f: Awaited<ReturnType<typeof pendingFixture>>) => { f.state.forceHttps = true },
+  ]) {
+    const f = await pendingFixture()
+    try {
+      const p = await f.changes.plan('primary', provisionInput, access); mutate(f)
+      await assert.rejects(f.changes.apply('primary', p.planId, p.previewHash, access), code('STALE_PLAN'))
+      assert.equal(f.state.writes.length, 0)
+    } finally { await f.close() }
+  }
+})
+
+test('documented no-start rejections release the reservation without claiming issuance or retrying', async () => {
+  for (const [status, expected] of [[403,'ACCESS_DENIED'],[404,'NOT_FOUND'],[409,'ACME_DISABLED'],[490,'TLS_RATE_LIMIT'],[491,'TLS_IN_PROGRESS']] as const) {
+    const f = await pendingFixture()
+    try {
+      const p = await f.changes.plan('primary', provisionInput, access); f.state.provisionStatus = status
+      await assert.rejects(f.changes.apply('primary', p.planId, p.previewHash, access), code(expected))
+      const receipt = await f.changes.get('primary', p.planId, access)
+      assert.equal(receipt.status, 'failed'); assert.equal(f.state.writes.length, 1)
+      assert(!JSON.stringify(receipt).includes('secret-never'))
+    } finally { await f.close() }
+  }
+})
+
+test('timeouts, incomplete responses and limits preserve unknown outcomes and reconcile without another request', async () => {
+  for (const mode of ['timeout','malformed','missing','partial','oversized','redirect']) {
+    const f = await pendingFixture()
+    try {
+      const p = await f.changes.plan('primary', provisionInput, access)
+      f.state.provisionMode = mode
+      if (mode === 'redirect') f.state.provisionStatus = 302
+      await assert.rejects(f.changes.apply('primary', p.planId, p.previewHash, access), code('WRITE_OUTCOME_UNKNOWN'))
+      await assert.rejects(f.changes.apply('primary', p.planId, p.previewHash, access), code('PLAN_NOT_READY'))
+      f.observeProvisioned()
+      const receipt = await f.changes.get('primary', p.planId, access, true)
+      assert.equal(receipt.status, 'applied'); assert.equal(receipt.result?.originalWriteConfirmation, 'unknown')
+      assert.equal(f.state.writes.length, 1); assert(!JSON.stringify(receipt).includes('secret-never'))
+    } finally { await f.close() }
+  }
+})
+
+test('unexpected removals or additional provisioning scope stay locked even when certificate coverage appears ready', async () => {
+  for (const mode of ['removed','unexpected']) {
+    const f = await pendingFixture()
+    try {
+      const p = await f.changes.plan('primary', provisionInput, access); f.state.provisionMode = mode
+      await assert.rejects(f.changes.apply('primary', p.planId, p.previewHash, access), code('WRITE_OUTCOME_UNKNOWN'))
+      const receipt = await f.changes.get('primary', p.planId, access, true)
+      assert.equal(receipt.status, 'unknown')
+      assert.equal(f.state.writes.length, 1); assert(!JSON.stringify(receipt).includes('secret-never'))
+    } finally { await f.close() }
+  }
+})
+
+test('the real MCP client can preview and apply the typed issuance operation', async () => {
+  const f = await pendingFixture(), server = createMcpServer(f.settings,f.request,access), client = new Client({name:'provision-test',version:'1'})
+  const [a,b] = InMemoryTransport.createLinkedPair()
+  try {
+    await server.connect(a); await client.connect(b)
+    const preview = await client.callTool({name:'plan_hosting_change',arguments:{serverId:'primary',change:provisionInput}})
+    assert.equal(preview.isError,undefined)
+    const plan = preview.structuredContent as {planId:string;previewHash:string}
+    const result = await client.callTool({name:'apply_hosting_change',arguments:{serverId:'primary',...{planId:plan.planId,previewHash:plan.previewHash}}})
+    assert.equal(result.isError,undefined); assert.equal(f.state.writes.length,1)
+  } finally { await client.close();await server.close();await f.close() }
+})
+
+test('issuance cannot reconcile success after silently losing an existing certificate', async () => {
+  const f = await pendingFixture()
+  try {
+    f.observeProvisioned()
+    f.state.certs.certs[0]!.id = 'old-certificate'
+    f.state.certs.certs[0]!.certificate.dnsNames = ['old.site.example']
+    f.state.certs.certIds = ['old-certificate']
+    const p = await f.changes.plan('primary', provisionInput, access)
+    await assert.rejects(f.changes.apply('primary', p.planId, p.previewHash, access), code('WRITE_OUTCOME_UNKNOWN'))
+    assert.equal((await f.changes.get('primary', p.planId, access, true)).status, 'unknown')
+    assert.equal(f.state.writes.length, 1)
+  } finally { await f.close() }
 })
